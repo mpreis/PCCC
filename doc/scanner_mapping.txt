@@ -1,0 +1,46 @@
+=======
+MAPPING
+=======
+			 _
+00	NULL	|_
+01	[		|
+02	]		|
+03	(		|	parenthies
+04	)		|
+05	{		|
+06	}		|_
+07	;		|
+08	,		|	special symbols
+09	"		|
+10	'		|_
+11	=		|
+12	+		|
+13	-		|	arithmetrical operations
+14	*		|
+15	/		|_
+16	<		|
+17	>		|
+18	==		|	boolean operations
+19	!=		|
+20	&&		|
+21	||		|_
+22	int		|
+23	char	|
+24	bool	|
+25	struct	|	data types
+26	array	|
+27	var		|
+28	number	|_
+29	if		|
+30	else	|	control elemets
+31	while	|
+32	return	|_
+33	/*		|	comments
+34	*/		|_
+35	&		|	
+36	->		|	references
+37	*		|_
+38	method	|_ 	methods
+39	#include|	<...>
+40	#include|_	"..."
+41	\n		|_
