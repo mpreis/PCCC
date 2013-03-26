@@ -16,20 +16,19 @@ void initToken(struct token *t, int tokenNr, int value, char string[]) {
 	t->digitValue = value;
 
 	int i = 0;
-	while(i < 32 && string != NULL && string[i] != '\0') {
+	while(i < 31 && string != NULL && string[i] != '\0') {
 		t->valueStr[i] = string[i];
 		i = i + 1;
 	}
+	t->valueStr[i] = '\0';
 }
 
 int isLetter(char c) {
-	if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) return 1;
-	return 0;
+	return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
 }
 
 int isDigit(char c) {
-	if(c < '0' || c > '9') return 1;
-	return 0;
+	return (c >= '0' && c <= '9');
 }
 
 int getNumber(char actNumber, FILE *stream) {
@@ -46,7 +45,8 @@ int getNumber(char actNumber, FILE *stream) {
 struct token getToken(char c, FILE *stream) {
 	struct token t;
 	initToken(&t, -1, -1, NULL);
-	if(c == '[') initToken(&t, 1, -1, NULL);
+
+	if(c == '[') initToken(&t, 1, -1, NULL);	/* array */
 	if(c == ']') initToken(&t, 2, -1, NULL);
 	if(c == '(') initToken(&t, 3, -1, NULL);
 	if(c == ')') initToken(&t, 4, -1, NULL);
@@ -54,7 +54,7 @@ struct token getToken(char c, FILE *stream) {
 	if(c == '}') initToken(&t, 6, -1, NULL);
 	if(c == ';') initToken(&t, 7, -1, NULL);
 	if(c == ',') initToken(&t, 8, -1, NULL);
-	if(c == '\"')initToken(&t, 9, -1, NULL);
+	if(c == '\"')initToken(&t, 9, -1, NULL);	/* string todo */
 	if(c == '\'')initToken(&t, 10, -1, NULL);
 	if(c == '=') initToken(&t, 11, -1, NULL);
 	if(c == '+') initToken(&t, 12, -1, NULL);
@@ -80,7 +80,11 @@ struct token getToken(char c, FILE *stream) {
 		if(nc == ' ') initToken(&t, 15, -1, NULL);
 		if(nc == '*') {
 			nc = fgetc(stream);
-			while(nc != '*' && (nc = fgetc(stream)) != '/' && feof(stream) == 0) {}
+			char nnc = fgetc(stream);
+			while(nc != '*' && nnc != '/' && feof(stream) == 0) {
+				nc = nnc;
+				nnc = fgetc(stream);
+			}
 			initToken(&t, 35, -1, NULL);
 		}
 	}
@@ -94,22 +98,34 @@ struct token getToken(char c, FILE *stream) {
 			initToken(&t, 36, -1, NULL);
 	}
 	if(c == '#') {	 				/* do include method, 40 <...> und 41 "..." */
-		
+		char nc = fgetc(stream);
+		char inc[8] = "include ";
+		int i = 0;
+		while(i < 8 && inc[i] != nc) {
+			nc = fgetc(stream);
+		}
+		ungetc(nc, stream);
+		initToken(&t, 36, -1, NULL);
 	}
 	if(isDigit(c)) { 				/* do number method*/
 		int number = getNumber(c, stream);
 		initToken(&t, 30, number, NULL);
 	}
 	if(isLetter(c)) {
-		
+		char identifier[30];
+		identifier[0] = c;
+		char nc = fgetc(stream);
+		int i = 1;
+
+		while(nc != ' ' && nc != '(') { 	/* leerzeichen -> variable, typ, struct; ( -> methodenname;  */
+			identifier[i] = nc;
+			i++;
+			nc = fgetc(stream);
+		}
+		ungetc(nc, stream);
 	}
-	
 	return t;
-
 }
-
-
-
 
 
 /*
@@ -118,6 +134,7 @@ struct token getToken(char c, FILE *stream) {
  */
 int main(int argc, char *argv[]){
 	struct token t;	
+	printf(" - test\n");
 	if(argc < 1 && argc > 1) {
 		printf("\nERROR: invalid number of parameters!");
 		return 1;
@@ -134,9 +151,21 @@ int main(int argc, char *argv[]){
 		char c = fgetc(stream);
 
 		/* check input-character */
-		t = getToken(c, stream);
-		printf("%i-\"%s\"-\'%i\'\n", t->id, t->valueStr, t->digitValue);
+		if(c != ' ') {
+			if(c != '\n') { 
+				t = getToken(c, stream);
+				printf("%i ", t.id);
+				//printf(" -- %i\t%s\t%i \n", t.id, t.valueStr, t.digitValue);
+			}
+			else printf("\n");
+		}
 	}
+
 	if(fclose(stream) != 0)
-		printf("\nWARNING: can not close file!\n");	
+		printf("\nWARNING: can not close file!\n");
+	#if 0
+	#endif
+	return 1;
 }
+
+
