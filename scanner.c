@@ -104,7 +104,7 @@ struct token getToken(char c, FILE *stream) {
 		while(i < 8 && inc[i] != nc) {
 			nc = fgetc(stream);
 		}
-		ungetc(nc, stream);
+		//ungetc(nc, stream);
 		initToken(&t, 36, -1, NULL);
 	}
 	if(isDigit(c)) { 				/* do number method*/
