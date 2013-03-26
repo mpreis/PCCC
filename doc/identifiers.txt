@@ -45,3 +45,5 @@ syntax references:
 type *var = ...
 
 minus unterscheidung (negative zahl, rechenoperation)
+
+es ist nicht erlaubt, auf die zeigeradresse mit z.B. *p = 2 zuzugreifen

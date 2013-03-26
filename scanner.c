@@ -22,8 +22,20 @@ void initToken(struct token *t, int tokenNr, int value, char string[]) {
 	}
 }
 
+int getNumber(char actNumber, FILE *stream) {
+	int number = actNumber - '0';
+	actNumber = fgetc(stream);
+	while(actNumber < '0' || actNumber > '9') {
+		number = number * 10 + (actNumber - '0');
+		actNumber = fgetc(stream);
+	}
+	ungetc(actNumber, stream);
+	return number;
+}
+
 struct token getToken(char c, FILE *stream) {
 	struct token t;
+	initToken(&t, -1, -1, NULL);
 	if(c == '[') initToken(&t, 1, -1, NULL);
 	if(c == ']') initToken(&t, 2, -1, NULL);
 	if(c == '(') initToken(&t, 3, -1, NULL);
@@ -36,20 +48,59 @@ struct token getToken(char c, FILE *stream) {
 	if(c == '\'')initToken(&t, 10, -1, NULL);
 	if(c == '=') initToken(&t, 11, -1, NULL);
 	if(c == '+') initToken(&t, 12, -1, NULL);
-	if(c == '-') initToken(&t, 13, -1, NULL);	/* differ: numbers < 0, arithmetrical operation */
-	if(c == '*') initToken(&t, 14, -1, NULL);	/* differ: pointer, arithmetrical operation */
-	if(c == '/') initToken(&t, 15, -1, NULL);	/* differ: comment, division and -> */
+	if(c == '-') {					/* differ: numbers < 0, arithmetrical operation and -> */
+		int number;
+		char nc = fgetc(stream);
+		if(nc == ' ') initToken(&t, 13, -1, NULL);
+		if(nc == '>') initToken(&t, 37, -1, NULL);
+		if(nc >= '0' && nc <= '9') {
+			int number = getNumber(nc, stream);
+			number = number * -1;
+			initToken(&t, 30, number, NULL);
+		}
+	}	
+	if(c == '*') {					/* differ: pointer, arithmetrical operation */
+		char nc = fgetc(stream);
+		if(nc == ' ') initToken(&t, 14, -1, NULL);
+		if((nc >= 'a' && nc <= 'z') || (nc >= 'A' && nc <= 'Z')) 
+			initToken(&t, 38, -1, NULL);
+	}
+	if(c == '/') {					/* differ: comment, division */
+		char nc = fgetc(stream);
+		if(nc == ' ') initToken(&t, 15, -1, NULL);
+		if(nc == '*') {
+			nc = fgetc(stream);
+			while(nc != '*' && (nc = fgetc(stream)) != '/' && feof(stream) == 0) {}
+			initToken(&t, 35, -1, NULL);
+		}
+	}
 	if(c == '<') initToken(&t, 16, -1, NULL);	/* also used for include, handled seperatly */
 	if(c == '>') initToken(&t, 17, -1, NULL);	/* also used for include, handled seperatly */
-	if(c == '\n')initToken(&t, 41, -1, NULL);
-	if(c == '&') {} /* do and method*/
-	if(c == '#') {} /* do include method*/
-	if(c >= '0' && c <= '9') {} /* do number method*/
-	if( (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ) {}
+	if(c == '\n')initToken(&t, 42, -1, NULL);
+	if(c == '&') { 					/* do and method*/
+		char nc = fgetc(stream);
+		if(nc == '&') initToken(&t, 22, -1, NULL);
+		if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) 
+			initToken(&t, 36, -1, NULL);
+	}
+	if(c == '#') {	 				/* do include method, 40 <...> und 41 "..." */
 		
+	}
+	if(c >= '0' && c <= '9') { 			/* do number method*/
+		int number = getNumber(c, stream);
+		initToken(&t, 30, number, NULL);
+	}
+	if( (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ) {
+		
+	}
+	
 	return t;
 
 }
+
+
+
+
 
 /*
  * argc = 1
@@ -62,7 +113,7 @@ int main(int argc, char *argv[]){
 	}
 
 	FILE *stream;
-	if( (stream=fopen(argv[0], "r")) == NULL) {
+	if( (stream=fopen(argv[1], "r")) == NULL) {
 		printf("\nERROR: can not open file!\n");
 		return 1;
 	}
