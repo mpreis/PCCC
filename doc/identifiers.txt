@@ -25,14 +25,17 @@ handle method-calls
 main
 return 
 return-values (void, int, ...)
+
 #include
-	#include <stdio.h> =: 76-"stdio.h"
-	#include "myLib.h" =: 76-"myLib.h" or #include "myLib.h" =: 77-"myLib.h"
+	#include <stdio.h> =: xx-"stdio.h"
+	#include "myLib.h" =: xy-"myLib.h"
+
+	MUST HAVE: exatly one(!) white space after include
 
 optinal: %i %s \n
 
 syntax arithmetric operations:
-	symbols and varibles (or numbers) musst be seperated by exact one white space.
+	symbols and varibles (or numbers) must be seperated by exact one white space.
 	correct: var1 = 5 * var2;
 	not allowed:
 		var1=5*var2;
