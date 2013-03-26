@@ -22,6 +22,16 @@ void initToken(struct token *t, int tokenNr, int value, char string[]) {
 	}
 }
 
+int isLetter(char c) {
+	if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) return 1;
+	return 0;
+}
+
+int isDigit(char c) {
+	if(c < '0' || c > '9') return 1;
+	return 0;
+}
+
 int getNumber(char actNumber, FILE *stream) {
 	int number = actNumber - '0';
 	actNumber = fgetc(stream);
@@ -53,7 +63,7 @@ struct token getToken(char c, FILE *stream) {
 		char nc = fgetc(stream);
 		if(nc == ' ') initToken(&t, 13, -1, NULL);
 		if(nc == '>') initToken(&t, 37, -1, NULL);
-		if(nc >= '0' && nc <= '9') {
+		if(isDigit(nc)) {
 			int number = getNumber(nc, stream);
 			number = number * -1;
 			initToken(&t, 30, number, NULL);
@@ -62,7 +72,7 @@ struct token getToken(char c, FILE *stream) {
 	if(c == '*') {					/* differ: pointer, arithmetrical operation */
 		char nc = fgetc(stream);
 		if(nc == ' ') initToken(&t, 14, -1, NULL);
-		if((nc >= 'a' && nc <= 'z') || (nc >= 'A' && nc <= 'Z')) 
+		if(isLetter(nc)) 
 			initToken(&t, 38, -1, NULL);
 	}
 	if(c == '/') {					/* differ: comment, division */
@@ -80,17 +90,17 @@ struct token getToken(char c, FILE *stream) {
 	if(c == '&') { 					/* do and method*/
 		char nc = fgetc(stream);
 		if(nc == '&') initToken(&t, 22, -1, NULL);
-		if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) 
+		if(isLetter(c)) 
 			initToken(&t, 36, -1, NULL);
 	}
 	if(c == '#') {	 				/* do include method, 40 <...> und 41 "..." */
 		
 	}
-	if(c >= '0' && c <= '9') { 			/* do number method*/
+	if(isDigit(c)) { 				/* do number method*/
 		int number = getNumber(c, stream);
 		initToken(&t, 30, number, NULL);
 	}
-	if( (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ) {
+	if(isLetter(c)) {
 		
 	}
 	
@@ -107,6 +117,7 @@ struct token getToken(char c, FILE *stream) {
  * argv[0] = filename
  */
 int main(int argc, char *argv[]){
+	struct token t;	
 	if(argc < 1 && argc > 1) {
 		printf("\nERROR: invalid number of parameters!");
 		return 1;
@@ -123,7 +134,8 @@ int main(int argc, char *argv[]){
 		char c = fgetc(stream);
 
 		/* check input-character */
-		getToken(c, stream);
+		t = getToken(c, stream);
+		printf("%i-\"%s\"-\'%i\'\n", t->id, t->valueStr, t->digitValue);
 	}
 	if(fclose(stream) != 0)
 		printf("\nWARNING: can not close file!\n");	
