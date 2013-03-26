@@ -31,10 +31,10 @@ int isDigit(char c) {
 	return (c >= '0' && c <= '9');
 }
 
-int getNumber(char actNumber, FILE *stream) {
-	int number = actNumber - '0';
-	actNumber = fgetc(stream);
-	while(actNumber < '0' || actNumber > '9') {
+int getNumber(char nr, FILE *stream) {
+	int number = nr - '0';
+	char actNumber = fgetc(stream);
+	while(actNumber >= '0' && actNumber <= '9') {
 		number = number * 10 + (actNumber - '0');
 		actNumber = fgetc(stream);
 	}
@@ -101,17 +101,40 @@ struct token getToken(char c, FILE *stream) {
 		char nc = fgetc(stream);
 		char inc[8] = "include ";
 		int i = 0;
-		while(i < 8 && inc[i] != nc) {
+		while(i < 8 && nc == inc[i]) {
 			nc = fgetc(stream);
+			i = i + 1;		
 		}
-		//ungetc(nc, stream);
-		initToken(&t, 36, -1, NULL);
+		if(i == 8) {
+			char end;
+			char buff[32];
+			int k = 0, nr;
+			if(nc == '<' || nc == '\"') {
+				if(nc == '<') {
+					end = '>';
+					nr = 36;
+				}
+				else {
+					end = '\"';
+					nr = 37;
+				}
+				nc = fgetc(stream);
+				while(k < 31 && nc != end) {
+					buff[k] = nc;
+					nc = fgetc(stream);
+					k = k + 1;
+				}
+				buff[k] = '\0';
+				initToken(&t, nr, -1, buff);
+			}
+		}
 	}
 	if(isDigit(c)) { 				/* do number method*/
 		int number = getNumber(c, stream);
 		initToken(&t, 30, number, NULL);
 	}
 	if(isLetter(c)) {
+#if 0
 		char identifier[30];
 		identifier[0] = c;
 		char nc = fgetc(stream);
@@ -123,6 +146,7 @@ struct token getToken(char c, FILE *stream) {
 			nc = fgetc(stream);
 		}
 		ungetc(nc, stream);
+#endif
 	}
 	return t;
 }
@@ -133,7 +157,9 @@ struct token getToken(char c, FILE *stream) {
  * argv[0] = filename
  */
 int main(int argc, char *argv[]){
-	struct token t;	
+	struct token t;
+	initToken(&t,-1,-1,NULL);
+	
 	printf(" - test\n");
 	if(argc < 1 && argc > 1) {
 		printf("\nERROR: invalid number of parameters!");
@@ -150,17 +176,16 @@ int main(int argc, char *argv[]){
 		/* read character */
 		char c = fgetc(stream);
 		/* check input-character */
-
 		if(c != ' ') {
 			if(c != '\n') { 
 				t = getToken(c, stream);
-				printf("%i ", t.id);
-				//printf(" -- %i\t%s\t%i \n", t.id, t.valueStr, t.digitValue);
+				//printf(" %i ", t.id);
+				printf("\n -- %i_%s_%i", t.id, t.valueStr, t.digitValue);
 			}
 			else printf("\n");
 		}
 	}
-
+	printf("\n");
 	if(fclose(stream) != 0)
 		printf("\nWARNING: can not close file!\n");
 	return 1;
