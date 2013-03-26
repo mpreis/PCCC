@@ -15,7 +15,7 @@ void initToken(struct token *t, int tokenNr, int value, char string[]) {
 	int i = 0;
 	t->id = tokenNr;
 	t->digitValue = value;
-	int i = 0;
+
 	while(i < 31 && string != NULL && string[i] != '\0') {
 		t->valueStr[i] = string[i];
 		i = i + 1;
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]){
 		/* read character */
 		char c = fgetc(stream);
 		/* check input-character */
-		printf("\n%i   %s   %i \n", t.id, t.valueStr, t.digitValue);
+
 		if(c != ' ') {
 			if(c != '\n') { 
 				t = getToken(c, stream);
