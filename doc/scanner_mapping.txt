@@ -30,9 +30,9 @@ MAPPING
 24	int		|
 25	char		|
 26	bool		|
-27	struct		|	data types
-28	array		|
-29	var		|
+27	void		|	data types
+28	struct		|
+29	identifier	|
 30	number		|_
 31	if		|
 32	else		|	control elemets
