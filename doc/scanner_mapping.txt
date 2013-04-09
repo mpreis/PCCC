@@ -33,16 +33,18 @@ MAPPING
 27	void		|	data types
 28	struct		|
 29	identifier	|
-30	number		|_
-31	if		|
-32	else		|	control elemets
-33	while		|
-34	return		|_
-35	/* ... */	|_	comments
-36	&		|	
-37	->		|	references
-38	*		|_
-39	method		|_ 	methods
-40	#include	|	<...>
-41	#include	|_	"..."
-42	\n		|_
+30	number		|
+31	string		|_
+32	if		|
+33	else		|	control elemets
+34	while		|
+35	return		|_
+36	/* ... */	|_	comments
+37	&		|	
+38	->		|	references
+39	*		|_
+40	method		|_ 	methods
+41	#include	|	<...>
+42	#include	|_	"..."
+43	\n		|_
+
