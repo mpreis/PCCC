@@ -77,8 +77,13 @@ int getNumber(char nr) {
 		number = number * 10 + (actNumber - '0');
 		actNumber = getChar();
 	}
+<<<<<<< HEAD
 	if(isLetter(actNumber))
 		ungetChar(actNumber);
+=======
+	if(isLetter)
+	ungetChar(actNumber);
+>>>>>>> 8ad07863d2524dc10f4cd299b8c5599cede00ca8
 	return number;
 }
 
