@@ -1,6 +1,6 @@
 /*
  * PSEUDOCODE - scanner.c
- * authors: thomas huetter 1120241, mario preishuber 1120644
+ * authors: thomas huetter 1120239, mario preishuber 1120643
  *
  */
 #include "scanner.h"
