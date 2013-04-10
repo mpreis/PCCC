@@ -15,7 +15,6 @@ void initToken(Token *t, int tokenNr, int value, char string[]) {
 	int i = 0;
 	t->id = tokenNr;
 	t->digitValue = value;
-
 	while(i < 63 && string[i] != '\0') {
 		t->valueStr[i] = string[i];
 		i = i + 1;
@@ -25,7 +24,11 @@ void initToken(Token *t, int tokenNr, int value, char string[]) {
 
 int hasMoreTokens() {
 	char c = getChar();
-	if (c == -1) return 0;
+	if (c == '\n') {
+		c = getChar();
+		if (c == -1) return 0;
+	}
+	else if (c == -1) return 0;
 	ungetChar(c);
 	return 1;
 }
@@ -47,8 +50,9 @@ char getChar() {
 }
 void ungetChar(char c) { ungetc = (int)c; }
 
-int strCmp(char *s1, char *s2) {
-	while(*s1 == *s2) { s1 = s1 + 1; s2 = s2 + 1; }
+int strnCmp(char *s1, char *s2, int n) {
+	int i = 0;
+	while(*s1 == *s2 && i < n) { s1 = s1 + 1; s2 = s2 + 1; i = i +1; }
 	if (*s1 == '\0')
 	    return 0;
 	if((*(char *)s1 < *(char *)s2)) return -1;
@@ -72,6 +76,53 @@ int getNumber(char nr) {
 	return number;
 }
 
+void getIdentifier(char identifier [], char c) {
+	identifier[0] = c;
+	char nc = getChar();
+	int i = 1;
+
+	while((isLetter(nc) || isDigit(nc)) && hasMoreTokens() && i < 63) {
+		identifier[i] = nc;
+		nc = getChar();
+		i = i + 1;
+	}
+	identifier[i] = '\0';
+	ungetChar(nc);
+}
+
+void getInclude(Token *t) {
+	char nc = getChar();
+	char inc[8] = "include ";
+	int i = 0;
+	while(i < 8 && nc == inc[i]) {
+		nc = getChar();
+		i = i + 1;		
+	}
+	if(i == 8) {
+		char end;
+		char buff[64];
+		int k = 0, nr;
+		if(nc == '<' || nc == '\"') {
+			if(nc == '<') {
+				end = '>';
+				nr = 37;
+			}
+			else {
+				end = '\"';
+				nr = 38;
+			}
+			nc = getChar();
+			while(k < 63 && nc != end) {
+				buff[k] = nc;
+				nc = getChar();
+				k = k + 1;
+			}
+			buff[k] = '\0';
+			initToken(t, nr, -1, buff);
+		}
+	}
+}
+
 /* fd ... filedescriptor */
 Token getNextToken() {
 	Token t;
@@ -80,7 +131,7 @@ Token getNextToken() {
 
 	while( (&t)->id == -1 && hasMoreTokens() ) {
 		c = getChar();
-		if(c == '[') initToken(&t, 1, -1, "");	/* array */
+			 if(c == '[') initToken(&t, 1, -1, "");
 		else if(c == ']') initToken(&t, 2, -1, "");
 		else if(c == '(') initToken(&t, 3, -1, "");
 		else if(c == ')') initToken(&t, 4, -1, "");
@@ -132,73 +183,27 @@ Token getNextToken() {
 				initToken(&t, 36, -1, "");
 			}
 		}
-		else if(c == '<') initToken(&t, 16, -1, "")
+		else if(c == '<') initToken(&t, 16, -1, "");
 		else if(c == '>') initToken(&t, 17, -1, "");
 /*		else if(c == '\n')initToken(&t, 43, -1, "");	   not used now */
 		else if(c == '&') {
-			char nc = getChar();
-			if(nc == '&') initToken(&t, 22, -1, "");
-			else if(isLetter(c)) 
-				initToken(&t, 37, -1, "");
+			if(getChar() == '&') initToken(&t, 22, -1, "");
+			else if(isLetter(c)) initToken(&t, 37, -1, "");
 		}
-		else if(c == '#') {
-			char nc = getChar();
-			char inc[8] = "include ";
-			int i = 0;
-			while(i < 8 && nc == inc[i]) {
-				nc = getChar();
-				i = i + 1;		
-			}
-			if(i == 8) {
-				char end;
-				char buff[64];
-				int k = 0, nr;
-				if(nc == '<' || nc == '\"') {
-					if(nc == '<') {
-						end = '>';
-						nr = 37;
-					}
-					else {
-						end = '\"';
-						nr = 38;
-					}
-					nc = getChar();
-					while(k < 63 && nc != end) {
-						buff[k] = nc;
-						nc = getChar();
-						k = k + 1;
-					}
-					buff[k] = '\0';
-					initToken(&t, nr, -1, buff);
-				}
-			}
-		}
-		else if(isDigit(c)) {
-			int number = getNumber(c);
-			initToken(&t, 30, number, "");
-		}
+		else if(c == '#') getInclude(&t);
+		else if(isDigit(c)) initToken(&t, 30, getNumber(c), "");
 		else if(isLetter(c)) {
 			char identifier[64];
-			identifier[0] = c;
-			char nc = getChar();
-			int i = 1;
-
-			while((isLetter(nc) || isDigit(nc)) && hasMoreTokens() && i < 63) {
-				identifier[i] = nc;
-				nc = getChar();
-				i = i + 1;
-			}
-			identifier[i] = '\0';
-			ungetChar(nc);
-
-			if(strCmp(identifier, "int") == 0) initToken(&t, 24, -1, identifier);
-			else if(strCmp(identifier, "char") == 0) initToken(&t, 25, -1, identifier);
-			else if(strCmp(identifier, "void") == 0) initToken(&t, 27, -1, identifier);
-			else if(strCmp(identifier, "struct") == 0) initToken(&t, 28, -1, identifier);
-			else if(strCmp(identifier, "if") == 0) initToken(&t, 32, -1, identifier);
-			else if(strCmp(identifier, "else") == 0) initToken(&t, 33, -1, identifier);
-			else if(strCmp(identifier, "while") == 0) initToken(&t, 34, -1, identifier);
-			else if(strCmp(identifier, "return") == 0) initToken(&t, 35, -1, identifier);
+			getIdentifier(identifier, c);
+				 if(strnCmp(identifier, "if",		2) == 0) initToken(&t, 32, -1, identifier);
+			else if(strnCmp(identifier, "int",		3) == 0) initToken(&t, 24, -1, identifier);
+			else if(strnCmp(identifier, "char",		4) == 0) initToken(&t, 25, -1, identifier);
+			else if(strnCmp(identifier, "void",		4) == 0) initToken(&t, 27, -1, identifier);
+			else if(strnCmp(identifier, "else",		4) == 0) initToken(&t, 33, -1, identifier);
+			else if(strnCmp(identifier, "while",	5) == 0) initToken(&t, 34, -1, identifier);
+			else if(strnCmp(identifier, "return",	6) == 0) initToken(&t, 35, -1, identifier);
+			else if(strnCmp(identifier, "struct",	6) == 0) initToken(&t, 28, -1, identifier);
+			else if(strnCmp(identifier, "typedef",	7) == 0) initToken(&t, 43, -1, identifier);
 			else initToken(&t, 29, -1, identifier);
 		}
 	}
