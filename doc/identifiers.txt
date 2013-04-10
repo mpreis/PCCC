@@ -1,0 +1,52 @@
+===========
+identifiers
+===========
+
+int
+char
+bool
+struct
+array (type var [])
+null
+
+[](){} , ; -> "" ''
+
+== != > < && ||
+= + * - /
+
+references & *
+comments /* */
+
+if then else
+while loop
+
+handle method-calls
+
+main
+return 
+return-values (void, int, ...)
+
+#include
+	#include <stdio.h> =: xx-"stdio.h"
+	#include "myLib.h" =: xy-"myLib.h"
+
+	MUST HAVE: exatly one(!) white space after include
+
+optinal: %i %s \n
+
+syntax arithmetric operations:
+	symbols and varibles (or numbers) must be seperated by exact one white space.
+	correct: var1 = 5 * var2;
+	not allowed:
+		var1=5*var2;
+		var1=5 * var2;
+syntax references:
+	correct: type *var = ...
+	not allowed:
+			 type * var = ...
+
+type *var = ...
+
+minus unterscheidung (negative zahl, rechenoperation)
+
+es ist nicht erlaubt, auf die zeigeradresse mit z.B. *p = 2 zuzugreifen
