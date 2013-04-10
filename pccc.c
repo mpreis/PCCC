@@ -6,7 +6,7 @@
 
 int main(int argc, char *argv[]){
 	Token t;
-	char *file = "./tests/test02.c";
+	char *file = "./pccc.c";
 	initScanner(file);
 	/* scanner test */ 
 	while ( hasMoreTokens() ) {	

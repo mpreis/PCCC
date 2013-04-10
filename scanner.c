@@ -1,6 +1,6 @@
 /*
  * PSEUDOCODE - scanner.c
- * authors: thomas huetter 1120240, mario preishuber 1120643
+ * authors: thomas huetter 1120241, mario preishuber 1120644
  *
  */
 #include "scanner.h"
@@ -24,11 +24,18 @@ void initToken(Token *t, int tokenNr, int value, char string[]) {
 
 int hasMoreTokens() {
 	char c = getChar();
-	if (c == '\n') {
+	while (c == '\n') {
 		c = getChar();
 		if (c == -1) return 0;
 	}
-	else if (c == -1) return 0;
+	if (c == -1) return 0;
+	ungetChar(c);
+	return 1;
+}
+
+int hasMoreChars() {
+	char c = getChar();
+	if (c == -1) return 0;
 	ungetChar(c);
 	return 1;
 }
@@ -40,9 +47,7 @@ char getChar() {
 		char buff[1];
 		int r = read(fd, buff, 1);
 		if(r == 0) return -1;
-		//if(buff[0] != ' ' && buff[0] != '\t' && buff[0] != '\n')
 		return buff[0];
-		//return getChar();
 	}
 	char c = (char)ungetc;
 	ungetc = -1;
@@ -72,6 +77,7 @@ int getNumber(char nr) {
 		number = number * 10 + (actNumber - '0');
 		actNumber = getChar();
 	}
+	if(isLetter)
 	ungetChar(actNumber);
 	return number;
 }
@@ -81,7 +87,7 @@ void getIdentifier(char identifier [], char c) {
 	char nc = getChar();
 	int i = 1;
 
-	while((isLetter(nc) || isDigit(nc)) && hasMoreTokens() && i < 63) {
+	while((isLetter(nc) || isDigit(nc)) && hasMoreChars() && i < 63) {
 		identifier[i] = nc;
 		nc = getChar();
 		i = i + 1;
@@ -105,11 +111,11 @@ void getInclude(Token *t) {
 		if(nc == '<' || nc == '\"') {
 			if(nc == '<') {
 				end = '>';
-				nr = 37;
+				nr = 42;
 			}
 			else {
 				end = '\"';
-				nr = 38;
+				nr = 43;
 			}
 			nc = getChar();
 			while(k < 63 && nc != end) {
@@ -129,7 +135,7 @@ Token getNextToken() {
 	initToken(&t, -1, -1, "");
 	char c;
 
-	while( (&t)->id == -1 && hasMoreTokens() ) {
+	while( (&t)->id == -1 && hasMoreChars() ) {
 		c = getChar();
 			 if(c == '[') initToken(&t, 1, -1, "");
 		else if(c == ']') initToken(&t, 2, -1, "");
@@ -151,59 +157,110 @@ Token getNextToken() {
 			buff[i] = '\0';
 			initToken(&t, 31, -1, buff);
 		}
-		else if(c == '\'')initToken(&t, 10, -1, "");
-		else if(c == '=') initToken(&t, 11, -1, "");
+		else if(c == '\'') {
+			char nc, buff[3];
+			buff[0] = getChar();
+			if(buff[0] == '\\') {
+				buff[1] = getChar();
+				buff[2] = '\0';
+			} 
+			else buff[1] = '\0';
+			nc = getChar();
+			if(nc == '\'') initToken(&t, 32, -1, buff);
+			else {
+				initToken(&t, 10, -1, "");
+				ungetChar(nc);
+			}
+		}
+		else if(c == '=') {
+			char nc = getChar();
+			if(nc == '=') initToken(&t, 18, -1, "");
+			else { 
+				initToken(&t, 11, -1, "");
+				ungetChar(nc);
+			}
+		}
 		else if(c == '+') initToken(&t, 12, -1, "");
 		else if(c == '-') {
 			char nc = getChar();
-			if(nc == ' ') initToken(&t, 13, -1, "");
-			else if(nc == '>') initToken(&t, 38, -1, "");
+			if(nc == '>') initToken(&t, 39, -1, "");
 			else if(isDigit(nc)) {
 				int number = getNumber(nc);
 				number = number * -1;
 				initToken(&t, 30, number, "");
 			}
+			else initToken(&t, 13, -1, "");
 		}	
 		else if(c == '*') {
 			char nc = getChar();
-			if(nc == ' ') initToken(&t, 14, -1, "");
-			if(isLetter(nc)) initToken(&t, 39, -1, "");
+			if(isLetter(nc)) initToken(&t, 40, -1, "");
+			else initToken(&t, 14, -1, "");
 			ungetChar(nc);
 		}
 		else if(c == '/') {
 			char nc = getChar();
-			if(nc == ' ') initToken(&t, 15, -1, "");
-			else if(nc == '*') {
+			if(nc == '*') {
 				nc = getChar();
 				char nnc = getChar();
-				while((nc != '*' || nnc != '/') && hasMoreTokens()) {
+				while((nc != '*' || nnc != '/') && hasMoreChars()) {
 					nc = nnc;
 					nnc = getChar();
 				}
-				initToken(&t, 36, -1, "");
+				initToken(&t, 37, -1, "");
+			}
+			else {
+				initToken(&t, 15, -1, "");
+				ungetChar(nc);
 			}
 		}
-		else if(c == '<') initToken(&t, 16, -1, "");
-		else if(c == '>') initToken(&t, 17, -1, "");
-/*		else if(c == '\n')initToken(&t, 43, -1, "");	   not used now */
+		else if(c == '!') {
+			char nc = getChar();
+			if(nc == '=') initToken(&t, 19, -1, "");
+			else ungetChar(nc);
+		}
+		else if(c == '<') {
+			char nc = getChar();
+			if(nc == '=') initToken(&t, 20, -1, "");
+			else { 
+				initToken(&t, 16, -1, "");
+				ungetChar(nc);
+			}
+		}
+		else if(c == '>') {
+			char nc = getChar();
+			if(nc == '=') initToken(&t, 21, -1, "");
+			else { 
+				initToken(&t, 17, -1, "");
+				ungetChar(nc);
+			}
+		}
 		else if(c == '&') {
-			if(getChar() == '&') initToken(&t, 22, -1, "");
-			else if(isLetter(c)) initToken(&t, 37, -1, "");
+			char nc = getChar();
+			if(nc == '&') initToken(&t, 22, -1, "");
+			else { 
+				if(isLetter(nc)) initToken(&t, 38, -1, "");
+				ungetChar(nc);
+			}
+		}
+		else if(c == '|') {
+			char nc = getChar();
+			if(nc == '|') initToken(&t, 23, -1, "");
+			else ungetChar(nc);
 		}
 		else if(c == '#') getInclude(&t);
 		else if(isDigit(c)) initToken(&t, 30, getNumber(c), "");
 		else if(isLetter(c)) {
 			char identifier[64];
 			getIdentifier(identifier, c);
-				 if(strnCmp(identifier, "if",		2) == 0) initToken(&t, 32, -1, identifier);
+				 if(strnCmp(identifier, "if",		2) == 0) initToken(&t, 33, -1, identifier);
 			else if(strnCmp(identifier, "int",		3) == 0) initToken(&t, 24, -1, identifier);
 			else if(strnCmp(identifier, "char",		4) == 0) initToken(&t, 25, -1, identifier);
 			else if(strnCmp(identifier, "void",		4) == 0) initToken(&t, 27, -1, identifier);
-			else if(strnCmp(identifier, "else",		4) == 0) initToken(&t, 33, -1, identifier);
-			else if(strnCmp(identifier, "while",	5) == 0) initToken(&t, 34, -1, identifier);
-			else if(strnCmp(identifier, "return",	6) == 0) initToken(&t, 35, -1, identifier);
+			else if(strnCmp(identifier, "else",		4) == 0) initToken(&t, 34, -1, identifier);
+			else if(strnCmp(identifier, "while",		5) == 0) initToken(&t, 35, -1, identifier);
+			else if(strnCmp(identifier, "return",	6) == 0) initToken(&t, 36, -1, identifier);
 			else if(strnCmp(identifier, "struct",	6) == 0) initToken(&t, 28, -1, identifier);
-			else if(strnCmp(identifier, "typedef",	7) == 0) initToken(&t, 43, -1, identifier);
+			else if(strnCmp(identifier, "typedef",	7) == 0) initToken(&t, 45, -1, identifier);
 			else initToken(&t, 29, -1, identifier);
 		}
 	}
