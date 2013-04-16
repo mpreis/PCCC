@@ -9,8 +9,10 @@ typedef struct {
 	char valueStr[64];
 } Token;
 
+Token symbol;
+
 void initScanner(char *file);
-void initToken(Token *t, int tokenNr, int value, char string[]);
+void closeScanner();
 
 char getChar();
 void ungetChar(char c);
@@ -19,13 +21,13 @@ int hasMoreTokens();
 Token getNextToken();
 
 int getNumber(char nr);
-void getInclude(Token *t);
 void getIdentifier(char identifier [], char c);
 
 int isLetter(char c);
 int isDigit(char c);
 
 int strnCmp(char *s1, char *s2, int n);
+int strnCpy(char *s1, char *s2, int n);
 void printToken(Token *t);
 
 int read(int fd, void *buf, int count);
