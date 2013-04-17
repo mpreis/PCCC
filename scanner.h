@@ -18,7 +18,7 @@ char getChar();
 void ungetChar(char c);
 int hasMoreChars();
 int hasMoreTokens();
-Token getNextToken();
+void getNextToken();
 
 int getNumber(char nr);
 void getIdentifier(char identifier [], char c);

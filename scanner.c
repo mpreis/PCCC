@@ -100,14 +100,13 @@ void getIdentifier(char identifier [], char c) {
 }
 
 /* fd ... filedescriptor */
-Token getNextToken() {
+void getNextToken() {
 	Token t;
-	t.id = INIT; t.digitValue = -1; strnCpy(t.valueStr, "", 0);
 	char c;
+	t.id = INIT; t.digitValue = -1; strnCpy(t.valueStr, "", 0);
 	c = getChar();
-	while((c == ' ' || c == '\n' || c == '\r' || c == '\t') && hasMoreChars())
+	while((c == ' ' || c == '\n' || c == '\r' || c == '\t') && hasMoreChars()) 
 		c = getChar();
-
 	if(isLetter(c)) {
 		char identifier[64];
 		getIdentifier(identifier, c);
@@ -157,16 +156,16 @@ Token getNextToken() {
 			else buff[1] = '\0';
 			nc = getChar();
 			if(nc == '\'') { t.id = CHARACTER; strnCpy(t.valueStr, buff, 1); }
-			else {
-				t.id = QUOTE;
-				ungetChar(nc);
+			else { 
+				t.id = QUOTE; 
+				ungetChar(nc); 
 			}
 		}
 		else if(c == '=') {
 			char nc = getChar();
 			if(nc == '=') t.id = EQ;
 			else { 
-				t.id = EQSIGN;
+				t.id = EQSIGN; 
 				ungetChar(nc);
 			}
 		}
@@ -192,7 +191,11 @@ Token getNextToken() {
 		else if(c == '!') {
 			char nc = getChar();
 			if(nc == '=') t.id = NEQ;
-			else ungetChar(nc);
+			else {
+				t.id = ERROR; 
+				t.valueStr[0] = c; t.valueStr[1] = 0;
+				ungetChar(nc);
+			}
 		}
 		else if(c == '<') {
 			char nc = getChar();
@@ -213,12 +216,20 @@ Token getNextToken() {
 		else if(c == '&') {
 			char nc = getChar();
 			if(nc == '&') t.id = AND;
-			else ungetChar(nc);
+			else {
+				t.id = ERROR;
+				t.valueStr[0] = c; t.valueStr[1] = 0;
+				ungetChar(nc);
+			}
 		}
 		else if(c == '|') {
 			char nc = getChar();
 			if(nc == '|') t.id = OR;
-			else ungetChar(nc);
+			else {
+				t.id = ERROR;
+				t.valueStr[0] = c; t.valueStr[1] = 0;
+				ungetChar(nc);
+			}
 		}
 		else if(c == '#') {
 			char nc = getChar();
@@ -229,10 +240,13 @@ Token getNextToken() {
 				i = i + 1;		
 			}
 			if(i == 7) t.id = INCLUDE;
+			else { t.id = ERROR; strnCpy(t.valueStr, inc, 8); }
 		}
 		else {
-			t.id = ERROR; t.valueStr[0] = c;
+			t.id = ERROR; t.valueStr[0] = c; t.valueStr[1] = 0;
 		}
 	}
-	return t;
+	symbol.id = t.id;
+	symbol.digitValue = t.digitValue;
+	strnCpy(symbol.valueStr, t.valueStr,64);
 }

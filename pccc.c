@@ -5,12 +5,12 @@
 #include "scanner.h"
 int main(int argc, char *argv[]){
 	Token t;
-	char *file = "./pccc.c";
+	char *file = "./tests/test02.c";
 	initScanner(file);
 	/* scanner test */ 
 	while ( hasMoreTokens() ) {	
-		t = getNextToken();
-		printToken(&t);
+		getNextToken();
+		printToken(&symbol);
 	}
 	printf("\n");
 	return 0;
