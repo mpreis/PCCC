@@ -5,7 +5,8 @@
 #include "scanner.h"
 int main(int argc, char *argv[]){
 	Token t;
-	char *file = "./tests/test02.c";
+	char *file;
+	strnCpy(file, "./tests/test02.c", 20);
 	initScanner(file);
 	/* scanner test */ 
 	while ( hasMoreTokens() ) {	
