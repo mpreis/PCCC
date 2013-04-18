@@ -4,8 +4,7 @@
  *
  */
 typedef struct {
-	int id;
-	int digitValue;
+	int id, digitValue, lineNr, colNr;
 	char valueStr[64];
 } Token;
 

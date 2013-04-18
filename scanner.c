@@ -5,12 +5,14 @@
  */
 #include "tokenMapping.h"
 #include "scanner.h"
-int fd;
+int fd, lineNr, colNr;
 char ungetc;
 
 void initScanner(char *file) {
 	fd = open(file, 0);
 	ungetc = -1;
+	lineNr = 0;
+	colNr = 0;
 }
 void closeScanner() { close(fd); }
 
@@ -32,20 +34,26 @@ int hasMoreChars() {
 	return 1;
 }
 
-void printToken(Token *t) { printf("TOKEN: %i %s %i\n", t->id, t->valueStr, t->digitValue); }
+void printToken(Token *t) { printf("TOKEN: %i %s %i %i %i\n", t->id, t->valueStr, t->digitValue, t->lineNr, t->colNr); }
 
 char getChar() {
+	char c;
+	char buff[1];
+	int r;
+	colNr = colNr + 1;
 	if(ungetc == -1) {
-		char buff[1];
-		int r; r = read(fd, buff, 1);
+		r = read(fd, buff, 1);
 		if(r == 0) { return -1; }
 		return buff[0];
 	}
-	char c; c = ungetc;
+	c = ungetc;
 	ungetc = -1;
 	return c;
 }
-void ungetChar(char c) { ungetc = c; }
+void ungetChar(char c) { 
+	ungetc = c;
+	colNr = colNr - 1; 
+}
 
 int strnCmp(char *s1, char *s2, int n) {
 	char c1, c2;
@@ -74,8 +82,10 @@ int isLetter(char c) {
 int isDigit(char c) { return (c >= '0' && c <= '9'); }
 
 int getNumber(char nr) {
-	int number; number = nr - '0';
-	char actNumber = getChar();
+	int number; 
+	char actNumber;
+	number = nr - '0';
+	actNumber = getChar();
 	while(isDigit(actNumber)) {
 		number = number * 10 + (actNumber - '0');
 		actNumber = getChar();
@@ -85,10 +95,11 @@ int getNumber(char nr) {
 }
 
 void getIdentifier(char identifier [], char c) {
+	char nc;
+	int i;
+	nc = getChar();
+	i = 1;
 	identifier[0] = c;
-	char nc; nc = getChar();
-	int i; i = 1;
-
 	while((isLetter(nc) || isDigit(nc)) && hasMoreChars() && i < 63) {
 		identifier[i] = nc;
 		nc = getChar();
@@ -101,12 +112,21 @@ void getIdentifier(char identifier [], char c) {
 /* fd ... filedescriptor */
 void getNextToken() {
 	Token t;
-	char c; c = getChar();
+	char c, nc, nnc;
+	char identifier[64], buff[1000];
+	int i;
+	
+	c = getChar();
 	t.id = INIT; t.digitValue = -1; strnCpy(t.valueStr, "", 0);
-	while((c == ' ' || c == '\n' || c == '\r' || c == '\t') && hasMoreChars()) 
-		{c = getChar();}
+	while((c == ' ' || c == '\n' || c == '\r' || c == '\t') && hasMoreChars()) {
+		c = getChar();
+		
+		if(c == '\n') {
+			lineNr = lineNr + 1;
+			colNr = 0;
+		}
+	}
 	if(isLetter(c)) {
-		char identifier[64];
 		getIdentifier(identifier, c);
 			 if(strnCmp(identifier, "if",		2) == 0) { t.id = IF; 		strnCpy(t.valueStr, identifier, 2); }
 		else if(strnCmp(identifier, "int",		3) == 0) { t.id = INT; 		strnCpy(t.valueStr, identifier, 3); }
@@ -133,8 +153,7 @@ void getNextToken() {
 		else if(c == ',') { t.id = COMMA; }
 		else if(c == '.') { t.id = DOT; }
 		else if(c == '\"') {
-			int i; i = 0;
-			char buff[1000], nc;
+			i = 0;
 			nc = getChar();
 			while(nc != '"' && hasMoreTokens()) { 
 				buff[i] = nc;
@@ -145,7 +164,6 @@ void getNextToken() {
 			t.id = STRING; strnCpy(t.valueStr, buff, 1000);
 		}
 		else if(c == '\'') {
-			char nc, buff[3];
 			buff[0] = getChar();
 			if(buff[0] == '\\') {
 				buff[1] = getChar();
@@ -160,7 +178,7 @@ void getNextToken() {
 			}
 		}
 		else if(c == '=') {
-			char nc; nc = getChar();
+			nc = getChar();
 			if(nc == '=') {t.id = EQ;}
 			else { 
 				t.id = EQSIGN; 
@@ -171,10 +189,10 @@ void getNextToken() {
 		else if(c == '-') { t.id = MINUS; }
 		else if(c == '*') { t.id = TIMES; }
 		else if(c == '/') {
-			char nc; nc = getChar();
+			nc = getChar();
 			if(nc == '*') {
 				nc = getChar();
-				char nnc; nnc = getChar();
+				nnc = getChar();
 				while((nc != '*' || nnc != '/') && hasMoreChars()) {
 					nc = nnc;
 					nnc = getChar();
@@ -187,7 +205,7 @@ void getNextToken() {
 			}
 		}
 		else if(c == '!') {
-			char nc; nc = getChar();
+			nc = getChar();
 			if(nc == '=') { t.id = NEQ; }
 			else {
 				t.id = ERROR; 
@@ -196,7 +214,7 @@ void getNextToken() {
 			}
 		}
 		else if(c == '<') {
-			char nc; nc = getChar();
+			nc = getChar();
 			if(nc == '=') { t.id = LET; }
 			else { 
 				t.id = LT;
@@ -204,7 +222,7 @@ void getNextToken() {
 			}
 		}
 		else if(c == '>') {
-			char nc; nc = getChar();
+			nc = getChar();
 			if(nc == '=') { t.id = GET;}
 			else { 
 				t.id = GT;
@@ -212,7 +230,7 @@ void getNextToken() {
 			}
 		}
 		else if(c == '&') {
-			char nc; nc = getChar();
+			nc = getChar();
 			if(nc == '&') t.id = AND;
 			else {
 				t.id = ERROR;
@@ -221,7 +239,7 @@ void getNextToken() {
 			}
 		}
 		else if(c == '|') {
-			char nc; nc = getChar();
+			nc = getChar();
 			if(nc == '|') { t.id = OR; }
 			else {
 				t.id = ERROR;
@@ -230,15 +248,15 @@ void getNextToken() {
 			}
 		}
 		else if(c == '#') {
-			char nc; nc = getChar();
-			char inc[8]; strnCpy(inc, "include", 7);
-			int i; i = 0;
-			while(i < 7 && nc == inc[i]) {
+			nc = getChar();
+			strnCpy(buff, "include", 7);
+			i = 0;
+			while(i < 7 && nc == buff[i]) {
 				nc = getChar();
 				i = i + 1;		
 			}
 			if(i == 7) { t.id = INCLUDE; }
-			else { t.id = ERROR; strnCpy(t.valueStr, inc, 8); }
+			else { t.id = ERROR; strnCpy(t.valueStr, buff, 8); }
 		}
 		else {
 			t.id = ERROR; t.valueStr[0] = c; t.valueStr[1] = 0;
@@ -246,5 +264,7 @@ void getNextToken() {
 	}
 	symbol.id = t.id;
 	symbol.digitValue = t.digitValue;
+	symbol.lineNr = lineNr;
+	symbol.colNr = colNr;	
 	strnCpy(symbol.valueStr, t.valueStr,64);
 }
