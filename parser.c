@@ -2,17 +2,15 @@
  * PSEUDOCODE - parser.c
  * authors: thomas huetter 1120239, mario preishuber 1120643
  */
-#include "scanner.h"
 #include "parser.h"
-
+#include "scanner.h"
+#include "tokenMapping.h"
 void printError() {
 	printf("%i:%i: error: ", symbol.lineNr, symbol.colNr);
 }
 
 int digit() {
-	if(isDigit(symbol.digitValue)) {
-		return 1;
-	}
+	if(isDigit(symbol.digitValue)) { return 1; }
 	return 0;
 }
 
@@ -20,11 +18,8 @@ int number() {
 	if(symbol.id == MINUS) {
 		getNextToken();
 	}
-	if(digit()) {
+	if(symbol.id == NUMBER) {
 		getNextToken();
-		while(digit()) {
-			getNextToken();
-		}
 		return 1;
 	}
 	return 0;
@@ -40,7 +35,6 @@ int letter() {
 /* identifier "." identifier . */
 int reference() {
 	if(identifier()) {
-		getNextToken();
 		if(symbol.id == DOT) {
 			getNextToken();
 			if(identifier()) {
@@ -228,11 +222,9 @@ int ifCmd() {
 /* identifier ["[" (number | identifier) "]"] "=" expression ";" . */ 
 int init() {
 	if(identifier()) {
-		getNextToken();
 		if(symbol.id == LSQBR) {
 			getNextToken();
 			if(number() || identifier()) {
-				getNextToken();
 				if(symbol.id == RSQBR) {
 					getNextToken();
 				}
@@ -268,11 +260,10 @@ int ret() {
 /* identifier {"," identifier} . */ 
 int paramList() {
 	if(identifier()) {
-		getNextToken();
 		while(symbol.id == COMMA) {
 			getNextToken();
-			if(identifier()) {
-				getNextToken();
+			if(identifier() == 0) {
+				return 0;			
 			}
 		}
 		return 1;
@@ -283,7 +274,6 @@ int paramList() {
 /* identifier "(" [paramList]")" . */ 
 int procCall() {
 	if(identifier()) {
-		getNextToken();
 		if(symbol.id == LPAR) {
 			getNextToken();
 			if(paramList()) {
@@ -317,13 +307,12 @@ int procParList() {
 	if(typeSpec()) {
 		getNextToken();
 		if(identifier() || pointer()) {
-			getNextToken();
 			while(symbol.id == COMMA) {
 				getNextToken();
 				if(typeSpec()) {
 					getNextToken();
-					if(identifier() || pointer()) {
-						getNextToken();
+					if(identifier() == 0 || pointer() == 0) {
+						return 0;					
 					}
 				}
 			}
@@ -342,9 +331,9 @@ int procHead() {
 				getNextToken();
 			}
 		}
+
 		if(identifier()) {
-			getNextToken();
-			if(symbol.id == LPAR) {
+			if(symbol.id == LPAR) {			
 				getNextToken();
 				if(procParList()) {
 					getNextToken();
@@ -358,18 +347,47 @@ int procHead() {
 	return 0;
 }
 
+/* procHead ";" . */
+int procDec() {
+	if(symbol.id == LPAR) {			
+		getNextToken();
+		if(procParList()) {
+			getNextToken();
+		}
+		if(symbol.id == RPAR) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/* typeSpec identifier "[" (number | identifier) "]" ";" . */
+int arrayDec() {
+	if(symbol.id == LSQBR) {
+		getNextToken();
+		if(number() || identifier()) {	
+			if(symbol.id == RSQBR) {
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
 /* declaration	=	typeSpec (identifier | pointer) { "," (identifier | pointer) } ";" . */
 int declaration() {
 	if(typeSpec()) {	
 		getNextToken();
-		if(identifier() || pointer()) {	
-			getNextToken();
+		if(identifier() || pointer()) {
+			if(arrayDec()) { getNextToken(); }
+			else if(procDec()) { getNextToken(); }
 			while(symbol.id == COMMA) {
 				getNextToken();
 				if(identifier() == 0 && pointer() == 0) {
 					return 0;
 				}
 				getNextToken();
+				if(arrayDec()) { getNextToken(); }
 			}
 			if(symbol.id == SEMCOL) {
 				return 1;
@@ -399,34 +417,11 @@ int procedure() {
 	return 0;
 }
 
-/* typeSpec identifier "[" (number | identifier) "]" ";" . */
-int arrayDec() {
-	if(typeSpec()) {	
-		getNextToken();
-		if(identifier()) {	
-			getNextToken();
-			if(symbol.id == LSQBR) {	
-				getNextToken();
-				if(number() || identifier()) {	
-					getNextToken();
-					if(symbol.id == RSQBR) {
-						getNextToken();
-						if(symbol.id == SEMCOL) {
-							return 1;
-						}
-					}
-				}
-			}
-		}
-	}
-	return 0;
-}
-
 /* "typedef" "struct" "{" declaration {declaration} "}" identifier ";" . */
 int structDec() {
 	if(symbol.id == TYPEDEF) {	
 		getNextToken();
-		if(symbol.id == STRUCT) {	
+		if(symbol.id == STRUCT) {				
 			getNextToken();
 			if(symbol.id == LCUBR) {	
 				getNextToken();
@@ -435,10 +430,9 @@ int structDec() {
 					while(declaration()) {	
 						getNextToken();
 					}
-					if(symbol.id == RCUBR) {	
+					if(symbol.id == RCUBR) {
 						getNextToken();
 						if(identifier()) {	
-							getNextToken();
 							if(symbol.id == SEMCOL) {
 								return 1;
 							}
@@ -461,30 +455,39 @@ int include() {
 int programm() {
 	int i, j, k;
 	i = 1; j = 1; k = 1;
+
 	while(i) {
 		i = include();
+		if(i == 1) { getNextToken(); }
+		printf(" -- i:%i\n",i);	
+	}
+	while(j) {// || j2 || j3) {
+		j = declaration();
+		if(j == 0) {
+			j = structDec();
+		}
+		printf(" -- j:%i\n", j);
 		getNextToken();
 	}
-	while(j) {
-		j = declaration() || structDec() || arrayDec();
-		getNextToken();
-	}
+
 	while(k) {
 		k = procedure();
+		printf(" -- k:%i\n",k);
 		getNextToken();
 	}
-	return i && j && k;
+	printf(" --------------------------------\n");
+	return 1;
 }
 
 void startParse(){
-	while ( hasMoreTokens() ) {	
+	printf("\nstart parsing...\n");
+	while ( hasMoreTokens() ) {
 		getNextToken();
-		if(programm()) {
+		int i = programm();
+		printf("isProg:%i\n",i);
+		if(i == 1) {
 			printf("\n -- nwir sind gut\n");
 		}
-		printToken(symbol);
 	}
 	printf("\n");
 }
-
-

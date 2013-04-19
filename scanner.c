@@ -14,6 +14,7 @@ void initScanner(char *file) {
 	ungetc = -1;
 	lineNr = 1;
 	colNr = 1;
+	initTokens();
 }
 void closeScanner() { close(fd); }
 
@@ -64,7 +65,7 @@ int strnCmp(char *s1, char *s2, int n) {
 	char c1, c2;
 	int i; i = 0;
 	while(*s1 == *s2 && i < n) { s1 = s1 + 1; s2 = s2 + 1; i = i + 1; }
-	if (*s1 == '\0') { return 0; }
+	if (*s2 == '\0') { return 0; }
 	c1 = s1[i]; c2 = s2[i];
 	if(c1 < c2) { return -1; }
 	return 1;
@@ -77,7 +78,7 @@ int strnCpy(char *s1, char *s2, int n) {
 		i = i+1;
 	}
 	s1[i] = '\0';
-	return s1;
+	return 0;
 }
 
 int isLetter(char c) {
@@ -257,11 +258,10 @@ void getNextToken() {
 			}
 			if(i == 9) {
 				i = 0;
-				nc = getChar(); 
-				while(nc != '\"' && i < 1000) {
-					buff[i] = nc;
-					nc = getChar();
-					i = i + 1;
+				buff[i] = nc;
+				while(buff[i] != '\"' && i < 1000) {
+					i = i + 1;					
+					buff[i] = getChar();					
 				}
 				buff[i] = 0;
 				t.id = INCLUDE;

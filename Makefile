@@ -1,7 +1,7 @@
-CFLAGS=-Wall -v
+CFLAGS=-Wall
 
 PROGRAMS=pccc
-OBJECTS=scanner.o parser.o
+OBJECTS=scanner.o parser.o tokenMapping.o
 
 ALLOBJECTS=$(OBJECTS)	$(patsubst %,%.o,$(PROGRAMS))
 
