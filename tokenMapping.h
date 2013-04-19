@@ -3,7 +3,6 @@
  * authors: thomas huetter 1120239, mario preishuber 1120643
  *
  */
-
 int ERROR		= -1;	/* invalid token	*/
 int INIT		=  0;
 int LSQBR		=  1;	/* [ */

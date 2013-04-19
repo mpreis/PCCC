@@ -1,7 +1,7 @@
-CFLAGS=-Wall
+CFLAGS=-Wall -v
 
 PROGRAMS=pccc
-OBJECTS=scanner.o
+OBJECTS=scanner.o parser.o
 
 ALLOBJECTS=$(OBJECTS)	$(patsubst %,%.o,$(PROGRAMS))
 

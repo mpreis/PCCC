@@ -4,11 +4,12 @@ procedure	=	procHead "{" {decalaration} {command} "}" .
 procHead		=	((typeSpec ["*"]) | "void") identifier "(" [procParList] ")" .
 procParList	=	typeSpec (identifier | pointer) { "," typeSpec (identifier | pointer) } .
 
-command		=	while | ifElse | init | return | procCall | (expression ";").
+command		=	while | ifCmd | init | ret | procCall | (expression ";").
 
-ifElse		=	"if" "(" boolExp ")" block ["else" [ "if" "(" boolExp ")" ] block ] .
-while		=	"while" "(" boolExp ")" block .
-return		=	"return" expression ";" .
+ifCmd		=	"if" "(" boolExp ")" block [else] .	
+else	Cmd		=	"else" (ifCmd | block) .
+whileLoop	=	"while" "(" boolExp ")" block .
+ret			=	"return" expression ";" .
 
 block		= 	"{" {command} "}" .
 

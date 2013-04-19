@@ -27,7 +27,7 @@ int isDigit(char c);
 
 int strnCmp(char *s1, char *s2, int n);
 int strnCpy(char *s1, char *s2, int n);
-void printToken(Token *t);
+void printToken(Token t);
 
 int read(int fd, void *buf, int count);
 int open(char *file, int mode);

@@ -3,16 +3,17 @@
  * authors: thomas huetter 1120239, mario preishuber 1120643
  *
  */
-#include "tokenMapping.h"
 #include "scanner.h"
+#include "tokenMapping.h"
+
 int fd, lineNr, colNr;
 char ungetc;
 
 void initScanner(char *file) {
 	fd = open(file, 0);
 	ungetc = -1;
-	lineNr = 0;
-	colNr = 0;
+	lineNr = 1;
+	colNr = 1;
 }
 void closeScanner() { close(fd); }
 
@@ -34,7 +35,7 @@ int hasMoreChars() {
 	return 1;
 }
 
-void printToken(Token *t) { printf("TOKEN: %i %s %i %i %i\n", t->id, t->valueStr, t->digitValue, t->lineNr, t->colNr); }
+void printToken(Token t) { printf("TOKEN: %i %s %i %i %i\n", t.id, t.valueStr, t.digitValue, t.lineNr, t.colNr); }
 
 char getChar() {
 	char c;
@@ -43,6 +44,10 @@ char getChar() {
 	colNr = colNr + 1;
 	if(ungetc == -1) {
 		r = read(fd, buff, 1);
+		if(buff[0] == '\n') {
+			lineNr = lineNr + 1;
+			colNr = 0;
+		}
 		if(r == 0) { return -1; }
 		return buff[0];
 	}
@@ -120,11 +125,6 @@ void getNextToken() {
 	t.id = INIT; t.digitValue = -1; strnCpy(t.valueStr, "", 0);
 	while((c == ' ' || c == '\n' || c == '\r' || c == '\t') && hasMoreChars()) {
 		c = getChar();
-		
-		if(c == '\n') {
-			lineNr = lineNr + 1;
-			colNr = 0;
-		}
 	}
 	if(isLetter(c)) {
 		getIdentifier(identifier, c);
@@ -133,7 +133,7 @@ void getNextToken() {
 		else if(strnCmp(identifier, "char",		4) == 0) { t.id = CHAR; 	strnCpy(t.valueStr, identifier, 4); }
 		else if(strnCmp(identifier, "void",		4) == 0) { t.id = VOID; 	strnCpy(t.valueStr, identifier, 4); }
 		else if(strnCmp(identifier, "else",		4) == 0) { t.id = ELSE; 	strnCpy(t.valueStr, identifier, 4); }
-		else if(strnCmp(identifier, "while",	5) == 0) { t.id = WHILE; 	strnCpy(t.valueStr, identifier, 5); }
+		else if(strnCmp(identifier, "while",		5) == 0) { t.id = WHILE; 	strnCpy(t.valueStr, identifier, 5); }
 		else if(strnCmp(identifier, "return",	6) == 0) { t.id = RETURN;	strnCpy(t.valueStr, identifier, 6); }
 		else if(strnCmp(identifier, "struct",	6) == 0) { t.id = STRUCT;	strnCpy(t.valueStr, identifier, 6); }
 		else if(strnCmp(identifier, "typedef",	7) == 0) { t.id = TYPEDEF;	strnCpy(t.valueStr, identifier, 7); }
@@ -249,14 +249,25 @@ void getNextToken() {
 		}
 		else if(c == '#') {
 			nc = getChar();
-			strnCpy(buff, "include", 7);
+			strnCpy(buff, "include \"", 9);
 			i = 0;
-			while(i < 7 && nc == buff[i]) {
+			while(i < 9 && nc == buff[i]) {
 				nc = getChar();
 				i = i + 1;		
 			}
-			if(i == 7) { t.id = INCLUDE; }
-			else { t.id = ERROR; strnCpy(t.valueStr, buff, 8); }
+			if(i == 9) {
+				i = 0;
+				nc = getChar(); 
+				while(nc != '\"' && i < 1000) {
+					buff[i] = nc;
+					nc = getChar();
+					i = i + 1;
+				}
+				buff[i] = 0;
+				t.id = INCLUDE;
+				strnCpy(t.valueStr, buff, 1000);
+			}
+			else { t.id = ERROR; strnCpy(t.valueStr, buff, 10); }
 		}
 		else {
 			t.id = ERROR; t.valueStr[0] = c; t.valueStr[1] = 0;

@@ -3,16 +3,13 @@
  * authors: thomas huetter 1120239, mario preishuber 1120643
  */
 #include "scanner.h"
+#include "parser.h"
 int main(int argc, char *argv[]){
-	Token t;
-	char *file;
-	strnCpy(file, "./tests/test02.c", 20);
+	//char *file = "./pccc.c";
+	char file[20];
+	strnCpy(file, "./pccc.c", 11);
 	initScanner(file);
-	/* scanner test */ 
-	while ( hasMoreTokens() ) {	
-		getNextToken();
-		printToken(&symbol);
-	}
+	startParse();
 	printf("\n");
 	return 0;
 }
