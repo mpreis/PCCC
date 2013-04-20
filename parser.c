@@ -86,7 +86,7 @@ int expression() {
 		while(symbol.id == PLUS || symbol.id == MINUS) {
 			getNextToken();
 			if(term()) {
-				getNextToken();
+
 			}
 		}
 		return 1;
@@ -135,7 +135,6 @@ int block() {
 			getNextToken();
 		}
 		if(symbol.id == RCUBR) {
-			getNextToken();
 		}
 		return 1;
 	}
@@ -144,13 +143,18 @@ int block() {
 
 /* expression { boolOp expression } . */ 
 int boolExp() {
-	if(expression()) {
-		getNextToken();
+	if(expression() || boolExp()) {
+printf("1. exp: ");
+printToken(symbol);
 		while(boolOp()) {
 			getNextToken();
-			if(expression()) {
-				getNextToken();
+printf("boolOP ");
+printToken(symbol);
+			if(expression() || boolExp()) {
+printf("2. exp ");
+printToken(symbol);
 			}
+				getNextToken();
 		}
 		return 1;
 	}
@@ -159,6 +163,8 @@ int boolExp() {
 
 /* "while" "(" boolExp ")" block . */ 
 int whileLoop() {
+printf("im while: ");
+printToken(symbol);
 	if(symbol.id == WHILE) {
 		getNextToken();
 		if(symbol.id == LPAR) {
@@ -195,11 +201,9 @@ int ifCmd() {
 		if(symbol.id == LPAR) {
 			getNextToken();
 			if(boolExp()) {
-				getNextToken();
 				if(symbol.id == RPAR) {
 					getNextToken();
 					if(block()) {
-						getNextToken();
 						if(elseCmd()) {
 							
 						}
@@ -260,7 +264,9 @@ int paramList() {
 			if(identifier() == 0) {
 				return 0;			
 			}
+			getNextToken();
 		}
+printf("muas 1 liefern!");
 		return 1;
 	}
 	return 0;
@@ -268,7 +274,6 @@ int paramList() {
 
 /* identifier "(" [paramList]")" . */ 
 int procCall() {
-printf("++++ ");
 printToken(symbol);
 	if(identifier()) {
 		getNextToken();
@@ -285,19 +290,50 @@ printToken(symbol);
 	return 0;
 }
 
+int initProcCall() {
+	if(identifier()) {
+		getNextToken();
+		if(symbol.id == LPAR) {
+			getNextToken();
+			paramList();
+			if(symbol.id == RPAR) {
+				getNextToken();
+				if(symbol.id == SEMCOL) {
+					return 1;
+				}
+			}
+		}
+		if(symbol.id == LSQBR) {
+			getNextToken();
+			if(number() || identifier()) {
+				getNextToken();
+				if(symbol.id == RSQBR) {
+					getNextToken();
+				}
+			}	
+		}
+		if(symbol.id == EQSIGN) {
+			getNextToken();
+			if(expression()) {
+				if(symbol.id == SEMCOL) {
+					return 1;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+
 /* whileLoop | ifCmd | init | ret | procCall | (expression ";"). */ 
 int command() {
-printf("++cmd ");
-printToken(symbol);
-	if(whileLoop() || ifCmd() || ret() || init() || procCall() || expression()) {
-		if(expression()) {
-			getNextToken();
-			if(symbol.id == SEMCOL) {
-				return 1;
-			}
-			return 0;	
-		}
+	if(whileLoop() || ifCmd() || ret() || initProcCall()) {
 		return 1;
+	} else if(expression()) {
+		getNextToken();
+		if(symbol.id == SEMCOL) {
+			return 1;
+		}
 	}
 	return 0;
 }
@@ -407,6 +443,7 @@ int declaration() {
 /* procHead "{" {decalaration} {command} "}" . */ 
 int procedure() {
 	if(procHead()) {
+printf(" -- procHead()\n");
 		getNextToken();
 		if(symbol.id == LCUBR) {
 			getNextToken();
@@ -414,9 +451,12 @@ int procedure() {
 				getNextToken();
 			}
 			while(command()) {
+printf("command()\n");
 				getNextToken();
 			}
+printToken(symbol);
 			if(symbol.id == RCUBR) {
+printf(" -- richtig\n");
 				return 1;
 			}
 		}
@@ -481,21 +521,23 @@ int programm() {
 		k = procedure();
 		printf(" -- k:%i\n",k);
 		getNextToken();
-printToken(symbol);
 	}
 	printf(" --------------------------------\n");
 	return 1;
 }
 
-void startParse(){
+int startParse(){
+	int i;
+	i = 0;	
 	printf("\nstart parsing...\n");
 	while ( hasMoreTokens() ) {
 		getNextToken();
-		int i = programm();
+		i = programm();
 		printf("isProg:%i\n",i);
 		if(i == 1) {
 			printf("\n -- wir sind gut\n");
 		}
 	}
 	printf("\n");
+	return i;
 }
