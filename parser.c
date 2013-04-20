@@ -19,7 +19,6 @@ int number() {
 		getNextToken();
 	}
 	if(symbol.id == NUMBER) {
-		getNextToken();
 		return 1;
 	}
 	return 0;
@@ -35,6 +34,7 @@ int letter() {
 /* identifier "." identifier . */
 int reference() {
 	if(identifier()) {
+		getNextToken();
 		if(symbol.id == DOT) {
 			getNextToken();
 			if(identifier()) {
@@ -83,7 +83,6 @@ int expression() {
 		getNextToken();
 	}
 	if(term()) {
-		getNextToken();
 		while(symbol.id == PLUS || symbol.id == MINUS) {
 			getNextToken();
 			if(term()) {
@@ -124,13 +123,7 @@ int pointer() {
 
 /* letter {letter | digit} . */ 
 int identifier() {
-	if(letter()) {
-		getNextToken();
-		while(letter() || digit()) {
-			getNextToken();
-		}
-		return 1;
-	}
+	if(symbol.id == IDENT) { return 1; }
 	return 0;
 }
 
@@ -222,9 +215,11 @@ int ifCmd() {
 /* identifier ["[" (number | identifier) "]"] "=" expression ";" . */ 
 int init() {
 	if(identifier()) {
+		getNextToken();
 		if(symbol.id == LSQBR) {
 			getNextToken();
 			if(number() || identifier()) {
+				getNextToken();
 				if(symbol.id == RSQBR) {
 					getNextToken();
 				}
@@ -233,7 +228,6 @@ int init() {
 		if(symbol.id == EQSIGN) {
 			getNextToken();
 			if(expression()) {
-				getNextToken();
 				if(symbol.id == SEMCOL) {
 					return 1;
 				}
@@ -260,6 +254,7 @@ int ret() {
 /* identifier {"," identifier} . */ 
 int paramList() {
 	if(identifier()) {
+		getNextToken();
 		while(symbol.id == COMMA) {
 			getNextToken();
 			if(identifier() == 0) {
@@ -273,7 +268,10 @@ int paramList() {
 
 /* identifier "(" [paramList]")" . */ 
 int procCall() {
+printf("++++ ");
+printToken(symbol);
 	if(identifier()) {
+		getNextToken();
 		if(symbol.id == LPAR) {
 			getNextToken();
 			if(paramList()) {
@@ -289,7 +287,9 @@ int procCall() {
 
 /* whileLoop | ifCmd | init | ret | procCall | (expression ";"). */ 
 int command() {
-	if(whileLoop() || ifCmd() || init() || ret() || procCall() || expression()) {
+printf("++cmd ");
+printToken(symbol);
+	if(whileLoop() || ifCmd() || ret() || init() || procCall() || expression()) {
 		if(expression()) {
 			getNextToken();
 			if(symbol.id == SEMCOL) {
@@ -307,12 +307,15 @@ int procParList() {
 	if(typeSpec()) {
 		getNextToken();
 		if(identifier() || pointer()) {
+			getNextToken();
 			while(symbol.id == COMMA) {
 				getNextToken();
 				if(typeSpec()) {
 					getNextToken();
-					if(identifier() == 0 || pointer() == 0) {
-						return 0;					
+					if(identifier() || pointer() ) {
+						getNextToken();
+					} else {
+						return 0;
 					}
 				}
 			}
@@ -330,13 +333,15 @@ int procHead() {
 			if(symbol.id == TIMES) {
 				getNextToken();
 			}
+		} else {
+			getNextToken();
 		}
-
 		if(identifier()) {
+			getNextToken();
 			if(symbol.id == LPAR) {			
 				getNextToken();
 				if(procParList()) {
-					getNextToken();
+
 				}
 				if(symbol.id == RPAR) {
 					return 1;
@@ -352,7 +357,7 @@ int procDec() {
 	if(symbol.id == LPAR) {			
 		getNextToken();
 		if(procParList()) {
-			getNextToken();
+
 		}
 		if(symbol.id == RPAR) {
 			return 1;
@@ -365,7 +370,8 @@ int procDec() {
 int arrayDec() {
 	if(symbol.id == LSQBR) {
 		getNextToken();
-		if(number() || identifier()) {	
+		if(number() || identifier()) {
+			getNextToken();
 			if(symbol.id == RSQBR) {
 				return 1;
 			}
@@ -379,6 +385,7 @@ int declaration() {
 	if(typeSpec()) {	
 		getNextToken();
 		if(identifier() || pointer()) {
+			getNextToken();
 			if(arrayDec()) { getNextToken(); }
 			else if(procDec()) { getNextToken(); }
 			while(symbol.id == COMMA) {
@@ -432,7 +439,8 @@ int structDec() {
 					}
 					if(symbol.id == RCUBR) {
 						getNextToken();
-						if(identifier()) {	
+						if(identifier()) {
+							getNextToken();
 							if(symbol.id == SEMCOL) {
 								return 1;
 							}
@@ -467,13 +475,13 @@ int programm() {
 			j = structDec();
 		}
 		printf(" -- j:%i\n", j);
-		getNextToken();
+		if(j) { getNextToken(); }
 	}
-
 	while(k) {
 		k = procedure();
 		printf(" -- k:%i\n",k);
 		getNextToken();
+printToken(symbol);
 	}
 	printf(" --------------------------------\n");
 	return 1;
@@ -486,7 +494,7 @@ void startParse(){
 		int i = programm();
 		printf("isProg:%i\n",i);
 		if(i == 1) {
-			printf("\n -- nwir sind gut\n");
+			printf("\n -- wir sind gut\n");
 		}
 	}
 	printf("\n");
