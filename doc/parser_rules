@@ -1,15 +1,15 @@
 programm	=	{include} {declaration | structDec} {procedure} .
 
 procedure	=	procHead "{" {declaration} statementSeq "}" .
-procHead	=	(typeSpec ["*"]) identifier "(" [procParList] ")" .
+procHead	=	typeSpec ["*"] identifier "(" [procParList] ")" .
 procParList	=	typeSpec (identifier | pointer) { "," typeSpec (identifier | pointer) } .
 
 statementSeq=	{ statement ";" } .
-statement	=	init | procCall | expression | ret | while | ifCmd .
+statement	=	init | expression | ret | while | ifCmd .
 
-ifCmd		=	"if" "(" boolExp ")" block [elseCmd] .	
+ifCmd		=	"if" "(" expression ")" block [elseCmd] .	
 elseCmd		=	"else" (ifCmd | block) .
-whileLoop	=	"while" "(" boolExp ")" block .
+whileLoop	=	"while" "(" expression ")" block .
 ret			=	"return" expression .
 
 block		= 	"{" statementSeq "}" .
@@ -17,9 +17,10 @@ block		= 	"{" statementSeq "}" .
 expression	=	arithExp { boolOp arithExp } .
 arithExp 	= 	[ "-" ] term { ( "+" | "-" ) term } .
 term 		= 	factor { ( "*" | "/" ) factor } .
-factor 		= 	identifier | number | procCall | reference | "(" expression ")" .
+factor 		= 	identifier | number | procCall | reference | arrayElem |0 "(" expression ")" .
 reference	=	identifier "." identifier .
 pointer		=	"*" identifier .
+arrayElem 	=	identifier "[" (number | identifier) "]" . 
 
 declaration	=	typeSpec (identifier | pointer) [ ("[" (number | identifier) "]") | ("(" [procParList] ")") ] { "," (identifier | pointer) } ";" .
 structDec	=	"typedef" "struct" "{" declaration {declaration} "}" identifier ";" .
