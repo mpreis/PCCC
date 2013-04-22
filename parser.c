@@ -1,96 +1,39 @@
 /*
  * PSEUDOCODE - parser.c
  * authors: thomas huetter 1120239, mario preishuber 1120643
+ *
  */
 #include "parser.h"
 #include "scanner.h"
 #include "tokenMapping.h"
-void printError() {
-	printf("%i:%i: error: ", symbol.lineNr, symbol.colNr);
+
+void printError(char *msg) {
+	printf("%i:%i: error: %s\n", symbol.lineNr, symbol.colNr, msg);
 }
 
+/* 0, .. 9 */
 int digit() {
 	if(isDigit(symbol.digitValue)) { return 1; }
 	return 0;
 }
 
+/* ["-"] digit {digit} . */
 int number() {
-	if(symbol.id == MINUS) {
-		getNextToken();
-	}
-	if(symbol.id == NUMBER) {
-		return 1;
-	}
+	if(symbol.id == MINUS)  { getNextToken(); }
+	if(symbol.id == NUMBER) { return 1; }
 	return 0;
 }
 
+/* a, .. z, A, .. Z */
 int letter() {
-	if(isLetter(symbol.valueStr[0])) {
-		return 1;
-	}
+	if(isLetter(symbol.valueStr[0])) { return 1; }
 	return 0;
 }
 
-/* identifier "." identifier . */
-int reference() {
-	if(identifier()) {
-		getNextToken();
-		if(symbol.id == DOT) {
-			getNextToken();
-			if(identifier()) {
-				return 1;
-			}
-		}
-	}
-	return 0;
-}
-
-/* identifier | number | "(" expression ")" | procCall | reference . */
-int factor() {
-	if(identifier() || number() || procCall() || reference() || symbol.id == LPAR) {
-		if(symbol.id == LPAR) {
-			getNextToken();
-			if(expression()) {
-				getNextToken();
-				if(symbol.id == RPAR) {
-					return 1;
-				}
-			}
-		}
-		else return 1;
-	}
-	return 0;
-}
-
-/* factor { ( "*" | "/" ) factor } . */
-int term() {
-	if(factor()) {
-		getNextToken();
-		while(symbol.id == TIMES || symbol.id == DIV) {
-			getNextToken();
-			if(factor()) {
-				getNextToken();
-			}
-		}
-		return 1;
-	}
-	return 0;
-}
-
-/* [ "-" ] term { ( "+" | "-" ) term } . */
-int expression() {
-	if(symbol.id == MINUS) {
-		getNextToken();
-	}
-	if(term()) {
-		while(symbol.id == PLUS || symbol.id == MINUS) {
-			getNextToken();
-			if(term()) {
-
-			}
-		}
-		return 1;
-	}
+/* "int" | "char" . */ 
+int typeSpec() {
+	if(symbol.id == TYPEDEF) { getNextToken(); }
+	if(symbol.id == INT || symbol.id == CHAR || symbol.id == VOID) { return 1; }
 	return 0;
 }
 
@@ -102,400 +45,156 @@ int boolOp() {
 	return 0;
 }
 
-/* "int" | "char" . */ 
-int typeSpec() {
-	if(symbol.id == INT || symbol.id == CHAR) {
-		return 1;
-	}
-	return 0;
-}
-
-/* "*" identifier . */ 
-int pointer() {
-	if(symbol.id == TIMES) {
-		getNextToken();
-		if(identifier()) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
-/* letter {letter | digit} . */ 
+/* letter {letter | digit} . */
 int identifier() {
 	if(symbol.id == IDENT) { return 1; }
 	return 0;
 }
 
-/* "{" {command} "}" . */ 
-int block() {
-	if(symbol.id == LCUBR) {
-		getNextToken();
-		while(command()) {
-			getNextToken();
-		}
-		if(symbol.id == RCUBR) {
-		}
-		return 1;
-	}
+/* include */
+int include() {
+	if(symbol.id == INCLUDE) { return 1; }
 	return 0;
 }
 
-/* expression { boolOp expression } . */ 
-int boolExp() {
-	if(expression() || boolExp()) {
-printf("1. exp: ");
-printToken(symbol);
-		while(boolOp()) {
-			getNextToken();
-printf("boolOP ");
-printToken(symbol);
-			if(expression() || boolExp()) {
-printf("2. exp ");
-printToken(symbol);
-			}
-				getNextToken();
-		}
-		return 1;
-	}
-	return 0;
-}
-
-/* "while" "(" boolExp ")" block . */ 
-int whileLoop() {
-printf("im while: ");
-printToken(symbol);
-	if(symbol.id == WHILE) {
-		getNextToken();
+/* identifier | number | procCall | reference | "(" arithExp ")" . */
+int factor() {
+	if(identifier() || number() /*|| procCall || reference*/ || symbol.id == LPAR) {
 		if(symbol.id == LPAR) {
+			if(hasMoreTokens() == 0) { return 0; }			
 			getNextToken();
-			if(boolExp()) {
-				getNextToken();
+			if(expression()) {
 				if(symbol.id == RPAR) {
-					getNextToken();
-					if(block()) {
-						return 1;
-					}
+					return 1;
 				}
 			}
 		}
+		return 1;
 	}
 	return 0;
 }
 
-/* "else" (ifCmd | block) . */ 
-int elseCmd() {
-	if(symbol.id == ELSE) {
+/* factor { ( "*" | "/" ) factor } . */
+int term() {
+	printf("start_term: "); printToken(symbol);
+	while(1) {
+		if(factor() == 0) {
+			printError("term(1): identifier, number, procedure call, reference or (arithExp) expected.");
+			return 0;
+		}	
+		if(hasMoreTokens() == 0) { return 1; }
 		getNextToken();
-		if(ifCmd() || block()) {
+		if(symbol.id == PLUS || symbol.id == MINUS || boolOp() || symbol.id == RPAR || symbol.id == SEMCOL) {
+			return 1;
+		}
+		if(symbol.id == TIMES || symbol.id == DIV) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+		} else {
+			printError("* or / missing.");
 			return 1;
 		}
 	}
-	return 0;
 }
 
-/* "if" "(" boolExp ")" block [else] . */ 
-int ifCmd() {
-	if(symbol.id == IF) {
-		getNextToken();
-		if(symbol.id == LPAR) {
+/* [ "-" ] term { ( "+" | "-" ) term } . */
+int arithExp() {
+	if(symbol.id == MINUS) { 
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken(); 
+	}
+	while(1) {
+		printToken(symbol);
+		if(term() == 0) {
+			printError("arithExp(1): identifier, number, procedure call, reference or (arithExp) expected.");
+			printToken(symbol);
+			return 0;
+		}
+		if(boolOp() || symbol.id == RPAR || symbol.id == SEMCOL || hasMoreTokens() == 0) {
+			return 1;
+		}
+		if(symbol.id == PLUS || symbol.id == MINUS) {
+			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
-			if(boolExp()) {
-				if(symbol.id == RPAR) {
-					getNextToken();
-					if(block()) {
-						if(elseCmd()) {
-							
-						}
-						return 1;
-					}
-				}
+		} else {
+			printError("+ or - missing.");
+			return 1;
+		}
+	}
+}
+
+/* arithExp { boolOp arithExp } . */
+int expression() {
+	while(1) {
+		if(arithExp() == 0) {
+			printError("expression(1): identifier, number, procedure call, reference or (arithExp) expected.");
+			return 0;
+		}
+		if(symbol.id == RPAR || symbol.id == SEMCOL || hasMoreTokens() == 0) {
+			return 1;
+		}
+		if(boolOp()) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+		} else {
+			printError("boolean operator missing.");
+			return 1;
+		}
+	}
+}
+
+int statementSeq () {
+	while(1) {
+		/* TODO add: if while return; remove: number (only for testing!) */
+		while(identifier() == 0 && number() == 0 && symbol.id != LPAR) {
+			if(hasMoreTokens() == 0) { return 0; }			
+			getNextToken();
+			printError("statSeq(1): identifier expected.");
+		}
+		printf("\n");
+		if(init() || expression()) {
+			printf("im if: "); printToken(symbol);
+			if(symbol.id == SEMCOL) {				
+				printf("--- IS STATESEGMENT SEQ!\n\n");
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+			} else {
+				printError("; missing.");			
+			}
+			if(symbol.id == RCUBR) {
+				printf("--- end of statement seq. --- \n\n");
+				return 1;
 			}
 		}
 	}
-	return 0;
 }
 
-/* identifier ["[" (number | identifier) "]"] "=" expression ";" . */ 
+/* identifier ["[" (number | identifier) "]"] "=" expression . */
 int init() {
 	if(identifier()) {
+		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 		if(symbol.id == LSQBR) {
+			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			if(number() || identifier()) {
+				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
 				if(symbol.id == RSQBR) {
+					if(hasMoreTokens() == 0) { return 0; }
 					getNextToken();
 				}
-			}	
+			}
 		}
 		if(symbol.id == EQSIGN) {
+			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
+			printf("=: "); printToken(symbol);
 			if(expression()) {
-				if(symbol.id == SEMCOL) {
-					return 1;
-				}
-			}
-		}
-	}
-	return 0;
-}
-
-/* "return" expression ";" . */ 
-int ret() {
-	if(symbol.id == RETURN) {
-		getNextToken();
-		if(expression()) {
-			getNextToken();
-			if(symbol.id == SEMCOL) {
-				return 1;
-			}	
-		}
-	}
-	return 0;
-}
-
-/* identifier {"," identifier} . */ 
-int paramList() {
-	if(identifier()) {
-		getNextToken();
-		while(symbol.id == COMMA) {
-			getNextToken();
-			if(identifier() == 0) {
-				return 0;			
-			}
-			getNextToken();
-		}
-printf("muas 1 liefern!");
-		return 1;
-	}
-	return 0;
-}
-
-/* identifier "(" [paramList]")" . */ 
-int procCall() {
-printToken(symbol);
-	if(identifier()) {
-		getNextToken();
-		if(symbol.id == LPAR) {
-			getNextToken();
-			if(paramList()) {
-				getNextToken();
-			}
-			if(symbol.id == RPAR) {
+				printf("exp: "); printToken(symbol);
 				return 1;
 			}
 		}
-	}
-	return 0;
-}
-
-int initProcCall() {
-	if(identifier()) {
-		getNextToken();
-		if(symbol.id == LPAR) {
-			getNextToken();
-			paramList();
-			if(symbol.id == RPAR) {
-				getNextToken();
-				if(symbol.id == SEMCOL) {
-					return 1;
-				}
-			}
-		}
-		if(symbol.id == LSQBR) {
-			getNextToken();
-			if(number() || identifier()) {
-				getNextToken();
-				if(symbol.id == RSQBR) {
-					getNextToken();
-				}
-			}	
-		}
-		if(symbol.id == EQSIGN) {
-			getNextToken();
-			if(expression()) {
-				if(symbol.id == SEMCOL) {
-					return 1;
-				}
-			}
-		}
-	}
-	return 0;
-}
-
-
-/* whileLoop | ifCmd | init | ret | procCall | (expression ";"). */ 
-int command() {
-	if(whileLoop() || ifCmd() || ret() || initProcCall()) {
-		return 1;
-	} else if(expression()) {
-		getNextToken();
-		if(symbol.id == SEMCOL) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
-/* typeSpec (identifier | pointer) { "," typeSpec (identifier | pointer) } . */ 
-int procParList() {
-	if(typeSpec()) {
-		getNextToken();
-		if(identifier() || pointer()) {
-			getNextToken();
-			while(symbol.id == COMMA) {
-				getNextToken();
-				if(typeSpec()) {
-					getNextToken();
-					if(identifier() || pointer() ) {
-						getNextToken();
-					} else {
-						return 0;
-					}
-				}
-			}
-			return 1;
-		}
-	}
-	return 0;
-}
-
-/* ((typeSpec ["*"]) | "void") identifier "(" [procParList] ")" . */ 
-int procHead() {
-	if(typeSpec() || symbol.id == VOID) {
-		if(typeSpec()) {
-			getNextToken();
-			if(symbol.id == TIMES) {
-				getNextToken();
-			}
-		} else {
-			getNextToken();
-		}
-		if(identifier()) {
-			getNextToken();
-			if(symbol.id == LPAR) {			
-				getNextToken();
-				if(procParList()) {
-
-				}
-				if(symbol.id == RPAR) {
-					return 1;
-				}
-			}
-		}
-	}
-	return 0;
-}
-
-/* procHead ";" . */
-int procDec() {
-	if(symbol.id == LPAR) {			
-		getNextToken();
-		if(procParList()) {
-
-		}
-		if(symbol.id == RPAR) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
-/* typeSpec identifier "[" (number | identifier) "]" ";" . */
-int arrayDec() {
-	if(symbol.id == LSQBR) {
-		getNextToken();
-		if(number() || identifier()) {
-			getNextToken();
-			if(symbol.id == RSQBR) {
-				return 1;
-			}
-		}
-	}
-	return 0;
-}
-
-/* declaration	=	typeSpec (identifier | pointer) { "," (identifier | pointer) } ";" . */
-int declaration() {
-	if(typeSpec()) {	
-		getNextToken();
-		if(identifier() || pointer()) {
-			getNextToken();
-			if(arrayDec()) { getNextToken(); }
-			else if(procDec()) { getNextToken(); }
-			while(symbol.id == COMMA) {
-				getNextToken();
-				if(identifier() == 0 && pointer() == 0) {
-					return 0;
-				}
-				getNextToken();
-				if(arrayDec()) { getNextToken(); }
-			}
-			if(symbol.id == SEMCOL) {
-				return 1;
-			}
-		}
-	}
-	return 0;
-}
-
-/* procHead "{" {decalaration} {command} "}" . */ 
-int procedure() {
-	if(procHead()) {
-printf(" -- procHead()\n");
-		getNextToken();
-		if(symbol.id == LCUBR) {
-			getNextToken();
-			while(declaration()) {
-				getNextToken();
-			}
-			while(command()) {
-printf("command()\n");
-				getNextToken();
-			}
-printToken(symbol);
-			if(symbol.id == RCUBR) {
-printf(" -- richtig\n");
-				return 1;
-			}
-		}
-	}
-	return 0;
-}
-
-/* "typedef" "struct" "{" declaration {declaration} "}" identifier ";" . */
-int structDec() {
-	if(symbol.id == TYPEDEF) {	
-		getNextToken();
-		if(symbol.id == STRUCT) {				
-			getNextToken();
-			if(symbol.id == LCUBR) {	
-				getNextToken();
-				if(declaration()) {	
-					getNextToken();
-					while(declaration()) {	
-						getNextToken();
-					}
-					if(symbol.id == RCUBR) {
-						getNextToken();
-						if(identifier()) {
-							getNextToken();
-							if(symbol.id == SEMCOL) {
-								return 1;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	return 0;
-}
-
-int include() {
-	if(symbol.id == INCLUDE) {
-		return 1;
 	}
 	return 0;
 }
@@ -504,12 +203,28 @@ int programm() {
 	int i, j, k;
 	i = 1; j = 1; k = 1;
 
+	statementSeq();
+/*
+	while(1) {
+		while(identifier() == 0 || number() == 0 || ...){
+
+		}
+
+	while(i) {
+		i = arithExp();
+		if(i == 1) { getNextToken(); }
+		printf(" -- i:%i\n\n",i);	
+	}
+	
+
+
 	while(i) {
 		i = include();
 		if(i == 1) { getNextToken(); }
 		printf(" -- i:%i\n",i);	
 	}
-	while(j) {// || j2 || j3) {
+
+	while(j) {
 		j = declaration();
 		if(j == 0) {
 			j = structDec();
@@ -522,22 +237,22 @@ int programm() {
 		printf(" -- k:%i\n",k);
 		getNextToken();
 	}
-	printf(" --------------------------------\n");
-	return 1;
+*/
+	return i;
 }
-
-int startParse(){
+/* {include} {declaration | structDec} {procedure} . */
+int startParsing(){
 	int i;
-	i = 0;	
 	printf("\nstart parsing...\n");
 	while ( hasMoreTokens() ) {
 		getNextToken();
 		i = programm();
-		printf("isProg:%i\n",i);
 		if(i == 1) {
-			printf("\n -- wir sind gut\n");
+			printf("\n -- DONE. --\n");
 		}
 	}
 	printf("\n");
 	return i;
 }
+
+

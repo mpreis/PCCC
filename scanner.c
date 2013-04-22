@@ -134,7 +134,7 @@ void getNextToken() {
 		else if(strnCmp(identifier, "char",		4) == 0) { t.id = CHAR; 	strnCpy(t.valueStr, identifier, 4); }
 		else if(strnCmp(identifier, "void",		4) == 0) { t.id = VOID; 	strnCpy(t.valueStr, identifier, 4); }
 		else if(strnCmp(identifier, "else",		4) == 0) { t.id = ELSE; 	strnCpy(t.valueStr, identifier, 4); }
-		else if(strnCmp(identifier, "while",		5) == 0) { t.id = WHILE; 	strnCpy(t.valueStr, identifier, 5); }
+		else if(strnCmp(identifier, "while",	5) == 0) { t.id = WHILE; 	strnCpy(t.valueStr, identifier, 5); }
 		else if(strnCmp(identifier, "return",	6) == 0) { t.id = RETURN;	strnCpy(t.valueStr, identifier, 6); }
 		else if(strnCmp(identifier, "struct",	6) == 0) { t.id = STRUCT;	strnCpy(t.valueStr, identifier, 6); }
 		else if(strnCmp(identifier, "typedef",	7) == 0) { t.id = TYPEDEF;	strnCpy(t.valueStr, identifier, 7); }
@@ -273,9 +273,13 @@ void getNextToken() {
 			t.id = ERROR; t.valueStr[0] = c; t.valueStr[1] = 0;
 		}
 	}
-	symbol.id = t.id;
-	symbol.digitValue = t.digitValue;
-	symbol.lineNr = lineNr;
-	symbol.colNr = colNr;	
-	strnCpy(symbol.valueStr, t.valueStr,64);
+
+	if(t.id == COMMENT) { getNextToken(); }
+	else {
+		symbol.id = t.id;
+		symbol.digitValue = t.digitValue;
+		symbol.lineNr = lineNr;
+		symbol.colNr = colNr;	
+		strnCpy(symbol.valueStr, t.valueStr,64);
+	}
 }

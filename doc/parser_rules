@@ -1,40 +1,39 @@
-programm		=	{include} {declaration | structDec | arrayDec} {procedure} .
+programm	=	{include} {declaration | structDec} {procedure} .
 
-procedure	=	procHead "{" {decalaration} {command} "}" .
-procHead		=	((typeSpec ["*"]) | "void") identifier "(" [procParList] ")" .
+procedure	=	procHead "{" {declaration} statementSeq "}" .
+procHead	=	(typeSpec ["*"]) identifier "(" [procParList] ")" .
 procParList	=	typeSpec (identifier | pointer) { "," typeSpec (identifier | pointer) } .
 
-command		=	while | ifCmd | init | ret | procCall | (expression ";").
+statementSeq=	{ statement ";" } .
+statement	=	init | procCall | expression | ret | while | ifCmd .
 
-ifCmd		=	"if" "(" boolExp ")" block [else] .	
-else	Cmd		=	"else" (ifCmd | block) .
+ifCmd		=	"if" "(" boolExp ")" block [elseCmd] .	
+elseCmd		=	"else" (ifCmd | block) .
 whileLoop	=	"while" "(" boolExp ")" block .
-ret			=	"return" expression ";" .
+ret			=	"return" expression .
 
-block		= 	"{" {command} "}" .
+block		= 	"{" statementSeq "}" .
 
-boolExp		=	expression { boolOp expression } .
-expression 	= 	[ "-" ] term { ( "+" | "-" ) term } .
+expression	=	arithExp { boolOp arithExp } .
+arithExp 	= 	[ "-" ] term { ( "+" | "-" ) term } .
 term 		= 	factor { ( "*" | "/" ) factor } .
-factor 		= 	identifier | number | "(" expression ")" | procCall | reference .
+factor 		= 	identifier | number | procCall | reference | "(" expression ")" .
 reference	=	identifier "." identifier .
 pointer		=	"*" identifier .
 
-declaration	=	typeSpec (identifier | pointer) { "," (identifier | pointer) } ";" .
+declaration	=	typeSpec (identifier | pointer) [ ("[" (number | identifier) "]") | ("(" [procParList] ")") ] { "," (identifier | pointer) } ";" .
 structDec	=	"typedef" "struct" "{" declaration {declaration} "}" identifier ";" .
-arrayDec		=	typeSpec identifier "[" (number | identifier) "]" ";" .
-procDec		=	procHead ";" .
 
-init			=	identifier ["[" (number | identifier) "]"] "=" expression ";" .
-procCall		=	identifier "(" [paramList]")" .
+init		=	identifier ["[" (number | identifier) "]"] "=" expression .
+procCall	=	identifier "(" [paramList]")" .
 paramList	=	identifier {"," identifier} .
 
 include		=	"include" fileName .
-typeSpec		=	"int" | "char" .
+typeSpec	=	["typedef"] ("int" | "char" | "void") .
 
 boolOp		=	"==" | "!=" | "<=" | ">=" | "<" | ">" | "&&" | "||" .
 
-fileName		=	identifier "." identifier .
+fileName	=	identifier "." identifier .
 identifier	=	letter {letter | digit} .
 number		=	["-"] digit {digit} .
 digit		=	"0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" .  

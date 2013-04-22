@@ -3,16 +3,16 @@
 #include "tokenMapping.h"
 int main(int argc, char *argv[]){
 	char file[20];
-	strnCpy(file, "../../../test.c", 35);
+	strnCpy(file, "./tests/test.c", 35);
 	initScanner(file);
 	/* scanner test */
-	/*
+	/*	
 	while(hasMoreTokens()) {
 		getNextToken();
 		printToken(symbol);
 	}
-	*/
-	startParse();
+	*/	
+	startParsing();
 	printf("\n");
 	return 0;
 }
