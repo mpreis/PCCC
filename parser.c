@@ -143,34 +143,9 @@ int expression() {
 	}
 }
 
-int statementSeq () {
-	while(1) {
-		/* TODO add: if while return; remove: number (only for testing!) */
-		while(identifier() == 0 && number() == 0 && symbol.id != LPAR) {
-			if(hasMoreTokens() == 0) { return 0; }			
-			getNextToken();
-			printError("statSeq(1): identifier expected.");
-		}
-		printf("\n");
-		if(init() || expression()) {
-			printf("im if: "); printToken(symbol);
-			if(symbol.id == SEMCOL) {				
-				printf("--- IS STATESEGMENT SEQ!\n\n");
-				if(hasMoreTokens() == 0) { return 0; }
-				getNextToken();
-			} else {
-				printError("; missing.");			
-			}
-			if(symbol.id == RCUBR) {
-				printf("--- end of statement seq. --- \n\n");
-				return 1;
-			}
-		}
-	}
-}
-
 /* identifier ["[" (number | identifier) "]"] "=" expression . */
 int init() {
+	printf(" -- init: "); printToken(symbol);
 	if(identifier()) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
@@ -197,6 +172,124 @@ int init() {
 		}
 	}
 	return 0;
+}
+
+/* identifier {"," identifier} . */
+int paramList() {
+	printf("start_term: "); printToken(symbol);
+	while(1) {
+		if(identifier() == 0) {
+			printError("paramList: identifier expected.");
+			return 0;
+		}	
+		if(hasMoreTokens() == 0) { return 1; }
+		getNextToken();
+		if(symbol.id == RPAR) {
+			return 1;
+		}
+		if(symbol.id == COMMA) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+		} else {
+			printError("')' missing.");
+			return 1;
+		}
+	}
+}
+
+
+/* thomas test fkt */
+int initExp() {
+	if(identifier()) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(symbol.id != EQSIGN) {
+			printf("NOT EQSIGN\n");
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(symbol.id == LPAR) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+				if(paramList()) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+				}
+				if(symbol.id == RPAR) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+					printf("procCall\n");
+					//is procCall()
+				}
+			} else {
+				if(symbol.id == DOT) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+					if(identifier()) {
+						if(hasMoreTokens() == 0) { return 0; }
+						getNextToken();
+						printf("reference\n");
+						//is reference
+					}
+				}
+			}
+			if(symbol.id == PLUS || symbol.id == MINUS || symbol.id == TIMES || symbol.id == DIV || boolOp()) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+				if(expression()) {
+					printf("expression\n");
+				}
+			}
+		}
+		return 1;
+	}
+	return 0;
+}
+
+/* "while" "(" expression ")" block .
+int whileLoop() {
+	if(symbol.id == WHILE) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(symbol.id == LPAR) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(expression()) {
+				if(symbol.id == LPAR) {
+					if(block()) {
+						return 1;
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+*/
+int statementSeq () {
+	while(1) {
+		/* TODO add: if while return; remove: number (only for testing!) */
+		printf("vor while: "); printToken(symbol);
+		while(identifier() == 0 && number() == 0 && symbol.id != LPAR) {
+			if(hasMoreTokens() == 0) { return 0; }			
+			getNextToken();
+			printError("statSeq(1): identifier expected.");
+		}
+		printf("\n");
+		if(initExp()) {
+			printf("im if: "); printToken(symbol);
+			if(symbol.id == SEMCOL) {				
+				printf("--- IS STATESEGMENT SEQ!\n\n");
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+			} else {
+				printError("; missing.");			
+			}
+			if(symbol.id == RCUBR) {
+				printf("--- end of statement seq. --- \n\n");
+				return 1;
+			}
+		}
+	}
 }
 
 int programm() {

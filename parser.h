@@ -4,3 +4,4 @@
  *
  */
 int startParsing();
+int expression();
