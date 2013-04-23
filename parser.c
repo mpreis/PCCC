@@ -58,7 +58,7 @@ int identifier() {
 	return 0;
 }
 
-/* include */
+/* include . */
 int include() {
 	if(symbol.id == INCLUDE) { return 1; }
 	return 0;
@@ -66,18 +66,21 @@ int include() {
 
 /* identifier | number | procCall | reference | "(" arithExp ")" . */
 int factor() {
-	if(identifier() || number() /*|| procCall || reference */ || symbol.id == LPAR) {
-		if(symbol.id == LPAR) {
+	//if(identifier() || number() || /*procCall || reference() ||*/ symbol.id == LPAR) {
+	if(isItValid()) {
+		/*if(symbol.id == LPAR) {
 			if(hasMoreTokens() == 0) { return 0; }			
 			getNextToken();
 			if(expression()) {
 				if(symbol.id == RPAR) {
+					printf("");
 					return 1;
 				}
 			}
-		}
+		}*/
 		return 1;
 	}
+	if(symbol.id == RPAR) { return 1; }
 	return 0;
 }
 
@@ -87,10 +90,11 @@ int term() {
 	while(1) {
 		if(factor() == 0) {
 			printError("term(1): identifier, number, procedure call, reference or (arithExp) expected.");
+			printToken(symbol);
 			return 0;
 		}	
-		if(hasMoreTokens() == 0) { return 1; }
-		getNextToken();
+		/*if(hasMoreTokens() == 0) { return 1; }
+		getNextToken();*/
 		if(symbol.id == PLUS || symbol.id == MINUS || boolOp() || symbol.id == RPAR || symbol.id == SEMCOL) {
 			return 1;
 		}
@@ -150,7 +154,6 @@ int expression() {
 
 /* identifier ["[" (number | identifier) "]"] "=" expression . */
 int init() {
-	printf(" -- init: "); printToken(symbol);
 	if(identifier()) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
@@ -199,22 +202,29 @@ int paramList() {
 }
 
 int isItValid() {
+	printf("isItValid: "); printToken(symbol);
 	if(symbol.id == NUMBER) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 		if(symbol.id == SEMCOL) { return 1; }
 		else if(op()) {
+			printf("op\n");
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			if(expression()) { return 1; }
 		}
 		return 0;
 	}
-	else if(symbol.id == LPAR) { return expression(); }
+	else if(symbol.id == LPAR) { 
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		return expression(); 
+	}
 	else if(identifier()) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 
+		printf("actSym: "); printToken(symbol);
 		/* var ; */
 		if(symbol.id == SEMCOL) {
 			return 1;

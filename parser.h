@@ -5,3 +5,4 @@
  */
 int startParsing();
 int expression();
+int isItValid();
