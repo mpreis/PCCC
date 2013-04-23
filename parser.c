@@ -8,7 +8,7 @@
 #include "tokenMapping.h"
 
 void printError(char *msg) {
-	printf("%i:%i: error: %s\n", symbol.lineNr, symbol.colNr, msg);
+	printf("\t%i:%i: error: %s\n", symbol.lineNr, symbol.colNr, msg);
 }
 
 /* 0, .. 9 */
@@ -45,6 +45,13 @@ int boolOp() {
 	return 0;
 }
 
+int op() {
+	if(symbol.id == PLUS || symbol.id == MINUS || symbol.id == DIV || symbol.id == TIMES || boolOp()) {
+		return 1;
+	}
+	return 0;
+}
+
 /* letter {letter | digit} . */
 int identifier() {
 	if(symbol.id == IDENT) { return 1; }
@@ -59,7 +66,7 @@ int include() {
 
 /* identifier | number | procCall | reference | "(" arithExp ")" . */
 int factor() {
-	if(identifier() || number() /*|| procCall || reference*/ || symbol.id == LPAR) {
+	if(identifier() || number() /*|| procCall || reference */ || symbol.id == LPAR) {
 		if(symbol.id == LPAR) {
 			if(hasMoreTokens() == 0) { return 0; }			
 			getNextToken();
@@ -76,7 +83,7 @@ int factor() {
 
 /* factor { ( "*" | "/" ) factor } . */
 int term() {
-	printf("start_term: "); printToken(symbol);
+/*	printf("start_term: "); printToken(symbol); */
 	while(1) {
 		if(factor() == 0) {
 			printError("term(1): identifier, number, procedure call, reference or (arithExp) expected.");
@@ -104,10 +111,8 @@ int arithExp() {
 		getNextToken(); 
 	}
 	while(1) {
-		printToken(symbol);
 		if(term() == 0) {
 			printError("arithExp(1): identifier, number, procedure call, reference or (arithExp) expected.");
-			printToken(symbol);
 			return 0;
 		}
 		if(boolOp() || symbol.id == RPAR || symbol.id == SEMCOL || hasMoreTokens() == 0) {
@@ -164,9 +169,7 @@ int init() {
 		if(symbol.id == EQSIGN) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
-			printf("=: "); printToken(symbol);
 			if(expression()) {
-				printf("exp: "); printToken(symbol);
 				return 1;
 			}
 		}
@@ -176,7 +179,7 @@ int init() {
 
 /* identifier {"," identifier} . */
 int paramList() {
-	printf("start_term: "); printToken(symbol);
+	if(symbol.id == RPAR) { return 1; }
 	while(1) {
 		if(identifier() == 0) {
 			printError("paramList: identifier expected.");
@@ -184,9 +187,7 @@ int paramList() {
 		}	
 		if(hasMoreTokens() == 0) { return 1; }
 		getNextToken();
-		if(symbol.id == RPAR) {
-			return 1;
-		}
+		if(symbol.id == RPAR) { return 1; }
 		if(symbol.id == COMMA) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
@@ -197,8 +198,109 @@ int paramList() {
 	}
 }
 
+int isItValid() {
+	if(symbol.id == NUMBER) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(symbol.id == SEMCOL) { return 1; }
+		else if(op()) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(expression()) { return 1; }
+		}
+		return 0;
+	}
+	else if(symbol.id == LPAR) { return expression(); }
+	else if(identifier()) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+
+		/* var ; */
+		if(symbol.id == SEMCOL) {
+			return 1;
+		}
+
+		/* var = */		
+		else if(symbol.id == EQSIGN) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			return expression();
+		}
+
+		/* var +  */
+		else if(op()) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			return expression();
+		}		
+
+		/* var . */
+		else if(symbol.id == DOT) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(identifier()) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+				if(symbol.id == SEMCOL) { return 1; }
+				else if(op()) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+					return expression();
+				}
+			}
+			return 0;
+		}
+
+		/* var ( */
+		else if(symbol.id == LPAR) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+
+			paramList();
+
+			if(symbol.id == RPAR) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+				if(symbol.id == SEMCOL) { return 1; }
+				else if(op()) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+					return expression();
+				}
+			}
+			return 0;
+		}
+
+		/* var [ */
+		else if(symbol.id == LSQBR) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(number() || identifier()) {	
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+				if(symbol.id == RSQBR) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+
+					/* var [i] ; */
+					if(symbol.id == SEMCOL) { return 1; }
+					
+					/* var [1] = | var [1] + */
+					else if(symbol.id == EQSIGN || op()) {
+						if(hasMoreTokens() == 0) { return 0; }
+						getNextToken();
+						return expression();	
+					}
+				}
+			}
+			return 0;
+		}
+	}
+	return 0;
+}
 
 /* thomas test fkt */
+/*
 int initExp() {
 	if(identifier()) {
 		if(hasMoreTokens() == 0) { return 0; }
@@ -244,7 +346,7 @@ int initExp() {
 	}
 	return 0;
 }
-
+*/
 /* "while" "(" expression ")" block .
 int whileLoop() {
 	if(symbol.id == WHILE) {
@@ -265,20 +367,20 @@ int whileLoop() {
 	return 0;
 }
 */
+
+int i = 0;
 int statementSeq () {
 	while(1) {
 		/* TODO add: if while return; remove: number (only for testing!) */
-		printf("vor while: "); printToken(symbol);
 		while(identifier() == 0 && number() == 0 && symbol.id != LPAR) {
 			if(hasMoreTokens() == 0) { return 0; }			
 			getNextToken();
 			printError("statSeq(1): identifier expected.");
 		}
-		printf("\n");
-		if(initExp()) {
-			printf("im if: "); printToken(symbol);
+		if(/*initExp()*/  isItValid()) {
 			if(symbol.id == SEMCOL) {				
-				printf("--- IS STATESEGMENT SEQ!\n\n");
+				i = i+1;
+				printf("-%i- IS STATESEGMENT SEQ!\n",i);
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
 			} else {
