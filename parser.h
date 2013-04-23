@@ -6,3 +6,4 @@
 int startParsing();
 int expression();
 int validate();
+int globalDec();

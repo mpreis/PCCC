@@ -11,22 +11,10 @@ void printError(char *msg) {
 	printf("\t%i:%i: error: %s\n", symbol.lineNr, symbol.colNr, msg);
 }
 
-/* 0, .. 9 */
-int digit() {
-	if(isDigit(symbol.digitValue)) { return 1; }
-	return 0;
-}
-
 /* ["-"] digit {digit} . */
 int number() {
 	if(symbol.id == MINUS)  { getNextToken(); }
 	if(symbol.id == NUMBER) { return 1; }
-	return 0;
-}
-
-/* a, .. z, A, .. Z */
-int letter() {
-	if(isLetter(symbol.valueStr[0])) { return 1; }
 	return 0;
 }
 
@@ -66,24 +54,14 @@ int include() {
 
 /* identifier | number | procCall | reference | "(" arithExp ")" . */
 int factor() {
-	if(validate()) { 
-		if(symbol.id == RPAR) {
-			if(hasMoreTokens() == 0) { return 1; }
-			getNextToken();
-		}
-		return 1;
-	}
+	if(validate()) { return 1; }
 	return 0;
 }
 
 /* factor { ( "*" | "/" ) factor } . */
 int term() {
 	while(1) {
-		if(factor() == 0) {
-			printError("term(1): identifier, number, procedure call, reference or (arithExp) expected.");
-			printToken(symbol);
-			return 0;
-		}
+		if(factor() == 0) { return 0; }
 		if(symbol.id == PLUS || symbol.id == MINUS || boolOp() || symbol.id == RPAR || symbol.id == SEMCOL) {
 			return 1;
 		}
@@ -104,10 +82,7 @@ int arithExp() {
 		getNextToken(); 
 	}
 	while(1) {
-		if(term() == 0) {
-			printError("arithExp(1): identifier, number, procedure call, reference or (arithExp) expected.");
-			return 0;
-		}
+		if(term() == 0) { return 0; }
 		if(boolOp() || symbol.id == RPAR || symbol.id == SEMCOL || hasMoreTokens() == 0) {
 			return 1;
 		}
@@ -124,10 +99,7 @@ int arithExp() {
 /* arithExp { boolOp arithExp } . */
 int expression() {
 	while(1) {
-		if(arithExp() == 0) {
-			printError("expression(1): identifier, number, procedure call, reference or (arithExp) expected.");
-			return 0;
-		}
+		if(arithExp() == 0) { return 0; }
 		if(symbol.id == RPAR || symbol.id == SEMCOL || hasMoreTokens() == 0) {
 			return 1;
 		}
@@ -179,6 +151,28 @@ int paramList() {
 		}	
 		if(hasMoreTokens() == 0) { return 1; }
 		getNextToken();
+		if(symbol.id == DOT) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(identifier()) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();	
+				if(symbol.id == LSQBR) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();	
+					if(identifier() || number()) {
+						if(hasMoreTokens() == 0) { return 0; }
+						getNextToken();
+						if(symbol.id == RSQBR) {
+							if(hasMoreTokens() == 0) { return 0; }
+							getNextToken();													
+						}
+					}
+				}
+			} else {
+				printError("paramList(2): identifier expected.");
+			}
+		}
 		if(symbol.id == RPAR) { return 1; }
 		if(symbol.id == COMMA) {
 			if(hasMoreTokens() == 0) { return 0; }
@@ -195,7 +189,6 @@ int validate() {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 		if(op()) {
-
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			return expression();
@@ -205,7 +198,13 @@ int validate() {
 	else if(symbol.id == LPAR) { 
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
-		return expression(); 
+		if(expression()) {
+			if(symbol.id == RPAR) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+				return 1; 
+			}	
+		} 
 	}
 	else if(identifier()) {
 		if(hasMoreTokens() == 0) { return 0; }
@@ -232,6 +231,20 @@ int validate() {
 			if(identifier()) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
+
+				if(symbol.id == LSQBR) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();	
+					if(identifier() || number()) {
+						if(hasMoreTokens() == 0) { return 0; }
+						getNextToken();
+						if(symbol.id == RSQBR) {
+							if(hasMoreTokens() == 0) { return 0; }
+							getNextToken();													
+						}
+					}
+				}
+
 				if(symbol.id == EQSIGN || op()) {
 					if(hasMoreTokens() == 0) { return 0; }
 					getNextToken();
@@ -244,8 +257,6 @@ int validate() {
 
 		/* var ) */
 		else if(symbol.id == RPAR) {
-			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();
 			return 1;
 		}
 
@@ -288,20 +299,231 @@ int validate() {
 			}
 			return 0;
 		}
+
+		/* var = */		
+		if(symbol.id == SEMCOL) { return 1; }
 	}
-	return 1;
+	return 0;
 }
+
+/* ifCmd		=	"if" "(" expression ")" block [elseCmd] . */	
+int ifCmd() {
+	if(symbol.id == IF) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(symbol.id == LPAR) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(expression()) {
+				if(symbol.id == RPAR) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+					if(block()) { return 1;	}
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+/* elseCmd = "else" (ifCmd | block) . */
+int elseCmd() {
+	/* TODO besser loesen! */
+/*	while(symbol.id == RCUBR && hasMoreTokens()) {
+		getNextToken();
+	}
+*/
+	if(symbol.id == RCUBR) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();		
+		if(symbol.id == ELSE) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(ifCmd()) {	
+				return 1;
+			}
+			if(block()) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();		
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+/* "while" "(" expression ")" block . */
+int whileLoop() {
+	if(symbol.id == WHILE) {
+printf("whileLoop(): "); printToken(symbol);
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(symbol.id == LPAR) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(expression()) {
+				if(symbol.id == RPAR) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+					if(block()) { 
+						if(hasMoreTokens() == 0) { return 0; }
+						getNextToken();
+						return 1; 
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+/* ret = "return" expression . */
+int ret() {
+	if(symbol.id == RETURN) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(expression()) { 
+			return 1; 
+		}
+	}
+	return 0;
+}
+
+int procParList() {
+	if(symbol.id == RPAR) { return 1; }
+	while(1) {
+		if(typeSpec() == 0) {
+			printError("procParList: typeSpec (int, char or void) expected.");
+			return 0;
+		}	
+		if(hasMoreTokens() == 0) { return 1; }
+		getNextToken();
+		if(symbol.id == TIMES) {	
+			if(hasMoreTokens() == 0) { return 1; }
+			getNextToken();
+		}
+		if(identifier()) {
+			if(hasMoreTokens() == 0) { return 1; }
+			getNextToken();
+			if(symbol.id == LSQBR) {
+				if(hasMoreTokens() == 0) { return 1; }
+				getNextToken();
+				if(symbol.id == RSQBR) {
+					if(hasMoreTokens() == 0) { return 1; }
+					getNextToken();
+				} else { return 0; }
+			}
+			if(symbol.id == RPAR) { return 1; }
+			if(symbol.id == COMMA) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+			} else {
+				printError("',' missing.");
+				return 1;
+			}
+		} else { return 0; }
+		if(symbol.id == RPAR) { return 1; }
+	}
+}
+
+int declaration() {
+	while(1) { 
+printf("dec: "); printToken(symbol);
+		if(typeSpec() == 0 && hasMoreTokens()) {
+			return 1;		
+		}
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(symbol.id == TIMES) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();			
+		}
+		if(identifier()) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(symbol.id == LSQBR) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+				if(identifier() || number()) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+					if(symbol.id == RSQBR) {
+						if(hasMoreTokens() == 0) { return 0; }
+						getNextToken();
+					}
+				}						
+			}
+			if(symbol.id == SEMCOL) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+			}
+			else if(symbol.id == COMMA) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();					
+			}
+		}
+	}
+}
+
+
+int globalDec() {
+	while(1) { 
+printf("globalDec: "); printToken(symbol);
+		while(typeSpec() == 0 && hasMoreTokens()) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			printError("globalDec: typeSpec (char, int or void) expected.");			
+		}
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(symbol.id == TIMES) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();			
+		}
+		if(identifier()) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			/* procHead */			
+			if(symbol.id == LPAR) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+				if(procParList()) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+					if(symbol.id == SEMCOL) { return 1; } 
+					else if(symbol.id == LCUBR) {
+						if(hasMoreTokens() == 0) { return 0; }
+						getNextToken();
+
+						declaration();
+
+						if(statementSeq()) {
+							if(symbol.id == RCUBR) { return 1; }
+						}						
+					}
+				}
+			} 
+			/* declaration */
+			else if(symbol.id == SEMCOL) {
+				printf("dec\n");
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+			}
+		}
+	}
+}
+
 
 int i = 0;
 int statementSeq () {
+	if(symbol.id == RCUBR) { return 1; }
 	while(1) {
-		/* TODO add: if while return; remove: number (only for testing!) */
-		while(identifier() == 0 && number() == 0 && symbol.id != LPAR) {
+		while(identifier() == 0 && number() == 0 && symbol.id != WHILE && symbol.id != IF && symbol.id != RETURN && symbol.id != LPAR) {
 			if(hasMoreTokens() == 0) { return 0; }			
 			getNextToken();
-			printError("statSeq(1): identifier expected.");
+			printError("statSeq(1): identifier, number, while, if or return expected.");
 		}
-		if(expression()) {
+		if(expression() || ret()) {
 			if(symbol.id == SEMCOL) {				
 				i = i+1;
 				printf("-%i- IS STATESEGMENT SEQ!\n",i);
@@ -310,18 +532,50 @@ int statementSeq () {
 			} else {
 				printError("; missing.");			
 			}
-			if(symbol.id == RCUBR) {
-				printf("--- end of statement seq. --- \n\n");
-				return 1;
-			}
 		}
+		else if(ifCmd()) { elseCmd(); } 
+		else if(whileLoop()) {}
+
+		if(symbol.id == RCUBR) {
+			printf("--- end of statement seq. --- \n\n");
+			return 1;
+		}
+		
+		printf("\n");
 	}
+}
+
+/* "{" statementSeq "}" . */
+int block() {
+	printf("block(): "); printToken(symbol);
+	if(symbol.id == LCUBR) {
+		if(hasMoreTokens() == 0) { return 0; }			
+		getNextToken();
+		if(statementSeq()) {
+/*
+			if(hasMoreTokens() == 0) { return 0; }			
+			getNextToken();		
+*/
+		}			
+		if(symbol.id == RCUBR) { return 1; }
+	}
+	return 0;
 }
 
 int programm() {
 	int i, j, k;
 	i = 1; j = 1; k = 1;
-	statementSeq();
+	while(i) {
+		i = include();
+		if(i == 1) { getNextToken(); }
+		printf(" -- i:%i\n",i);	
+	}
+	while(j) {
+		j = globalDec();
+		printf(" -- j:%i\n", j);
+		if(j) { getNextToken(); printf(" -----------"); printToken(symbol); }
+	}
+	//statementSeq();
 /*
 	while(1) {
 		while(identifier() == 0 || number() == 0 || ...){
@@ -343,7 +597,7 @@ int programm() {
 	}
 
 	while(j) {
-		j = declaration();
+		j = globalDec();
 		if(j == 0) {
 			j = structDec();
 		}
@@ -365,11 +619,9 @@ int startParsing(){
 	while ( hasMoreTokens() ) {
 		getNextToken();
 		i = programm();
-		if(i == 1) {
-			printf("\n -- DONE. --\n");
-		}
+
 	}
-	printf("\n");
+	printf("\n -- DONE. --\n\n");
 	return i;
 }
 
