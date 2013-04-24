@@ -6,7 +6,9 @@
 #include "scanner.h"
 #include "tokenMapping.h"
 
-int fd, lineNr, colNr;
+int fd;
+int lineNr;
+int colNr;
 char ungetc;
 
 void initScanner(char *file) {
@@ -62,7 +64,8 @@ void ungetChar(char c) {
 }
 
 int strnCmp(char *s1, char *s2, int n) {
-	char c1, c2;
+	char c1;
+	char c2;
 	int i; i = 0;
 	while(*s1 == *s2 && i < n) { s1 = s1 + 1; s2 = s2 + 1; i = i + 1; }
 	if (*s1 == 0 && *s2 == 0) { return 0; }
@@ -118,8 +121,11 @@ void getIdentifier(char identifier [], char c) {
 /* fd ... filedescriptor */
 void getNextToken() {
 	Token t;
-	char c, nc, nnc;
-	char identifier[64], buff[1000];
+	char c;
+	char nc;
+	char nnc;
+	char identifier[64];
+	char buff[1000];
 	int i;
 	
 	c = getChar();
