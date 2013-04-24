@@ -6,3 +6,6 @@
 int startParsing();
 int expression();
 int isItValid();
+int ifCmd();
+int elseCmd();
+int block();
