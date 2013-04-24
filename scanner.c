@@ -65,7 +65,7 @@ int strnCmp(char *s1, char *s2, int n) {
 	char c1, c2;
 	int i; i = 0;
 	while(*s1 == *s2 && i < n) { s1 = s1 + 1; s2 = s2 + 1; i = i + 1; }
-	if (*s2 == '\0') { return 0; }
+	if (*s1 == 0 && *s2 == 0) { return 0; }
 	c1 = s1[i]; c2 = s2[i];
 	if(c1 < c2) { return -1; }
 	return 1;

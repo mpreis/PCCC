@@ -7,3 +7,5 @@ int startParsing();
 int expression();
 int validate();
 int globalDec();
+int statementSeq();
+int block();

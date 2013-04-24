@@ -318,34 +318,23 @@ int ifCmd() {
 				if(symbol.id == RPAR) {
 					if(hasMoreTokens() == 0) { return 0; }
 					getNextToken();
-					if(block()) { return 1;	}
+					if(block()) {
+						if(hasMoreTokens() == 0) { return 0; }
+						getNextToken();
+						if(symbol.id == ELSE) {
+							if(hasMoreTokens() == 0) { return 0; }
+							getNextToken();
+							if(symbol.id == IF) {
+								ifCmd();
+							} else {
+								block();
+								if(hasMoreTokens() == 0) { return 0; }
+								getNextToken();
+							}
+						}
+					}
+					return 1;
 				}
-			}
-		}
-	}
-	return 0;
-}
-
-/* elseCmd = "else" (ifCmd | block) . */
-int elseCmd() {
-	/* TODO besser loesen! */
-/*	while(symbol.id == RCUBR && hasMoreTokens()) {
-		getNextToken();
-	}
-*/
-	if(symbol.id == RCUBR) {
-		if(hasMoreTokens() == 0) { return 0; }
-		getNextToken();		
-		if(symbol.id == ELSE) {
-			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();
-			if(ifCmd()) {	
-				return 1;
-			}
-			if(block()) {
-				if(hasMoreTokens() == 0) { return 0; }
-				getNextToken();		
-				return 1;
 			}
 		}
 	}
@@ -368,6 +357,7 @@ printf("whileLoop(): "); printToken(symbol);
 					if(block()) { 
 						if(hasMoreTokens() == 0) { return 0; }
 						getNextToken();
+printf("vor while-end: "); printToken(symbol);
 						return 1; 
 					}
 				}
@@ -427,11 +417,11 @@ int procParList() {
 }
 
 int declaration() {
+	if(typeSpec() == 0) {
+		return 0;		
+	}
 	while(1) { 
 printf("dec: "); printToken(symbol);
-		if(typeSpec() == 0 && hasMoreTokens()) {
-			return 1;		
-		}
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 		if(symbol.id == TIMES) {
@@ -456,6 +446,7 @@ printf("dec: "); printToken(symbol);
 			if(symbol.id == SEMCOL) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
+				return 1;
 			}
 			else if(symbol.id == COMMA) {
 				if(hasMoreTokens() == 0) { return 0; }
@@ -533,7 +524,7 @@ int statementSeq () {
 				printError("; missing.");			
 			}
 		}
-		else if(ifCmd()) { elseCmd(); } 
+		else if(ifCmd()) {} 
 		else if(whileLoop()) {}
 
 		if(symbol.id == RCUBR) {
