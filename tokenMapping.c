@@ -4,7 +4,7 @@
  *
  */
 #include "tokenMapping.h"
-void initTokens() {
+void initTokenMapping() {
 	ERROR		= -1;	/* invalid token	*/
 	INIT		=  0;
 	LSQBR		=  1;	/* [ */
@@ -33,7 +33,7 @@ void initTokens() {
 	AND			= 22;	/* && */
 	OR			= 23;	/* || */
 
-	INT			= 30;	/* key-word: 	*/
+	INT			= 30;	/* key-word: 		*/
 	CHAR		= 31;	/* key-word: char 	*/
 	VOID		= 32;	/* key-word: void 	*/
 	STRUCT		= 33;	/* key-word: struct */
@@ -54,4 +54,6 @@ void initTokens() {
 	INCLUDE		= 52;	/* #include 		*/
 	LF			= 53;	/* \n 				*/
 	END			= 54;	/* last token		*/
+	ARROW		= 55;	/* ->				*/
+	SIZEOF		= 56;	/* size of type		*/
 }

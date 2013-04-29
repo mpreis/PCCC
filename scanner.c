@@ -11,14 +11,30 @@ int lineNr;
 int colNr;
 char ungetc;
 
-void initScanner(char *file) {
-	fd = open(file, 0);
+void initScanner(char *file) {	
+	fd = open(file, 0);		/* 0 ... read only*/
 	ungetc = -1;
 	lineNr = 1;
 	colNr = 1;
-	initTokens();
+	initTokenMapping();
+	initToken();
 }
 void closeScanner() { close(fd); }
+
+void initToken() {
+	int sizeStr;
+	int tokenSize;
+
+	tokenSize = sizeof(Token);
+	symbol = malloc(tokenSize);
+
+	sizeStr = 64*sizeof(char);
+	symbol->valueStr = malloc(sizeStr);
+
+	symbol->id = INIT; 
+	symbol->digitValue = -1; 
+	strnCpy(symbol->valueStr, "", 0);
+}
 
 int hasMoreTokens() {
 	char c; c = getChar();
@@ -38,12 +54,25 @@ int hasMoreChars() {
 	return 1;
 }
 
-void printToken(Token t) { printf("TOKEN: %i %s %i %i %i\n", t.id, t.valueStr, t.digitValue, t.lineNr, t.colNr); }
+void printToken(Token t) { 
+	printf("TOKEN: %i %s %i (%i/%i)\n", t->id, t->valueStr, 
+		t->digitValue, t->lineNr, t->colNr); 
+}
+
+void printSymbol(char *prefix) { 
+	printf("%s %i %s %i (%i/%i)\n", prefix, symbol->id, symbol->valueStr, 
+		symbol->digitValue, symbol->lineNr, symbol->colNr); 
+}
+
 
 char getChar() {
 	char c;
-	char buff[1];
+	char *buff;
 	int r;
+	int charSize;
+
+	charSize = sizeof(char);
+	buff = malloc(charSize);
 	colNr = colNr + 1;
 	if(ungetc == -1) {
 		r = read(fd, buff, 1);
@@ -63,14 +92,13 @@ void ungetChar(char c) {
 	colNr = colNr - 1; 
 }
 
-int strnCmp(char *s1, char *s2, int n) {
-	char c1;
-	char c2;
-	int i; i = 0;
-	while(*s1 == *s2 && i < n) { s1 = s1 + 1; s2 = s2 + 1; i = i + 1; }
-	if (*s1 == 0 && *s2 == 0) { return 0; }
-	c1 = s1[i]; c2 = s2[i];
-	if(c1 < c2) { return -1; }
+int strCmp(char *s1, char *s2) {
+	while(*s1 == *s2) {
+		if(*s1 == '\0') { return 0; }
+		s1 = s1 + 1;
+		s2 = s2 + 1;
+	}
+	if(*s1 < *s2) { return -1; }
 	return 1;
 }
 
@@ -86,7 +114,7 @@ int strCmp(char *s1, char *s2) {
 
 int strnCpy(char *s1, char *s2, int n) {
 	int i; i = 0;
-	while (i < n && s2[i] != '\0') {
+	while (i < n && s2[i] != 0) {
 		s1[i] = s2[i];
 		i = i+1;
 	}
@@ -113,13 +141,13 @@ int getNumber(char nr) {
 	return number;
 }
 
-void getIdentifier(char identifier [], char c) {
+void getIdentifier(char *identifier, char c) {
 	char nc;
 	int i;
 	nc = getChar();
 	i = 1;
 	identifier[0] = c;
-	while((isLetter(nc) || isDigit(nc)) && hasMoreChars() && i < 63) {
+	while((isLetter(nc) || isDigit(nc) || nc == '_') && hasMoreChars() && i < 63) {
 		identifier[i] = nc;
 		nc = getChar();
 		i = i + 1;
@@ -130,46 +158,53 @@ void getIdentifier(char identifier [], char c) {
 
 /* fd ... filedescriptor */
 void getNextToken() {
-	Token t;
 	char c;
 	char nc;
 	char nnc;
-	char identifier[64];
-	char buff[1000];
+	char *identifier;
+	char *buff;
 	int i;
-	
+	int identSize;
+	int buffSize;
+
+	identSize = 64*sizeof(char);
+	identifier = malloc(identSize);
+	buffSize = 1000*sizeof(char);
+	buff = malloc(buffSize);
 	c = getChar();
-	t.id = INIT; t.digitValue = -1; strnCpy(t.valueStr, "", 0);
+	symbol->id = INIT; symbol->digitValue = -1; strnCpy(symbol->valueStr, "", 0);
+	
 	while((c == ' ' || c == '\n' || c == '\r' || c == '\t') && hasMoreChars()) {
 		c = getChar();
 	}
 	if(isLetter(c)) {
 		getIdentifier(identifier, c);
-			 if(strnCmp(identifier, "if",		2) == 0) { t.id = IF; 		strnCpy(t.valueStr, identifier, 2); }
-		else if(strnCmp(identifier, "int",		3) == 0) { t.id = INT; 		strnCpy(t.valueStr, identifier, 3); }
-		else if(strnCmp(identifier, "char",		4) == 0) { t.id = CHAR; 	strnCpy(t.valueStr, identifier, 4); }
-		else if(strnCmp(identifier, "void",		4) == 0) { t.id = VOID; 	strnCpy(t.valueStr, identifier, 4); }
-		else if(strnCmp(identifier, "else",		4) == 0) { t.id = ELSE; 	strnCpy(t.valueStr, identifier, 4); }
-		else if(strnCmp(identifier, "while",	5) == 0) { t.id = WHILE; 	strnCpy(t.valueStr, identifier, 5); }
-		else if(strnCmp(identifier, "return",	6) == 0) { t.id = RETURN;	strnCpy(t.valueStr, identifier, 6); }
-		else if(strnCmp(identifier, "struct",	6) == 0) { t.id = STRUCT;	strnCpy(t.valueStr, identifier, 6); }
-		else if(strnCmp(identifier, "typedef",	7) == 0) { t.id = TYPEDEF;	strnCpy(t.valueStr, identifier, 7); }
-		else { t.id = IDENT; strnCpy(t.valueStr, identifier, 64); }
+			 if(strCmp(identifier, "if"	 ) == 0) { symbol->id = IF; 	strnCpy(symbol->valueStr, identifier, 2); }
+		else if(strCmp(identifier, "int"	 ) == 0) { symbol->id = INT; 	strnCpy(symbol->valueStr, identifier, 3); }
+		else if(strCmp(identifier, "char"	 ) == 0) { symbol->id = CHAR; 	strnCpy(symbol->valueStr, identifier, 4); }
+		else if(strCmp(identifier, "void"	 ) == 0) { symbol->id = VOID; 	strnCpy(symbol->valueStr, identifier, 4); }
+		else if(strCmp(identifier, "else"	 ) == 0) { symbol->id = ELSE; 	strnCpy(symbol->valueStr, identifier, 4); }
+		else if(strCmp(identifier, "while"	 ) == 0) { symbol->id = WHILE; 	strnCpy(symbol->valueStr, identifier, 5); }
+		else if(strCmp(identifier, "return" ) == 0) { symbol->id = RETURN;	strnCpy(symbol->valueStr, identifier, 6); }
+		else if(strCmp(identifier, "sizeof" ) == 0) { symbol->id = SIZEOF;	strnCpy(symbol->valueStr, identifier, 6); }
+		else if(strCmp(identifier, "struct" ) == 0) { symbol->id = STRUCT;	strnCpy(symbol->valueStr, identifier, 6); }
+		else if(strCmp(identifier, "typedef") == 0) { symbol->id = TYPEDEF;strnCpy(symbol->valueStr, identifier, 7); }
+		else { symbol->id = IDENT; strnCpy(symbol->valueStr, identifier, 64); }
 	}
 	else if(isDigit(c)) {
-		t.id = NUMBER; t.digitValue = getNumber(c);
+		symbol->id = NUMBER; symbol->digitValue = getNumber(c);
 	} 
 	else {	
-			 if(c == '[') { t.id = LSQBR; }
-		else if(c == ']') { t.id = RSQBR; }
-		else if(c == '(') { t.id = LPAR; }
-		else if(c == ')') { t.id = RPAR; }
-		else if(c == '{') { t.id = LCUBR; }
-		else if(c == '}') { t.id = RCUBR; }
-		else if(c == ';') { t.id = SEMCOL; }
-		else if(c == ',') { t.id = COMMA; }
-		else if(c == '.') { t.id = DOT; }
-		else if(c == '\"') {
+			 if(c == '[') { symbol->id = LSQBR; }
+		else if(c == ']') { symbol->id = RSQBR; }
+		else if(c == '(') { symbol->id = LPAR; }
+		else if(c == ')') { symbol->id = RPAR; }
+		else if(c == '{') { symbol->id = LCUBR; }
+		else if(c == '}') { symbol->id = RCUBR; }
+		else if(c == ';') { symbol->id = SEMCOL; }
+		else if(c == ',') { symbol->id = COMMA; }
+		else if(c == '.') { symbol->id = DOT; }
+		else if(c == '"') {
 			i = 0;
 			nc = getChar();
 			while(nc != '"' && hasMoreTokens()) { 
@@ -178,7 +213,7 @@ void getNextToken() {
 				i = i + 1;
 			}
 			buff[i] = '\0';
-			t.id = STRING; strnCpy(t.valueStr, buff, 1000);
+			symbol->id = STRING; strnCpy(symbol->valueStr, buff, 1000);
 		}
 		else if(c == '\'') {
 			buff[0] = getChar();
@@ -188,23 +223,30 @@ void getNextToken() {
 			} 
 			else {buff[1] = '\0';}
 			nc = getChar();
-			if(nc == '\'') { t.id = CHARACTER; strnCpy(t.valueStr, buff, 1); }
+			if(nc == '\'') { symbol->id = CHARACTER; strnCpy(symbol->valueStr, buff, 1); }
 			else { 
-				t.id = QUOTE; 
+				symbol->id = QUOTE; 
 				ungetChar(nc); 
 			}
 		}
 		else if(c == '=') {
 			nc = getChar();
-			if(nc == '=') {t.id = EQ;}
+			if(nc == '=') {symbol->id = EQ;}
 			else { 
-				t.id = EQSIGN; 
+				symbol->id = EQSIGN; 
 				ungetChar(nc);
 			}
 		}
-		else if(c == '+') { t.id = PLUS; }
-		else if(c == '-') { t.id = MINUS; }
-		else if(c == '*') { t.id = TIMES; }
+		else if(c == '+') { symbol->id = PLUS; }
+		else if(c == '-') { 
+			nc = getChar();
+			if(nc == '>') {symbol->id = ARROW;}
+			else { 
+				symbol->id = MINUS; 
+				ungetChar(nc);
+			}
+		}
+		else if(c == '*') { symbol->id = TIMES; }
 		else if(c == '/') {
 			nc = getChar();
 			if(nc == '*') {
@@ -214,88 +256,85 @@ void getNextToken() {
 					nc = nnc;
 					nnc = getChar();
 				}
-				t.id = COMMENT;
+				symbol->id = COMMENT;
 			}
 			else {
-				t.id = DIV;
+				symbol->id = DIV;
 				ungetChar(nc);
 			}
 		}
 		else if(c == '!') {
 			nc = getChar();
-			if(nc == '=') { t.id = NEQ; }
+			if(nc == '=') { symbol->id = NEQ; }
 			else {
-				t.id = ERROR; 
-				t.valueStr[0] = c; t.valueStr[1] = 0;
+				symbol->id = ERROR; 
+				symbol->valueStr[0] = c; symbol->valueStr[1] = 0;
 				ungetChar(nc);
 			}
 		}
 		else if(c == '<') {
 			nc = getChar();
-			if(nc == '=') { t.id = LET; }
+			if(nc == '=') { symbol->id = LET; }
 			else { 
-				t.id = LT;
+				symbol->id = LT;
 				ungetChar(nc);
 			}
 		}
 		else if(c == '>') {
 			nc = getChar();
-			if(nc == '=') { t.id = GET;}
+			if(nc == '=') { symbol->id = GET;}
 			else { 
-				t.id = GT;
+				symbol->id = GT;
 				ungetChar(nc);
 			}
 		}
 		else if(c == '&') {
 			nc = getChar();
-			if(nc == '&') t.id = AND;
+			if(nc == '&') { symbol->id = AND; }
 			else {
-				t.id = ERROR;
-				t.valueStr[0] = c; t.valueStr[1] = 0;
+				symbol->id = ERROR;
+				symbol->valueStr[0] = c; symbol->valueStr[1] = 0;
 				ungetChar(nc);
 			}
 		}
 		else if(c == '|') {
 			nc = getChar();
-			if(nc == '|') { t.id = OR; }
+			if(nc == '|') { symbol->id = OR; }
 			else {
-				t.id = ERROR;
-				t.valueStr[0] = c; t.valueStr[1] = 0;
+				symbol->id = ERROR;
+				symbol->valueStr[0] = c; symbol->valueStr[1] = 0;
 				ungetChar(nc);
 			}
 		}
 		else if(c == '#') {
 			nc = getChar();
-			strnCpy(buff, "include \"", 9);
+			strnCpy(buff, "include ", 8);
 			i = 0;
-			while(i < 9 && nc == buff[i]) {
+			while(i < 8 && nc == buff[i]) {
 				nc = getChar();
 				i = i + 1;		
 			}
-			if(i == 9) {
-				i = 0;
-				buff[i] = nc;
-				while(buff[i] != '\"' && i < 1000) {
-					i = i + 1;					
-					buff[i] = getChar();					
+			if(i == 8) {
+				if(nc == '"') {
+					nc = getChar();
+					i = 0;
+					buff[i] = nc;
+					while(buff[i] != '\"' && i < 1000) {
+						i = i + 1;					
+						buff[i] = getChar();					
+					}
+					buff[i] = 0;
+					symbol->id = INCLUDE;
+					strnCpy(symbol->valueStr, buff, 1000);
 				}
-				buff[i] = 0;
-				t.id = INCLUDE;
-				strnCpy(t.valueStr, buff, 1000);
 			}
-			else { t.id = ERROR; strnCpy(t.valueStr, buff, 10); }
+			else { symbol->id = ERROR; strnCpy(symbol->valueStr, buff, 10); }
 		}
 		else {
-			t.id = ERROR; t.valueStr[0] = c; t.valueStr[1] = 0;
+			symbol->id = ERROR; symbol->valueStr[0] = c; symbol->valueStr[1] = 0;
 		}
 	}
-
-	if(t.id == COMMENT) { getNextToken(); }
-	else {
-		symbol.id = t.id;
-		symbol.digitValue = t.digitValue;
-		symbol.lineNr = lineNr;
-		symbol.colNr = colNr;	
-		strnCpy(symbol.valueStr, t.valueStr,64);
-	}
+	if(symbol->id == COMMENT) { getNextToken(); }
+	symbol->lineNr = lineNr;
+	symbol->colNr = colNr;
 }
