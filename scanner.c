@@ -74,6 +74,16 @@ int strnCmp(char *s1, char *s2, int n) {
 	return 1;
 }
 
+int strCmp(char *s1, char *s2) {
+	while(*s1 == *s2) {
+		if(*s1 == '\0') { return 0; }
+		s1 = s1 + 1;
+		s2 = s2 + 1;
+	}
+	if(*s1 < *s2) { return -1; }
+	return 1;
+}
+
 int strnCpy(char *s1, char *s2, int n) {
 	int i; i = 0;
 	while (i < n && s2[i] != '\0') {

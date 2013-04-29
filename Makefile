@@ -1,7 +1,7 @@
 CFLAGS=-Wall
 
 PROGRAMS=pccc
-OBJECTS=scanner.o parser.o tokenMapping.o
+OBJECTS=scanner.o parser.o tokenMapping.o symboltable.o
 
 ALLOBJECTS=$(OBJECTS)	$(patsubst %,%.o,$(PROGRAMS))
 
