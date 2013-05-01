@@ -1,7 +1,7 @@
-CFLAGS=-Wall
+#CFLAGS=-Wall
 
-PROGRAMS=pccc
-OBJECTS=scanner.o parser.o tokenMapping.o symboltable.o
+PROGRAMS=./tm/demo
+OBJECTS=./tm/tm.o ./tm/tmCmd.o
 
 ALLOBJECTS=$(OBJECTS)	$(patsubst %,%.o,$(PROGRAMS))
 
@@ -11,7 +11,7 @@ default: $(PROGRAMS)
 	$(SHELL) -ec '$(CC) -MM $(CFLAGS) $< | \
 	perl -pe '"'"'s|($*\.o)[ :]*|\1 $@: |g'"'"' > $@'
 
-pccc: $(OBJECTS)
+demo: $(OBJECTS)
 
 clean:
 	-rm -f $(ALLOBJECTS) $(ALLOBJECTS:%.o=%.d) $(PROGRAMS)
