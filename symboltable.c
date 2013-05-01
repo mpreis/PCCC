@@ -55,9 +55,12 @@ void insertName(struct object_t *ptr, string_t name) {
 }
 	
 int insert(struct object_t *head, struct object_t *obj) {
-	printObject(obj);
 	if(head->name == 0) {
-		head = obj;
+		head->name = malloc(64 * sizeof(char));
+		strnCpy(head->name, obj->name, 64);
+		head->class = obj->class;
+		head->type = obj->type;
+		head->next = 0;
 	} else {
 		if(lookUp(head, obj->name) != 0)	{
 			printf("error: multible declaration of %s\n", obj->name);
