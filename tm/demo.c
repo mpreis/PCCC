@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "tm.h"
 #include "tmCmd.h"
+
 int encode(int op, int a, int b, int c) {
 	if (c < 0)
 	c = c + 65536; // 0x10000: 2^16
