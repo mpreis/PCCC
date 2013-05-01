@@ -4,7 +4,8 @@
  */
 
 #include <stdio.h>
-#include "tmCmd.c"
+#include "tm.h"
+#include "tmCmd.h"
 int encode(int op, int a, int b, int c) {
 	if (c < 0)
 	c = c + 65536; // 0x10000: 2^16
@@ -17,7 +18,8 @@ void main(int argc, char *argv) {
 	char *file = "./bdemo";
 	FILE *fp = fopen(file, "w");
 	if(fp == 0) { printf("\tERROR: can not open file.\n"); }
-
+	
+	initTMCmd();
 	printf(" -- generate bin file (%s).\n", file);
 
 	// gcd
@@ -44,4 +46,6 @@ void main(int argc, char *argv) {
 
 	fwrite(buff,4,15,fp);
 	fclose(fp);
+
+	startTM(file);
 }

@@ -11,8 +11,7 @@
  *
  */
 #include <stdio.h>
-#include "tm.h"
-#include "tmCmd.c"
+#include "tmCmd.h"
 
 int pc;
 int eomem;
@@ -144,10 +143,9 @@ void rdc (int a, int c) { fread (reg[a],4,1,reg[a]); }
 void wrc (int a, int c) { fwrite(reg[a],4,1,reg[c]); } 
 
 /* dlx */
-int main(int argc, char *argv) {
-printf("TEST: %i", JSR);
+void startTM(char *file) {
 	int i;
-	char *file = "./bdemo";
+	initTMCmd();
 	loadCode(file);
 	for(i = 0; ir[0] != TRAP; i++) {
 		fetch();
@@ -175,32 +173,4 @@ printReg() {
 	for(i = 0; i < 31; i++)
 		printf("%3i ", reg[i]);
 	printf("\n");
-/*
-	int i;
-	for(i = 0; i < 31; i++)
-		printf("REG[%i]:%i\n", i, reg[i]);
-*/
 }
-
-/*******************************************************************/
-/* METHODS FOR THE COMPILER                                        */
-/*******************************************************************/
-int encode(int op, int a, int b, int c) {
-	if (c < 0)
-	c = c + 65536; // 0x10000: 2^16
-	return (((((op * 32) + a) * 32) + b) * 65536) + c;
-}
-void writeToFile(char *file) {
-	int *buff = malloc(1*32);
-	FILE *fp;
-	fp = fopen(file, "w");
-	if(fp == 0) { printf("\tERROR: can not open file.\n"); }
-	buff[0] = 675217413;
-	fwrite(buff,4,1,fp);
-	fclose(fp);
-}
-
-
-/*******************************************************************/
-/* ONLY FOR TESTING!!!                                             */
-/*******************************************************************/

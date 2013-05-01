@@ -1,7 +1,7 @@
 #CFLAGS=-Wall
 
-PROGRAMS=tm
-OBJECTS=tmCmd.o
+PROGRAMS=demo
+OBJECTS=tm.o tmCmd.o
 
 ALLOBJECTS=$(OBJECTS)	$(patsubst %,%.o,$(PROGRAMS))
 
@@ -11,7 +11,7 @@ default: $(PROGRAMS)
 	$(SHELL) -ec '$(CC) -MM $(CFLAGS) $< | \
 	perl -pe '"'"'s|($*\.o)[ :]*|\1 $@: |g'"'"' > $@'
 
-tm: $(OBJECTS)
+demo: $(OBJECTS)
 
 clean:
 	-rm -f $(ALLOBJECTS) $(ALLOBJECTS:%.o=%.d) $(PROGRAMS)

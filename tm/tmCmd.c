@@ -3,54 +3,58 @@
  * authors: thomas huetter 1120239, mario preishuber 1120643
  *
  */
-/* immediate addressing */
-int ADDI = 10;
-int SUBI = 11;
-int MULI = 12;
-int DIVI = 13;
-int MODI = 14;
-int CMPI = 15;
+#include "tmCmd.h"
+void initTMCmd() {
+	/* immediate addressing */
+	ADDI = 10;
+	SUBI = 11;
+	MULI = 12;
+	DIVI = 13;
+	MODI = 14;
+	CMPI = 15;
 
-/* register addressing */
-int ADD = 20;
-int SUB = 21;
-int MUL = 22;
-int DIV = 23;
-int MOD = 24;
-int CMP = 25;
+	/* register addressing */
+	ADD = 20;
+	SUB = 21;
+	MUL = 22;
+	DIV = 23;
+	MOD = 24;
+	CMP = 25;
 
-/* memory: load and store */
-int LDW = 30;
-int STW = 31;
+	/* memory: load and store */
+	LDW = 30;
+	STW = 31;
 
-/* stack operations */
-int POP = 40;
-int PSH = 41;
+	/* stack operations */
+	POP = 40;
+	PSH = 41;
 
-/* conditional branching */
-int BEQ = 50;
-int BGE = 51;
-int BGT = 52;
-int BLE = 53;
-int BLT = 54;
-int BNE = 55;
+	/* conditional branching */
+	BEQ = 50;
+	BGE = 51;
+	BGT = 52;
+	BLE = 53;
+	BLT = 54;
+	BNE = 55;
 
-/* unconditional branching */
-int BR  = 56;
-int BSR = 57;
-int JSR = 58;
-int RET = 59;
+	/* unconditional branching */
+	BR  = 56;
+	BSR = 57;
+	JSR = 58;
+	RET = 59;
 
-/* i/o operations */
-int FLO = 60;
-int FLC = 61;
-int RDC = 62;
-int WRC = 63;
+	/* i/o operations */
+	FLO = 60;
+	FLC = 61;
+	RDC = 62;
+	WRC = 63;
 
-/* end of code */
-int TRAP = 1;
+	/* end of code */
+	TRAP = 1;
+}
 
-char *getCmdName(int id) {
+char *getCmdName(id) {
+	initTMCmd();
 	if(id == ADDI) return "addi";
 	if(id == SUBI) return "subi";
 	if(id == MULI) return "muli";

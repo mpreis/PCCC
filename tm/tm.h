@@ -10,6 +10,8 @@
  * 		5. goto 2
  *
  */
+void startTM(char *file);
+
 void loadCode(char *file);
 void fetch();
 void decode(int instruction);
