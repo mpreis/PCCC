@@ -9,3 +9,4 @@ int validate();
 int globalDec();
 int statementSeq();
 int block();
+int paramList();
