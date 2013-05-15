@@ -23,9 +23,9 @@ void main(int argc, char *argv) {
 	initTMCmd();
 	printf(" -- generate bin file (%s).\n", file);
 
+	buff[0]  = encode(BR,	0, 0, 11);	// jump to main
 	// gcd
-	// loop
-	buff[0]  = encode(BR,	0, 0, 11);	
+	// loop	
 	buff[1]  = encode(SUB,	3, 1,  2);
 	buff[2]  = encode(BEQ,	3, 0,  8);	// jump to end
 	buff[3]  = encode(BGT,	3, 0,  3); 	// jump to if
@@ -38,7 +38,7 @@ void main(int argc, char *argv) {
 	buff[8]  = encode(SUB,	2, 2,  1);
 	buff[9]  = encode(BR, 	0, 0, -8);	// jump to loop
 	// end
-	buff[10]  = encode(RET,	0, 0, 31);
+	buff[10] = encode(RET,	0, 0, 31);
 	// main
 	buff[11] = encode(ADDI,	1, 0,  x);
 	buff[12] = encode(ADDI,	2, 0,  y);
