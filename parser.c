@@ -501,6 +501,14 @@ printf(" -- form: %s\n", symbol->valueStr);
 				return 1; 
 			}
 			if(symbol->id == COMMA) {
+				if(type->form != 5) {
+					if (array != 0) {
+						object->type = array;
+					} else {
+						object->type = type;
+					}
+				}
+				insert(head, object);
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
 			} else {
@@ -642,6 +650,7 @@ int structDec(struct object_t *head) {
 	struct object_t *object;
 	struct object_t *fieldObj;
 	struct type_t *record;
+printf(" --------------- structDec() -------------------\n");
 	if(symbol->id == STRUCT) {
 		fieldObj = malloc(sizeof(struct object_t));
 		object = malloc(sizeof(struct object_t));
@@ -662,14 +671,23 @@ int structDec(struct object_t *head) {
 				if(symbol->id == RCUBR) {
 					if(hasMoreTokens() == 0) { return 0; }
 					getNextToken();
-					if(symbol->id == SEMCOL) {
-						record->fields = fieldObj;
-						object->type = record;
-						insert(head, object);
-						return 1;
-					} else { printError("';' missing."); }
 				} else { printError("'}' missing."); }
 			}
+			if(symbol->id == SEMCOL) {
+				record->fields = fieldObj;
+				object->type = record;
+if(head->name != 0) {
+printf(" -- o-na: %s\n", object->name);
+				if(lookUp(head, object->name) != 0)	{ /* delete implicite declaration */
+printTable(head);
+					delete(head, object->name);
+printTable(head);
+					if(lookUp(head, object->name) != 0)	{ printf(" -- nu imma do: \n"); }
+				}
+}
+				insert(head, object);
+				return 1;
+			} else { printError("';' missing."); }
 		}
 	}
 	return 0;

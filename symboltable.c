@@ -36,8 +36,8 @@ void printTable(struct object_t *head) {
 }
 
 struct object_t *lookUp(struct object_t *head, string_t name) {
+	struct object_t *ptr;
 	if(head != 0) {
-		struct object_t *ptr;
 		ptr = head;
 		while(ptr != 0) {
 			if(strCmp(ptr->name, name) == 0) {
@@ -55,6 +55,7 @@ void insertName(struct object_t *ptr, string_t name) {
 }
 	
 int insert(struct object_t *head, struct object_t *obj) {
+	struct object_t *ptr;
 	if(head->name == 0) {
 		head->name = malloc(64 * sizeof(char));
 		strnCpy(head->name, obj->name, 64);
@@ -66,7 +67,6 @@ int insert(struct object_t *head, struct object_t *obj) {
 			printf("error: multible declaration of %s\n", obj->name);
 			return 0;
 		}
-		struct object_t *ptr;
 		ptr = head;
 		while(ptr->next != 0) {
 			ptr = ptr->next;
@@ -77,6 +77,7 @@ int insert(struct object_t *head, struct object_t *obj) {
 }
 
 int insertValues(struct object_t *head, string_t name, int class, struct type_t *type) {
+	struct object_t *ptr;
 	if(head->name == 0) {
 		head->name = malloc(64 * sizeof(char));
 		strnCpy(head->name, name, 64);
@@ -88,7 +89,6 @@ int insertValues(struct object_t *head, string_t name, int class, struct type_t 
 			printf("multible declaration of %s\n", name);
 			return 0;
 		}
-		struct object_t *ptr;
 		ptr = head;
 		while(ptr->next != 0) {
 			ptr = ptr->next;
@@ -106,6 +106,25 @@ int insertValues(struct object_t *head, string_t name, int class, struct type_t 
 		ptr->next = 0;
 	}
 	return 1;
+}
+
+void delete(struct object_t *head, string_t name) {
+   	struct object_t *ptr, *ptr1;
+	
+	if(head != 0) {
+		ptr = head;
+		if(strCmp(ptr->name, name) == 0) {
+			ptr = ptr->next;
+		} else {
+			while(ptr->next != 0) {
+				ptr1 = ptr->next;
+				if(strCmp(ptr1->name, name) == 0) {
+					ptr->next = ptr1->next;
+				}
+				ptr = ptr1;
+			}
+		}
+	}
 }
 
 struct type_t *newType(int form) {
