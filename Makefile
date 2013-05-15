@@ -1,4 +1,19 @@
-default: demo
+CFLAGS=-Wall
 
-demo: ./tm/demo.c ./tm/tmCmd.c ./tm/tm.c
-	cc -o demo ./tm/demo.c ./tm/tmCmd.c ./tm/tm.c
+PROGRAMS=pccc
+OBJECTS=scanner.o parser.o symboltable.o
+
+ALLOBJECTS=$(OBJECTS)	$(patsubst %,%.o,$(PROGRAMS))
+
+default: $(PROGRAMS)
+
+%.d: %.c
+	$(SHELL) -ec '$(CC) -MM $(CFLAGS) $< | \
+	perl -pe '"'"'s|($*\.o)[ :]*|\1 $@: |g'"'"' > $@'
+
+pccc: $(OBJECTS)
+
+clean:
+	-rm -f $(ALLOBJECTS) $(ALLOBJECTS:%.o=%.d) $(PROGRAMS)
+
+include $(ALLOBJECTS:%.o=%.d)
