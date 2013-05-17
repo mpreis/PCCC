@@ -19,4 +19,5 @@ struct object_t *lookUp(struct object_t *head, string_t name);
 void insertName(struct object_t *ptr, string_t name);
 int insert(struct object_t *head, struct object_t *obj);
 int insertValues(struct object_t *head, string_t name, int class, struct type_t *type);
+struct object_t *delete(struct object_t *head, string_t name);
 struct type_t *newType(int form);

@@ -7,7 +7,7 @@ int main(int argc, char *argv[]){
 	int fileNameSize;
 	fileNameSize = 20*sizeof(char);
 	file = malloc (fileNameSize);
-	strnCpy(file, "./tests/test.c", 35); 
+	strnCpy(file, "./tests/stTest.c", 35); 
 	initScanner(file);
 	startParsing(file);
 	printf("\n");

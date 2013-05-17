@@ -676,12 +676,23 @@ printf(" --------------- structDec() -------------------\n");
 			if(symbol->id == SEMCOL) {
 				record->fields = fieldObj;
 				object->type = record;
+
 if(head->name != 0) {
 printf(" -- o-na: %s\n", object->name);
+
 				if(lookUp(head, object->name) != 0)	{ /* delete implicite declaration */
-printTable(head);
-					delete(head, object->name);
-printTable(head);
+
+
+					struct object_t *h;
+					h = malloc(sizeof(struct object_t));					
+
+					printTable(head); printf("\n -- oname: %s \n", object->name);
+					h = delete(head, object->name);
+					printf("\n -- head->name: %s -- h->name %s \n", head->name, h->name);
+					head = 0;					
+					head = h;
+					printTable(head); printf("\n");
+
 					if(lookUp(head, object->name) != 0)	{ printf(" -- nu imma do: \n"); }
 				}
 }

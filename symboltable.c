@@ -108,14 +108,16 @@ int insertValues(struct object_t *head, string_t name, int class, struct type_t 
 	return 1;
 }
 
-void delete(struct object_t *head, string_t name) {
+struct object_t *delete(struct object_t *head, string_t name) {
    	struct object_t *ptr, *ptr1;
 	
 	if(head != 0) {
-		ptr = head;
-		if(strCmp(ptr->name, name) == 0) {
-			ptr = ptr->next;
+		printf(" -1- head-name: %s -- oname: %s \n", head->name, name);
+		if(strCmp(head->name, name) == 0) {
+			return head->next;
+			printf(" -2- head-name: %s -- oname: %s \n", head->name, name);
 		} else {
+			ptr = head;
 			while(ptr->next != 0) {
 				ptr1 = ptr->next;
 				if(strCmp(ptr1->name, name) == 0) {
@@ -125,6 +127,7 @@ void delete(struct object_t *head, string_t name) {
 			}
 		}
 	}
+	return head;
 }
 
 struct type_t *newType(int form) {
