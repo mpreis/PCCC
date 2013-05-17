@@ -646,11 +646,10 @@ int typedefDec(struct object_t *head) {
 
 /* "typedef" "struct" "{" declaration {declaration} "}" identifier ";" . */
 /* UPDATE: "struct" identifier "{" declaration {declaration} "}" ";". */
-int structDec(struct object_t *head) {
+int structDec() {
 	struct object_t *object;
 	struct object_t *fieldObj;
 	struct type_t *record;
-printf(" --------------- structDec() -------------------\n");
 	if(symbol->id == STRUCT) {
 		fieldObj = malloc(sizeof(struct object_t));
 		object = malloc(sizeof(struct object_t));
@@ -676,27 +675,25 @@ printf(" --------------- structDec() -------------------\n");
 			if(symbol->id == SEMCOL) {
 				record->fields = fieldObj;
 				object->type = record;
-
-if(head->name != 0) {
-printf(" -- o-na: %s\n", object->name);
-
-				if(lookUp(head, object->name) != 0)	{ /* delete implicite declaration */
-
-
-					struct object_t *h;
-					h = malloc(sizeof(struct object_t));					
-
-					printTable(head); printf("\n -- oname: %s \n", object->name);
-					h = delete(head, object->name);
-					printf("\n -- head->name: %s -- h->name %s \n", head->name, h->name);
-					head = 0;					
-					head = h;
-					printTable(head); printf("\n");
-
-					if(lookUp(head, object->name) != 0)	{ printf(" -- nu imma do: \n"); }
+				if(globList->name != 0 && lookUp(globList, object->name) != 0)	{ /* delete implicite declaration */
+					struct object_t *ptr, *ptr1;
+					if(globList != 0) {
+						if(strCmp(globList->name, object->name) == 0) {
+							ptr = globList->next;
+							globList = ptr;
+						} else {
+							ptr = globList;
+							while(ptr->next != 0) {
+								ptr1 = ptr->next;
+								if(strCmp(ptr1->name, object->name) == 0) {
+									ptr->next = ptr1->next;
+								}
+								ptr = ptr1;
+							}
+						}
+					}
 				}
-}
-				insert(head, object);
+				insert(globList, object);
 				return 1;
 			} else { printError("';' missing."); }
 		}
@@ -843,7 +840,7 @@ int programm() {
 	}
 	printf("===== include   -> done.\n");
 	while(j) {
-		j = structDec(globList);
+		j = structDec();
 		if(j == 1) { getNextToken(); }
 	}
 	printf("===== structDec -> done.\n");

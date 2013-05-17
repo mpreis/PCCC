@@ -110,12 +110,11 @@ int insertValues(struct object_t *head, string_t name, int class, struct type_t 
 
 struct object_t *delete(struct object_t *head, string_t name) {
    	struct object_t *ptr, *ptr1;
-	
+//printf(" ----1 head: %d\n", head->next);
 	if(head != 0) {
-		printf(" -1- head-name: %s -- oname: %s \n", head->name, name);
 		if(strCmp(head->name, name) == 0) {
-			return head->next;
-			printf(" -2- head-name: %s -- oname: %s \n", head->name, name);
+			ptr = head->next;
+			head = ptr;
 		} else {
 			ptr = head;
 			while(ptr->next != 0) {
