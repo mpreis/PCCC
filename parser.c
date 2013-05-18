@@ -6,23 +6,13 @@
 #include "parser.h"
 #include "scanner.h"
 #include "tokenMapping.h"
-#include "symboltable.h"
 #include "./tm/tmCmd.h"
 
-struct item_t {
-	int mode;
-	struct type_t *type;
-	int reg;
-	int offset;
-	int value;
-};
-
+/* code generation */
 char *srcfile;
 char *outfile;
 int out_fp_bin;
 int out_fp_ass;
-struct object_t *globList;
-struct object_t *locList;
 
 int *regs;
 int nrOfRegs;
@@ -30,6 +20,14 @@ int ITEM_MODE_CON;
 int ITEM_MODE_VAR;
 int ITEM_MODE_REF;
 int ITEM_MODE_REG;
+
+/* symbol table */
+int globOffset;
+int locOffset;
+int paramOffset;
+char *file;
+struct object_t *globList;
+struct object_t *locList;
 
 /*************************************************************
  * CODE GENERATION METHODS
@@ -127,7 +125,7 @@ void printError(char *msg) {
 }
 
 /*************************************************************
- * PASING METHODS
+ * PARSING METHODS
  ************************************************************/
 
 /* ["-"] digit {digit} . */
@@ -162,8 +160,9 @@ int identifier() {
 	return 0;
 }
 
-/* "int" | "char" . */ 
-int typeSpec(struct object_t *head) {	
+/* "int" | "char" | "void" | identifier. */ 
+int typeSpec(struct object_t *head) {
+	struct object_t *ptr;
 	if(symbol->id == TYPEDEF) { 
 		if(hasMoreTokens() == 0) { return 0; }		
 		getNextToken(); 
@@ -172,10 +171,12 @@ int typeSpec(struct object_t *head) {
 	if(symbol->id == CHAR) { return 2; }		/* return value for symbol table */
 	if(symbol->id == VOID) { return 3; }
 	if(identifier()) {
-		if(lookUp(globList, symbol->valueStr) != 0) { 
+		ptr = lookUp(globList, symbol->valueStr);
+		if(ptr != 0 && ptr->type->form == 5) { 
 			return 5;
 		}
-		if(lookUp(head, symbol->valueStr) != 0) { 
+		ptr = lookUp(head, symbol->valueStr);
+		if(ptr != 0 && ptr->type->form == 5) { 
 			return 5;
 		} else {
 			printError("unknown type.");
@@ -195,26 +196,30 @@ int reference() {
 	if(symbol->id != ARROW && symbol->id != DOT) {
 		return 0;
 	}
-	if(hasMoreTokens() == 0) { return 0; }
-	getNextToken();
-	if(identifier()) {
+	while(1)	 {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
-		if(symbol->id == LSQBR) {
+		if(identifier()) {
 			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();	
-			if(identifier() || number()) {
+			getNextToken();
+			if(symbol->id == LSQBR) {
 				if(hasMoreTokens() == 0) { return 0; }
-				getNextToken();
-				if(symbol->id == RSQBR) {
+				getNextToken();	
+				if(identifier() || number()) {
 					if(hasMoreTokens() == 0) { return 0; }
 					getNextToken();
-					return 1; 
-				} 
-				else { printError("']' missing."); }
+					if(symbol->id == RSQBR) {
+						if(hasMoreTokens() == 0) { return 0; }
+						getNextToken();
+						return 1; 
+					} 
+					else { printError("']' missing."); }
+				}
+			}
+			if(symbol->id != ARROW && symbol->id != DOT) {
+				return 1;
 			}
 		}
-		return 1;
 	}
 	return 0;
 }
@@ -233,6 +238,10 @@ int sizeOf(struct object_t *head) {
 		if(symbol->id == LPAR) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
+			if(symbol->id == STRUCT) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+			}
 			if(typeSpec(head)) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
@@ -365,8 +374,11 @@ int factor() {
 			return 0;
 		}
 
-		/* var = */		
+		/* var; */		
 		if(symbol->id == SEMCOL) { return 1; }
+
+		/* var,  paramList*/		
+		if(symbol->id == COMMA) { return 1; }
 	}
 	return 0;
 }
@@ -376,7 +388,7 @@ int term() {
 	while(1) {
 		if(factor() == 0) { return 0; }
 		if(symbol->id == PLUS || symbol->id == MINUS || boolOp() || symbol->id == RPAR || 
-			symbol->id == SEMCOL) {
+			symbol->id == SEMCOL || symbol->id == COMMA) {
 			return 1;
 		}
 		if(symbol->id == TIMES || symbol->id == DIV) {
@@ -397,7 +409,7 @@ int arithExp() {
 	}
 	while(1) {
 		if(term() == 0) { return 0; }
-		if(boolOp() || symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0) {
+		if(boolOp() || symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || symbol->id == COMMA) {
 			return 1;
 		}
 		if(symbol->id == PLUS || symbol->id == MINUS) {
@@ -414,7 +426,7 @@ int arithExp() {
 int expression() {
 	while(1) {
 		if(arithExp() == 0) { return 0; }
-		if(symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0) {
+		if(symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || symbol->id == COMMA) {
 			return 1;
 		}
 		if(boolOp()) {
@@ -429,14 +441,14 @@ int expression() {
 
 /* identifier {"," identifier} . */
 int paramList() {
+	int i;
 	if(symbol->id == RPAR) { return 1; }
 	while(1) {
-		if(identifier() == 0 && number() == 0 && symbol->id != STRING && symbol->id != CHARACTER) {
-			printError("paramList: identifier expected.");
-			return 0;
-		}
-		if(hasMoreTokens() == 0) { return 1; }
-		getNextToken();
+			if(expression() == 0) {
+				printError("paramList: identifier expected.");
+				return 0;
+			}
+
 		if(symbol->id == DOT || symbol->id == ARROW) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
@@ -563,6 +575,7 @@ int procParList(struct object_t *head) {
 			getNextToken();
 		}
 		type = newType(typeSpec(head));
+		object->offset = paramOffset;
 		if(type->form == 0) {
 			return 1;
 		} else if(type->form == 5) {
@@ -574,8 +587,9 @@ int procParList(struct object_t *head) {
 				}
 			} else {
 				object->type = ptr->type;
+				paramOffset = paramOffset + ptr->offset; /* add size of struct */
 			}
-		}
+		} else { paramOffset = paramOffset + 4; } /* add size of datatype */
 
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
@@ -613,6 +627,7 @@ int procParList(struct object_t *head) {
 				return 1; 
 			}
 			if(symbol->id == COMMA) {
+				object->scope = 1;	/* LOCAL_SCOPE */
 				if(type->form != 5) {
 					if (array != 0) {
 						object->type = array;
@@ -653,9 +668,8 @@ int declaration(struct object_t *head, int isStruct) {
 			if(hasMoreTokens() == 0) { return 0; }		
 			getNextToken();
 		}
-printSymbol("before new Type: ");
 		type = newType(typeSpec(head));
-printSymbol("after  new Type: ");
+		object->offset = locOffset;
 		if(type->form == 0) {
 			return 1;
 		} else if(type->form == 5) {
@@ -667,8 +681,9 @@ printSymbol("after  new Type: ");
 				}
 			} else {
 				object->type = ptr->type;
+				locOffset = locOffset - ptr->offset; /* add size of struct */
 			}
-		}
+		} else { locOffset = locOffset - 4; } /* add size of datatype */
 
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
@@ -684,6 +699,7 @@ printSymbol("after  new Type: ");
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			if(symbol->id == SEMCOL) {
+				object->scope = 1;	/* LOCAL_SCOPE */
 				if(type->form != 5) {
 					if (array != 0) {
 						object->type = array;
@@ -764,6 +780,11 @@ int structDec() {
 	struct object_t *object;
 	struct object_t *fieldObj;
 	struct type_t *record;
+	struct object_t *count;
+	struct object_t *ptr;
+	struct object_t *ptr1;
+	int i;
+
 	if(symbol->id == STRUCT) {
 		fieldObj = malloc(sizeof(struct object_t));
 		object = malloc(sizeof(struct object_t));
@@ -781,6 +802,16 @@ int structDec() {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
 				declaration(fieldObj, 1);
+
+				/* count fields */
+				i = 1;
+				count = fieldObj;
+				while(count != 0) {
+					count = count->next;
+				}
+				object->offset = globOffset;
+				globOffset = globOffset + (i * 4 * (-1));
+
 				if(symbol->id == RCUBR) {
 					if(hasMoreTokens() == 0) { return 0; }
 					getNextToken();
@@ -789,8 +820,7 @@ int structDec() {
 			if(symbol->id == SEMCOL) {
 				record->fields = fieldObj;
 				object->type = record;
-				if(globList->name != 0 && lookUp(globList, object->name) != 0)	{ /* delete implicite declaration */
-					struct object_t *ptr, *ptr1;
+				if(globList->name != 0 && lookUp(globList, object->name) != 0)	{ /* delete implicite struct declaration */
 					if(globList != 0) {
 						if(strCmp(globList->name, object->name) == 0) {
 							ptr = globList->next;
@@ -807,6 +837,7 @@ int structDec() {
 						}
 					}
 				}
+				object->scope = 0;	/* GLOBAL_SCOPE */
 				insert(globList, object);
 				return 1;
 			} else { printError("';' missing."); }
@@ -827,8 +858,7 @@ int globalDec() {
 		ptr = 0;
 		object = malloc(sizeof(struct object_t));
 		while(typedefDec(globList)) {}
-//		while(structDec(globList)) {}
-		while((typeSpec(globList) == 0 || symbol->id == STRUCT) && hasMoreTokens()) {
+		while(typeSpec(globList) == 0 && symbol->id != STRUCT && hasMoreTokens()) {
 			printError("globalDec: typeSpec (char, int or void) expected.");
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
@@ -838,14 +868,16 @@ int globalDec() {
 			getNextToken();
 		}
 		type = newType(typeSpec(globList));
+		object->offset = globOffset;
 		if(type->form == 0) {
 			return 0;
 		} else if(type->form == 5) {
 			ptr = lookUp(globList, symbol->valueStr);
 			if(ptr != 0) {
 				object->type = ptr->type;
+				globOffset = globOffset - ptr->offset; /* add size of struct */
 			}
-		}
+		} else { globOffset = globOffset - 4; } /* add size of datatype */
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 		if(symbol->id == TIMES) {
@@ -855,10 +887,11 @@ int globalDec() {
 			getNextToken();			
 		}
 		if(identifier()) {
-printf(" %s\n", symbol->valueStr);
 			object->name = malloc(64 * sizeof(char));
 			strnCpy(object->name, symbol->valueStr, 64);
+			locList = 0;
 			locList = malloc(sizeof(struct object_t));
+			locOffset = 0;
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			/* procHead */
@@ -887,6 +920,7 @@ if(locList->name != 0) {
 			/* declaration */
 			else if(symbol->id == SEMCOL) {
 				object->class = 1;	/* VAR */
+				object->scope = 0;	/* GLOBAL_SCOPE */
 				if(type->form != 5) {
 					if (array != 0) {
 						object->type = array;
@@ -916,7 +950,7 @@ int statementSeq () {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
 			} else {
-				printError("';' missing.");			
+				printError("';' missing.");	
 			}
 		}
 		else if(ifCmd()) {} 
