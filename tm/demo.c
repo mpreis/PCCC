@@ -48,5 +48,11 @@ void main(int argc, char *argv) {
 	fwrite(buff,4,15,fp);
 	fclose(fp);
 
-	startTM(file);
+//	startTM(file);
+
+	printf(" -- encode: %i\n", encode(ADDI, 1, 0, 5));
+	printf(" -- encode: %i\n", encode(ADDI, 2, 0, 3));
+	printf(" -- encode: %i\n", encode(SUB,  1, 1, 2));
+
+	startTM("../my_pccc");
 }

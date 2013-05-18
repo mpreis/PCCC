@@ -12,7 +12,7 @@ int colNr;
 char ungetc;
 
 void initScanner(char *file) {	
-	fd = open(file, 0);		/* 0 ... read only*/
+	fd = open(file, 0);		/* 0 ... read only */
 	ungetc = -1;
 	lineNr = 1;
 	colNr = 1;

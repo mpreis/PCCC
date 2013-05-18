@@ -3,13 +3,19 @@
 #include "tokenMapping.h"
 
 int main(int argc, char *argv[]){
-	char *file;
+	char *sfile;
+	char *ofile;
 	int fileNameSize;
 	fileNameSize = 20*sizeof(char);
-	file = malloc (fileNameSize);
-	strnCpy(file, "./tests/stTest.c", 35); 
-	initScanner(file);
-	startParsing(file);
+	sfile = malloc (fileNameSize);
+/*	strnCpy(sfile, "./tests/stTest.c", 20);  */
+	strnCpy(sfile, "./pccc.c", 20); 
+
+	ofile = malloc (fileNameSize);	
+	strnCpy(ofile, "./my_pccc", 20); 
+
+	initScanner(sfile);
+	startParsing(sfile, ofile);
 	printf("\n");
 	return 0;
 }

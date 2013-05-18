@@ -7,14 +7,128 @@
 #include "scanner.h"
 #include "tokenMapping.h"
 #include "symboltable.h"
+#include "./tm/tmCmd.h"
 
-char *file;
+struct item_t {
+	int mode;
+	struct type_t *type;
+	int reg;
+	int offset;
+	int value;
+};
+
+char *srcfile;
+char *outfile;
+int out_fp_bin;
+int out_fp_ass;
 struct object_t *globList;
 struct object_t *locList;
 
-void printError(char *msg) {
-	printf("\t%s:%4i:%4i: ERROR: %s (found: %s/%i)\n", file, symbol->lineNr, symbol->colNr, msg, symbol->valueStr, symbol->id);
+int *regs;
+int nrOfRegs;
+int ITEM_MODE_CON;
+int ITEM_MODE_VAR;
+int ITEM_MODE_REF;
+int ITEM_MODE_REG;
+
+/*************************************************************
+ * CODE GENERATION METHODS
+ ************************************************************/
+
+void testCodeGen() {
+	/* 2 = 5 - 3 */
+	put(ADDI, 1, 0, 5);
+	put(ADDI, 2, 0, 3);
+	put(SUB,  1, 1, 2);
+	put(TRAP, 0, 0, 0);
 }
+
+int initOutputFile() {
+	out_fp_bin = open(outfile, 65, 448); /* 65 ... O_CREAT | O_WRONLY 448 ... S_IWUSR | S_IRUSR | S_IXUSR */
+	out_fp_ass = open("./out.txt", 65, 448); /* 65 ... O_CREAT | O_WRONLY 448 ... S_IWUSR | S_IRUSR | S_IXUSR */
+	if(out_fp_bin < 0) {
+		printError("can not open/create output file.");
+		return -1;
+	}
+}
+
+int encode(int op, int a, int b, int c) {
+	if (c < 0)
+	c = c + 65536; // 0x10000: 2^16
+	return (((((op * 32) + a) * 32) + b) * 65536) + c;
+}
+
+void put(int op, int a, int b, int c) {
+	int wb; int size;
+	int *abuffParam;
+	int *buff; 
+	char *abuff;
+
+	write (out_fp_ass, getCmdName(op), 4);
+	write (out_fp_ass, " ", 1);
+	size = 6 * sizeof(char);
+	abuff = malloc(size);
+	abuff[0] = (a + '0');
+	abuff[1] = ' ';
+	abuff[2] = (b + '0');
+	abuff[3] = ' ';
+	abuff[4] = (c + '0');
+	abuff[5] = 0;
+	write (out_fp_ass, abuff, 5);
+	write (out_fp_ass, "\n", 1);
+
+/*
+	size = 2 * sizeof(char *);
+	abuff = malloc (size);
+	abuff[0] = '\n';
+	abuff[1] = getCmdName(op);
+	write (out_fp_ass, abuff, size);
+
+
+	size = 3 * sizeof(int);
+	abuffParam = malloc(size);
+	write (out_fp_ass, abuffParam, size);
+*/
+	buff = malloc(1*32);
+	buff[0] = encode(op,a,b,c);	
+	wb = write(out_fp_bin, buff, 4);
+    if ( wb != 4 ) { printf(" --- could only write %i byte.\n", wb); }
+}
+
+void initItemModes() {
+	ITEM_MODE_CON = 0;
+	ITEM_MODE_VAR = 1;
+	ITEM_MODE_REF = 2;
+	ITEM_MODE_REG = 3;
+}
+
+/***  REGISTER METHODS ***/
+void initRegs() {
+	int i; i = 0;
+	nrOfRegs = 32;
+	regs = malloc( nrOfRegs*sizeof(int) );
+	while (i < nrOfRegs) { regs[i] = 0; i = i + 1; }
+}
+int requestReg() {
+	int i; i = 0;
+	while (i < nrOfRegs) { 
+		if (regs[i] == 0) { return i; }
+		i = i + 1;
+	}
+	return -1;		
+}
+void releaseReg(int r) { regs[r] = 0; }
+
+/*************************************************************
+ * HELP METHODS
+ ************************************************************/
+void printError(char *msg) {
+	printf("\t%s:%4i:%4i: ERROR: %s (found: %s/%i)\n", srcfile, symbol->lineNr, symbol->colNr, msg, symbol->valueStr, symbol->id);
+}
+
+/*************************************************************
+ * PASING METHODS
+ ************************************************************/
 
 /* ["-"] digit {digit} . */
 int number() {
@@ -49,7 +163,7 @@ int identifier() {
 }
 
 /* "int" | "char" . */ 
-int typeSpec(struct object_t *head) {
+int typeSpec(struct object_t *head) {	
 	if(symbol->id == TYPEDEF) { 
 		if(hasMoreTokens() == 0) { return 0; }		
 		getNextToken(); 
@@ -449,11 +563,9 @@ int procParList(struct object_t *head) {
 			getNextToken();
 		}
 		type = newType(typeSpec(head));
-printf(" -- form: %d\n", type->form);
 		if(type->form == 0) {
 			return 1;
 		} else if(type->form == 5) {
-printf(" -- form: %s\n", symbol->valueStr);
 			ptr = lookUp(head, symbol->valueStr);
 			if(ptr == 0) {
 				ptr = lookUp(globList, symbol->valueStr);
@@ -537,12 +649,13 @@ int declaration(struct object_t *head, int isStruct) {
 			object->class = 3;	/* FIELD */
 		}
 		typedefDec(head);
-
 		if(symbol->id == STRUCT) { 
 			if(hasMoreTokens() == 0) { return 0; }		
 			getNextToken();
 		}
+printSymbol("before new Type: ");
 		type = newType(typeSpec(head));
+printSymbol("after  new Type: ");
 		if(type->form == 0) {
 			return 1;
 		} else if(type->form == 5) {
@@ -556,6 +669,7 @@ int declaration(struct object_t *head, int isStruct) {
 				object->type = ptr->type;
 			}
 		}
+
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 		if(symbol->id == TIMES) {
@@ -701,7 +815,6 @@ int structDec() {
 	return 0;
 }
 
-
 int globalDec() {
 	struct object_t *object;
 	struct object_t *ptr;
@@ -745,7 +858,6 @@ int globalDec() {
 printf(" %s\n", symbol->valueStr);
 			object->name = malloc(64 * sizeof(char));
 			strnCpy(object->name, symbol->valueStr, 64);
-			locList = 0; /* maybe not necessary */
 			locList = malloc(sizeof(struct object_t));
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
@@ -828,6 +940,7 @@ int block() {
 	return 0;
 }
 
+/* {include} {declaration | structDec} {procedure} . */
 int programm() {
 	int i;
 	int j;
@@ -851,19 +964,33 @@ int programm() {
 	printf("===== globalDec -> done.\n");
 	return i;
 }
-/* {include} {declaration | structDec} {procedure} . */
-int startParsing(char *fileName){
+
+/*************************************************************
+ * START PARSER
+ ************************************************************/
+int startParsing(char *sfile, char *ofile){
 	int i;
-	file = fileName;
-	globList = 0;
+	srcfile = sfile;
+	outfile = ofile;	
+
+	/* init global symbol table */
 	globList = malloc(sizeof(struct object_t));
-	locList = 0;
-	printf("\nstart parsing %s...\n", file);
+	globList = 0;
+	initRegs();
+	initItemModes();
+	initOutputFile();
+	initTMCmd();
+
+	testCodeGen();
+
+	printf("\nstart parsing %s...\n", srcfile);
 	while ( hasMoreTokens() ) {
 		getNextToken();
 		i = programm();
 	}
 	printTable(globList);
+	close(out_fp_bin); 
+	close(out_fp_ass); 
 	printf("\n -- DONE. --\n\n");
 	return i;
 
