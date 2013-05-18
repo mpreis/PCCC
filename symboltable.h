@@ -1,5 +1,3 @@
-typedef char *string_t;
-
 struct type_t {
 	int form;
 	struct object_t *fields; 
@@ -8,9 +6,13 @@ struct type_t {
 struct object_t { 
 	char *name;
 	int class;
+	int offset;
+	int scope;
 	struct type_t *type; 
 	struct object_t *next;
 };
+
+typedef char *string_t;
 
 void printObject(struct object_t *ptr);
 void printType(struct type_t *t);
