@@ -13,7 +13,7 @@ struct item_t {
 	int value;
 };
 
-int expression();
+int expression(struct item_t *item);
 void printError(char *msg);
 int validate();
 int globalDec();
@@ -22,3 +22,4 @@ int block();
 int paramList();
 int typedefDec(struct object_t *head);
 int startParsing(char *sfile, char *ofile);
+void put(int op, int a, int b, int c);

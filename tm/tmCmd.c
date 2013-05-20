@@ -50,7 +50,12 @@ void initTMCmd() {
 	WRC = 63;
 
 	/* end of code */
-	TRAP = 1;
+	TRAP = 9;
+
+	/* meta data */
+	GP = 1;		/* global pointer */
+	SP = 3; 	/* string pointer */
+	CS = 2; 	/* code size */
 }
 
 char *getCmdName(id) {
@@ -80,5 +85,8 @@ char *getCmdName(id) {
 	if(id == JSR ) return "jsr ";
 	if(id == RET ) return "ret ";
 	if(id == TRAP) return "trap";
+	if(id == GP  ) return "gp  ";
+	if(id == SP  ) return "sp  ";
+	if(id == cs  ) return "cs  ";
 	return "unknown";
 }

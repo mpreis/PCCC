@@ -1,4 +1,4 @@
-CFLAGS=-Wall
+#CFLAGS=-Wall
 
 PROGRAMS=pccc
 OBJECTS=pccc.o scanner.o parser.o symboltable.o tokenMapping.o ./tm/tmCmd.o

@@ -5,7 +5,7 @@
  */
 
 void initTMCmd();
-char *getCmdName(id);
+char *getCmdName(int id);
 /* immediate addressing */
 int ADDI; //= 10;
 int SUBI; //= 11;
@@ -52,3 +52,9 @@ int WRC; //= 63;
 
 /* end of code */
 int TRAP; //= 1;
+
+
+/* meta data */
+int GP; // = 1;		/* global pointer */
+int SP; // = 3; 	/* string pointer */
+int CS; // = 2; 	/* code size */

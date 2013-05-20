@@ -19,23 +19,50 @@ int *reg;	// register
 int *mem;	// memory
 int *ir;	// instruction register
 
+/*
+	|<---------------------- meta data ---------------------->|
+	+---------------+--------------------+--------------------+-- ~~~~ --+
+	| codesize (cs) | globalpointer (gp) | stringpointer (sp) | commands |
+	+---------------+--------------------+--------------------+-- ~~~~ --+
+*/
+void loadMeta(FILE *fp) {
+	int *buff = malloc(4*8);
+
+	fread(buff,1,1,fp);		// read 1 byte
+	decode(buff[0]);	
+	int codesize = ir[3];
+
+	fread(buff,1,1,fp);		// read 1 byte
+	decode(buff[0]);	
+	reg[28] = ir[3];
+
+	fread(buff,1,1,fp);		// read 1 byte
+	decode(buff[0]);	
+	int strp = ir[3];		
+}
+
 void loadCode(char *file) {
-	reg = malloc(31*32);
-	mem = malloc(100*32);
-	ir = malloc(4*32);
-	pc = 0;
-	eomem = 0;
-	reg[0] = 0;
 
 	int r;
 	int *buff;
 	FILE *fp;
 
-	r = 1;
-	buff = malloc(4*8);
+	reg = malloc(31*32);
+	int i; 
+	for(i = 0; i < 32; i++) reg[i] = 0;
+
 	fp = fopen(file, "r");
 	if(fp == 0) { printf("\tERROR: can not open file.\n"); }
+
+	loadMeta(fp);
 	
+	mem = malloc(100*32);
+	ir = malloc(4*32);
+	pc = 0;
+	eomem = 0;
+
+	r = 1;
+	buff = malloc(4*8);
 	while(r != 0) {
 		r = fread(buff,1,1,fp);		// read 1 byte
 		mem[eomem] = buff[0];

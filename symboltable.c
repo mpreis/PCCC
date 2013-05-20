@@ -48,6 +48,7 @@ int insert(struct object_t *head, struct object_t *obj) {
 		strnCpy(head->name, obj->name, 64);
 		head->class = obj->class;
 		head->offset = obj->offset;
+		head->scope = obj->scope;
 		head->type = obj->type;
 		head->next = 0;
 	} else {
@@ -64,6 +65,7 @@ int insert(struct object_t *head, struct object_t *obj) {
 	return 1;
 }
 
+/*only for testing*/
 int insertValues(struct object_t *head, string_t name, int class, struct type_t *type) {
 	struct object_t *ptr;
 	if(head->name == 0) {

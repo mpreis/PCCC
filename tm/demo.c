@@ -18,7 +18,7 @@ void main(int argc, char *argv) {
 	int *buff = malloc(15*32);
 	char *file = "./bdemo";
 	FILE *fp = fopen(file, "w");
-	if(fp == 0) { printf("\tERROR: can not open file.\n"); }
+//	if(fp == 0) { printf("\tERROR: can not open file.\n"); }
 	
 	initTMCmd();
 	printf(" -- generate bin file (%s).\n", file);
