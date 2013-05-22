@@ -56,4 +56,5 @@ void initTokenMapping() {
 	END			= 54;	/* last token		*/
 	ARROW		= 55;	/* ->				*/
 	SIZEOF		= 56;	/* size of type		*/
+	MALLOC		= 57;	/* allocate memory	*/
 }

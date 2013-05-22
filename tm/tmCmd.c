@@ -54,8 +54,8 @@ void initTMCmd() {
 
 	/* meta data */
 	GP = 1;		/* global pointer */
-	SP = 3; 	/* string pointer */
-	CS = 2; 	/* code size */
+	SP = 2; 	/* string pointer */
+	CS = 3; 	/* code size */
 }
 
 char *getCmdName(id) {

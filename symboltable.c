@@ -6,7 +6,7 @@ void printObject(struct object_t *ptr) {
 	printf("|| %18s | %7d | %6d | %8d |             ||\n", ptr->name,ptr->class,ptr->type->form,ptr->offset);
 }
 void printType(struct type_t *t) {
-	printf("|| %18d | %7d | %6d |               ||\n", t->form,t->fields,t->base);
+	printf("|| %18d | %7d | %6d | %8d |             ||\n", t->form,t->fields,t->base,t->size);
 }
 void printTable(struct object_t *head) {
    	struct object_t *ptr;
@@ -15,7 +15,7 @@ void printTable(struct object_t *head) {
 	printf("||================================================================||\n");
 	printf("||        name        |  class  |  type  |  offset  |             ||\n");
 	printf("||================================================================||\n");
-	while(ptr != 0) {
+	while(ptr != 0 && ptr->name != 0) {
 		printObject(ptr);
 		printf("||----------------------------------------------------------------||\n");
 		ptr = ptr->next;
@@ -62,6 +62,7 @@ int insert(struct object_t *head, struct object_t *obj) {
 		}
 		ptr->next = obj;
 	}
+	if(obj->scope == GLOBAL_SCOPE) { nrOfGVar = nrOfGVar + 1; }
 	return 1;
 }
 
@@ -125,6 +126,31 @@ struct type_t *newType(int form) {
 	type->form = form;
 	return type;
 }
+
+void initSymbolTable() {
+	globList = malloc(sizeof(struct object_t));
+
+	GLOBAL_SCOPE = 1;
+	LOCAL_SCOPE = 2;
+
+	TYPE_FORM_INT = 1;
+	TYPE_FORM_CHAR = 2;
+	TYPE_FORM_VOID = 3;
+	TYPE_FORM_ARRAY = 4;
+	TYPE_FORM_RECORD = 5;
+
+	OBJECT_CLASS_VAR = 1;
+	OBJECT_CLASS_TYPE = 2;
+	OBJECT_CLASS_FIELD = 3;
+
+	nrOfGVar = 0;
+
+	globOffset = 0;
+	locOffset = 0;
+	paramOffset = 0;
+	heapOffset = 0;
+}
+
 /*
 int main(void) {
 // ---------- FORM: ----------  

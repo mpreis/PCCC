@@ -13,7 +13,41 @@ struct item_t {
 	int value;
 };
 
-void printItem(struct item_t *item);
+/* code generation */
+char *srcfile;
+char *outfile;
+int out_fp_bin;
+int out_fp_ass;
+/* int nrOfGVar; have a look at symboltable */
+int nrOfStrs;
+int nrOfCmds;
+
+int GPTR;	/* global pointer */
+int LPTR;	/* local pointer */
+int HPTR;	/* heap pointer */
+
+int *regs;
+int nrOfRegs;
+int ITEM_MODE_CONST;
+int ITEM_MODE_VAR;
+int ITEM_MODE_REF;
+int ITEM_MODE_REG;
+int ITEM_MODE_NONE;
+
+int OP_NONE;
+int OP_ADD;
+int OP_SUB;
+int OP_MUL;
+int OP_DIV;
+int OP_AND;
+int OP_OR;
+int OP_EQ;
+int OP_NEQ;
+int OP_GT;
+int OP_GET;
+int OP_LT;
+int OP_LET;
+
 int expression(struct item_t *item);
 void printError(char *msg);
 int validate();
