@@ -1,43 +1,30 @@
-
-typedef char *string_t;
-
-struct type_t {
-	int form;
-	struct object_t *fields; 
-	struct type_t *base;
-};
-struct object_t { 
-	char *name;
-	int class;
-	struct type_t *type; 
-	struct object_t *next;
-};
+#include "symboltable.h"
 
 /* struct object_t *globList = 0; */
 
 void printObject(struct object_t *ptr) {
-	printf("|| %18s | %7d | %6d |               ||\n", ptr->name,ptr->class,ptr->type->form);
+	printf("|| %18s | %7d | %6d | %8d |             ||\n", ptr->name,ptr->class,ptr->type->form,ptr->offset);
 }
 void printType(struct type_t *t) {
-	printf("|| %18d | %7d | %6d |               ||\n", t->form,t->fields,t->base);
+	printf("|| %18d | %7d | %6d | %8d |             ||\n", t->form,t->fields,t->base,t->size);
 }
 void printTable(struct object_t *head) {
    	struct object_t *ptr;
 	ptr = head;
 
-	printf("||=======================================================||\n");
-	printf("||        name        |  class  |  type  |               ||\n");
-	printf("||=======================================================||\n");
-	while(ptr != 0) {
+	printf("||================================================================||\n");
+	printf("||        name        |  class  |  type  |  offset  |             ||\n");
+	printf("||================================================================||\n");
+	while(ptr != 0 && ptr->name != 0) {
 		printObject(ptr);
-		printf("||-------------------------------------------------------||\n");
+		printf("||----------------------------------------------------------------||\n");
 		ptr = ptr->next;
 	}
 }
 
 struct object_t *lookUp(struct object_t *head, string_t name) {
-	if(head != 0) {
-		struct object_t *ptr;
+	struct object_t *ptr;
+	if(head->name != 0) {
 		ptr = head;
 		while(ptr != 0) {
 			if(strCmp(ptr->name, name) == 0) {
@@ -55,10 +42,13 @@ void insertName(struct object_t *ptr, string_t name) {
 }
 	
 int insert(struct object_t *head, struct object_t *obj) {
+	struct object_t *ptr;
 	if(head->name == 0) {
 		head->name = malloc(64 * sizeof(char));
 		strnCpy(head->name, obj->name, 64);
 		head->class = obj->class;
+		head->offset = obj->offset;
+		head->scope = obj->scope;
 		head->type = obj->type;
 		head->next = 0;
 	} else {
@@ -66,17 +56,19 @@ int insert(struct object_t *head, struct object_t *obj) {
 			printf("error: multible declaration of %s\n", obj->name);
 			return 0;
 		}
-		struct object_t *ptr;
 		ptr = head;
 		while(ptr->next != 0) {
 			ptr = ptr->next;
 		}
 		ptr->next = obj;
 	}
+	if(obj->scope == GLOBAL_SCOPE) { nrOfGVar = nrOfGVar + 1; }
 	return 1;
 }
 
+/*only for testing*/
 int insertValues(struct object_t *head, string_t name, int class, struct type_t *type) {
+	struct object_t *ptr;
 	if(head->name == 0) {
 		head->name = malloc(64 * sizeof(char));
 		strnCpy(head->name, name, 64);
@@ -88,7 +80,6 @@ int insertValues(struct object_t *head, string_t name, int class, struct type_t 
 			printf("multible declaration of %s\n", name);
 			return 0;
 		}
-		struct object_t *ptr;
 		ptr = head;
 		while(ptr->next != 0) {
 			ptr = ptr->next;
@@ -108,12 +99,58 @@ int insertValues(struct object_t *head, string_t name, int class, struct type_t 
 	return 1;
 }
 
+struct object_t *delete(struct object_t *head, string_t name) {
+   	struct object_t *ptr, *ptr1;
+//printf(" ----1 head: %d\n", head->next);
+	if(head != 0) {
+		if(strCmp(head->name, name) == 0) {
+			ptr = head->next;
+			head = ptr;
+		} else {
+			ptr = head;
+			while(ptr->next != 0) {
+				ptr1 = ptr->next;
+				if(strCmp(ptr1->name, name) == 0) {
+					ptr->next = ptr1->next;
+				}
+				ptr = ptr1;
+			}
+		}
+	}
+	return head;
+}
+
 struct type_t *newType(int form) {
 	struct type_t *type;
 	type = malloc (sizeof (struct type_t));
 	type->form = form;
 	return type;
 }
+
+void initSymbolTable() {
+	globList = malloc(sizeof(struct object_t));
+
+	GLOBAL_SCOPE = 1;
+	LOCAL_SCOPE = 2;
+
+	TYPE_FORM_INT = 1;
+	TYPE_FORM_CHAR = 2;
+	TYPE_FORM_VOID = 3;
+	TYPE_FORM_ARRAY = 4;
+	TYPE_FORM_RECORD = 5;
+
+	OBJECT_CLASS_VAR = 1;
+	OBJECT_CLASS_TYPE = 2;
+	OBJECT_CLASS_FIELD = 3;
+
+	nrOfGVar = 0;
+
+	globOffset = 0;
+	locOffset = 0;
+	paramOffset = 0;
+	heapOffset = 0;
+}
+
 /*
 int main(void) {
 // ---------- FORM: ----------  

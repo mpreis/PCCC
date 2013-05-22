@@ -12,7 +12,7 @@ int colNr;
 char ungetc;
 
 void initScanner(char *file) {	
-	fd = open(file, 0);		/* 0 ... read only*/
+	fd = open(file, 0);		/* 0 ... read only */
 	ungetc = -1;
 	lineNr = 1;
 	colNr = 1;
@@ -177,6 +177,7 @@ void getNextToken() {
 		else if(strCmp(identifier, "while"	 ) == 0) { symbol->id = WHILE; 	strnCpy(symbol->valueStr, identifier, 5); }
 		else if(strCmp(identifier, "return" ) == 0) { symbol->id = RETURN;	strnCpy(symbol->valueStr, identifier, 6); }
 		else if(strCmp(identifier, "sizeof" ) == 0) { symbol->id = SIZEOF;	strnCpy(symbol->valueStr, identifier, 6); }
+		else if(strCmp(identifier, "malloc" ) == 0) { symbol->id = MALLOC;	strnCpy(symbol->valueStr, identifier, 6); }
 		else if(strCmp(identifier, "struct" ) == 0) { symbol->id = STRUCT;	strnCpy(symbol->valueStr, identifier, 6); }
 		else if(strCmp(identifier, "typedef") == 0) { symbol->id = TYPEDEF;strnCpy(symbol->valueStr, identifier, 7); }
 		else { symbol->id = IDENT; strnCpy(symbol->valueStr, identifier, 64); }
@@ -289,7 +290,7 @@ void getNextToken() {
 		}
 		else if(c == '|') {
 			nc = getChar();
-			if(nc == '|') { symbol->id = OR; }
+			if(nc == '|') { printf("SCANNER: or = %i\n", OR); symbol->id = OR; }
 			else {
 				symbol->id = ERROR;
 				symbol->valueStr[0] = c; symbol->valueStr[1] = 0;

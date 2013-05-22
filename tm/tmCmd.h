@@ -5,50 +5,55 @@
  */
 
 void initTMCmd();
-char *getCmdName(id);
+char *getCmdName(int cmd_id);
 /* immediate addressing */
-int ADDI; //= 10;
-int SUBI; //= 11;
-int MULI; //= 12;
-int DIVI; //= 13;
-int MODI; //= 14;
-int CMPI; //= 15;
+int CMD_ADDI; //= 10;
+int CMD_SUBI; //= 11;
+int CMD_MULI; //= 12;
+int CMD_DIVI; //= 13;
+int CMD_MODI; //= 14;
+int CMD_CMPI; //= 15;
 
 /* register addressing */
-int ADD; //= 20;
-int SUB; //= 21;
-int MUL; //= 22;
-int DIV; //= 23;
-int MOD; //= 24;
-int CMP; //= 25;
+int CMD_ADD; //= 20;
+int CMD_SUB; //= 21;
+int CMD_MUL; //= 22;
+int CMD_DIV; //= 23;
+int CMD_MOD; //= 24;
+int CMD_CMP; //= 25;
 
 /* memory: load and store */
-int LDW; //= 30;
-int STW; //= 31;
+int CMD_LDW; //= 30;
+int CMD_STW; //= 31;
 
 /* stack operations */
-int POP; //= 40;
-int PSH; //= 41;
+int CMD_POP; //= 40;
+int CMD_PSH; //= 41;
 
 /* conditional branching */
-int BEQ; //= 50;
-int BGE; //= 51;
-int BGT; //= 52;
-int BLE; //= 53;
-int BLT; //= 54;
-int BNE; //= 55;
+int CMD_BEQ; //= 50;
+int CMD_BGE; //= 51;
+int CMD_BGT; //= 52;
+int CMD_BLE; //= 53;
+int CMD_BLT; //= 54;
+int CMD_BNE; //= 55;
 
 /* unconditional branching */
-int BR ; //= 56;
-int BSR; //= 57;
-int JSR; //= 58;
-int RET; //= 59;
+int CMD_BR ; //= 56;
+int CMD_BSR; //= 57;
+int CMD_JSR; //= 58;
+int CMD_RET; //= 59;
 
 /* i/o operations */
-int FLO; //= 60;
-int FLC; //= 61;
-int RDC; //= 62;
-int WRC; //= 63;
+int CMD_FLO; //= 60;
+int CMD_FLC; //= 61;
+int CMD_RDC; //= 62;
+int CMD_WRC; //= 63;
 
 /* end of code */
-int TRAP; //= 1;
+int CMD_TRAP; //= 1;
+
+/* meta data */
+int CMD_GP; // = 1;		/* global pointer */
+int CMD_SP; // = 3; 	/* string pointer */
+int CMD_CS; // = 2; 	/* code size */
