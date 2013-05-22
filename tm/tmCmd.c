@@ -87,6 +87,6 @@ char *getCmdName(id) {
 	if(id == TRAP) return "trap";
 	if(id == GP  ) return "gp  ";
 	if(id == SP  ) return "sp  ";
-	if(id == cs  ) return "cs  ";
+	if(id == CS  ) return "cs  ";
 	return "unknown";
 }

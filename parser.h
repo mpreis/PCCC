@@ -13,6 +13,7 @@ struct item_t {
 	int value;
 };
 
+void printItem(struct item_t *item);
 int expression(struct item_t *item);
 void printError(char *msg);
 int validate();
