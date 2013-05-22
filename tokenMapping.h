@@ -4,6 +4,7 @@
  *
  */
 void initTokenMapping();
+void printTokenMapping();
 
 int ERROR		; /* = -1;	invalid token	*/
 int INIT		; /* =  0;	  */

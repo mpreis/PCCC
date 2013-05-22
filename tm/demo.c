@@ -24,9 +24,9 @@ void main(int argc, char *argv) {
 	printf(" -- generate bin file (%s).\n", file);
 
 	// meta data
-	buff[0]  = encode(CS,	0, 0, 15);
-	buff[1]  = encode(GP,	0, 0, 16); 
-	buff[2]  = encode(SP,	0, 0,  0);
+	buff[0]  = encode(CMD_CS,	0, 0, 15);
+	buff[1]  = encode(CMD_GP,	0, 0, 16); 
+	buff[2]  = encode(CMD_SP,	0, 0,  0);
 /*
 	addi(10) 1 0 12
 	addi(10) 1 30 0
@@ -42,18 +42,18 @@ void main(int argc, char *argv) {
 	trap(9) 0 0 0
 */
 
-	buff[3]  = encode(ADDI,	1, 0, 	12);
-	buff[4]  = encode(ADDI,	1, 30,  0);
-	buff[5]  = encode(STW,	1, 28,  -12);
-	buff[6]  = encode(LDW,	1, 28,  -12);
-	buff[7]  = encode(ADDI,	2, 0,  	12);	
-	buff[8]  = encode(ADDI,	2, 30, 	12);	
-	buff[9]  = encode(STW,	2, 1,  	-8);
-	buff[10] = encode(LDW, 	1, 28, 	-12);
-	buff[11] = encode(LDW,	1, 1, 	-8);
-	buff[12] = encode(ADDI, 2, 0, 	4);	
-	buff[13] = encode(STW,	2, 1, 	4);
-	buff[14] = encode(TRAP, 0, 0,  	0);
+	buff[3]  = encode(CMD_ADDI,	1, 0, 	12);
+	buff[4]  = encode(CMD_ADDI,	1, 30,  0);
+	buff[5]  = encode(CMD_STW,	1, 28,  -12);
+	buff[6]  = encode(CMD_LDW,	1, 28,  -12);
+	buff[7]  = encode(CMD_ADDI,	2, 0,  	12);	
+	buff[8]  = encode(CMD_ADDI,	2, 30, 	12);	
+	buff[9]  = encode(CMD_STW,	2, 1,  	-8);
+	buff[10] = encode(CMD_LDW, 	1, 28, 	-12);
+	buff[11] = encode(CMD_LDW,	1, 1, 	-8);
+	buff[12] = encode(CMD_ADDI, 2, 0, 	4);	
+	buff[13] = encode(CMD_STW,	2, 1, 	4);
+	buff[14] = encode(CMD_TRAP, 0, 0,  	0);
 
 	fwrite(buff,4,15,fp);
 	fclose(fp);

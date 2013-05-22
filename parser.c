@@ -18,10 +18,10 @@
  ************************************************************/
 void testCodeGen() {
 	/* 2 = 5 - 3 */
-	put(ADDI, 1, 0, 5);
-	put(ADDI, 2, 0, 3);
-	put(SUB,  1, 1, 2);
-	put(TRAP, 0, 0, 0);
+	put(CMD_ADDI, 1, 0, 5);
+	put(CMD_ADDI, 2, 0, 3);
+	put(CMD_SUB,  1, 1, 2);
+	put(CMD_TRAP, 0, 0, 0);
 }
 
 int initOutputFile() {
@@ -32,19 +32,19 @@ int initOutputFile() {
 		return -1;
 	}
 	/* meta data - dummy values */
-printf("CS: %i \n",CS);
-	put(CS,	0, 0, 0);
-	put(GP,	0, 0, 0);
-	put(SP,	0, 0, 0);
+printf("CS: %i \n",CMD_CS);
+	put(CMD_CS,	0, 0, 0);
+	put(CMD_GP,	0, 0, 0);
+	put(CMD_SP,	0, 0, 0);
 }
 
 void finalizeOutputFile() {
 	close(out_fp_bin);
 	out_fp_bin = open(outfile, 65, 448);
-	put(CS,	0, 0, nrOfCmds);
-	put(GP,	0, 0, nrOfGVar*4);	/* !!! da globale variablen NICHT initialisiert werden können, */
+	put(CMD_CS,	0, 0, nrOfCmds);
+	put(CMD_GP,	0, 0, nrOfGVar*4);	/* !!! da globale variablen NICHT initialisiert werden können, */
 								/* !!! sind immer nur 4 byte speicher nötig */
-	put(SP,	0, 0, nrOfStrs);	/*TODO potentielles problem !!!*/
+	put(CMD_SP,	0, 0, nrOfStrs);	/*TODO potentielles problem !!!*/
 }
 
 int encode(int op, int a, int b, int c) {
@@ -156,7 +156,7 @@ void releaseReg(int r) { regs[r] = 0; }
 void cg_const2Reg(struct item_t *item) {
 	item->mode = ITEM_MODE_REG;
 	item->reg = requestReg();
-	put(ADDI, item->reg, 0, item->value);
+	put(CMD_ADDI, item->reg, 0, item->value);
 	item->value = 0;
 	item->offset = 0;
 }
@@ -165,14 +165,14 @@ void cg_var2Reg(struct item_t *item) {
 	int newReg;
 	item->mode = ITEM_MODE_REG;
 	newReg = requestReg();
-	put(LDW, newReg, item->reg, item->offset);
+	put(CMD_LDW, newReg, item->reg, item->offset);
 	item->reg = newReg;
 	item->offset = 0;
 }
 
 void cg_ref2Reg(struct item_t *item) {
 	item->mode = ITEM_MODE_REG;
-	put(LDW, item->reg, item->reg, item->offset);
+	put(CMD_LDW, item->reg, item->reg, item->offset);
 	item->offset = 0;
 }
 
@@ -199,10 +199,10 @@ void cg_calcArithExp(struct item_t *leftItem, struct item_t *rightItem, int op) 
 				else { printError("nich so gut..."); }
 			} else {
 				cg_load(leftItem);
-					 if(op == OP_ADD) { put(ADDI, leftItem->reg, leftItem->reg, rightItem->value); } 
-				else if(op == OP_SUB) { put(SUBI, leftItem->reg, leftItem->reg, rightItem->value); } 
-				else if(op == OP_MUL) { put(MULI, leftItem->reg, leftItem->reg, rightItem->value); } 
-				else if(op == OP_DIV) { put(DIVI, leftItem->reg, leftItem->reg, rightItem->value); } 
+					 if(op == OP_ADD) { put(CMD_ADDI, leftItem->reg, leftItem->reg, rightItem->value); } 
+				else if(op == OP_SUB) { put(CMD_SUBI, leftItem->reg, leftItem->reg, rightItem->value); } 
+				else if(op == OP_MUL) { put(CMD_MULI, leftItem->reg, leftItem->reg, rightItem->value); } 
+				else if(op == OP_DIV) { put(CMD_DIVI, leftItem->reg, leftItem->reg, rightItem->value); } 
 				else { printError("nich so gut..."); }
 			}
 		} else {
@@ -210,10 +210,10 @@ void cg_calcArithExp(struct item_t *leftItem, struct item_t *rightItem, int op) 
 			cg_load(rightItem);
 			printf("LL:");printItem(leftItem);
 			printf("LR:");printItem(rightItem);
-				 if(op == OP_ADD) { put(ADD, leftItem->reg, leftItem->reg, rightItem->reg); } 
-			else if(op == OP_SUB) { put(SUB, leftItem->reg, leftItem->reg, rightItem->reg); } 
-			else if(op == OP_MUL) { put(MUL, leftItem->reg, leftItem->reg, rightItem->reg); } 
-			else if(op == OP_DIV) { put(DIV, leftItem->reg, leftItem->reg, rightItem->reg); } 
+				 if(op == OP_ADD) { put(CMD_ADD, leftItem->reg, leftItem->reg, rightItem->reg); } 
+			else if(op == OP_SUB) { put(CMD_SUB, leftItem->reg, leftItem->reg, rightItem->reg); } 
+			else if(op == OP_MUL) { put(CMD_MUL, leftItem->reg, leftItem->reg, rightItem->reg); } 
+			else if(op == OP_DIV) { put(CMD_DIV, leftItem->reg, leftItem->reg, rightItem->reg); } 
 			else { printError("nich so gut..."); }
 			releaseReg(rightItem->reg);
 		}
@@ -234,10 +234,10 @@ void cg_index(struct item_t *item, struct item_t *indexItem) {
 		item->offset = indexItem->value * (-4);
 	} else {
 		cg_load(indexItem);
-		put(MULI, indexItem->reg, indexItem->reg, -4);
+		put(CMD_MULI, indexItem->reg, indexItem->reg, -4);
 		cg_load(item);
 		item->mode = ITEM_MODE_REF;
-		put(ADD, item->reg, item->reg, indexItem->reg);	
+		put(CMD_ADD, item->reg, item->reg, indexItem->reg);	
 		releaseReg(indexItem->reg);
 	}
 	item->type = item->type->base;
@@ -248,7 +248,7 @@ void cg_assignment(struct item_t *leftItem, struct item_t *rightItem) {
 		printError("[assignment] Type mismatch in assignment"); 
 	}
 	cg_load(rightItem);
-	put(STW, rightItem->reg, leftItem->reg, leftItem->offset);
+	put(CMD_STW, rightItem->reg, leftItem->reg, leftItem->offset);
 	if(leftItem->mode == ITEM_MODE_REF) { releaseReg(leftItem->reg); }
 	releaseReg(rightItem->reg);
 }
@@ -262,7 +262,7 @@ void cg_allocate(struct item_t *item) {
 	cg_load(item);
 	item->type->form = TYPE_FORM_VOID;
 	item->type->fields = 0;
-	put(ADDI, item->reg, HPTR, heapOffset);
+	put(CMD_ADDI, item->reg, HPTR, heapOffset);
 }
 
 /*************************************************************
@@ -1349,7 +1349,7 @@ int startParsing(char *sfile, char *ofile){
 		i = programm();
 	}
 	printTable(globList);
-	put(TRAP,0,0,0);
+	put(CMD_TRAP,0,0,0);
 	finalizeOutputFile();
 	close(out_fp_bin); 
 	close(out_fp_ass); 

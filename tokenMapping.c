@@ -4,6 +4,7 @@
  *
  */
 #include "tokenMapping.h"
+
 void initTokenMapping() {
 	ERROR		= -1;	/* invalid token	*/
 	INIT		=  0;
@@ -38,7 +39,7 @@ void initTokenMapping() {
 	VOID		= 32;	/* key-word: void 	*/
 	STRUCT		= 33;	/* key-word: struct */
 	TYPEDEF		= 34;	/* key-word: typedef*/
-	BOOLEAN 	= 35;	/* boolean value 	*/
+	BOOLEAN	 	= 35;	/* boolean value 	*/
 	IDENT		= 36;	/* identifier 		*/
 	NUMBER		= 37;	/* number value		*/
 	STRING		= 38;	/* string value		*/
@@ -57,4 +58,61 @@ void initTokenMapping() {
 	ARROW		= 55;	/* ->				*/
 	SIZEOF		= 56;	/* size of type		*/
 	MALLOC		= 57;	/* allocate memory	*/
+}
+
+void printTokenMapping () {
+	printf("\n");
+	printf("ERROR : %i\n",ERROR);
+	printf("INIT  : %i\n",INIT);
+	printf("LSQBR : %i\n",LSQBR);
+	printf("RSQBR : %i\n",RSQBR);
+	printf("LPAR  : %i\n",LPAR);
+	printf("RPAR  : %i\n",RPAR);
+	printf("LCUBR : %i\n",LCUBR);
+	printf("RCUBR : %i\n",RCUBR);
+	printf("\n");
+	printf("SEMCOL: %i\n",SEMCOL);
+	printf("COMMA : %i\n",COMMA);
+	printf("DQUOTE: %i\n",DQUOTE);
+	printf("QUOTE : %i\n",QUOTE);
+	printf("EQSIGN: %i\n",EQSIGN);
+	printf("PLUS  : %i\n",PLUS);
+	printf("MINUS : %i\n",MINUS);
+	printf("TIMES : %i\n",TIMES);
+	printf("DIV   : %i\n",DIV);
+	printf("\n");
+	printf("LT    : %i\n",LT);
+	printf("GT    : %i\n",GT);
+	printf("EQ    : %i\n",EQ);
+	printf("NEQ   : %i\n",NEQ);
+	printf("LET   : %i\n",LET);
+	printf("GET   : %i\n",GET);
+	printf("AND   : %i\n",AND);
+	printf("OR    : %i\n",OR);
+	printf("\n");
+	printf("INT   : %i\n",INT);
+	printf("CHAR  : %i\n",CHAR);
+	printf("VOID  : %i\n",VOID);
+	printf("STRUCT: %i\n",STRUCT);
+	printf("TYPEDEF:%i\n",TYPEDEF);
+	printf("BOOLEAN:%i\n",BOOLEAN);
+	printf("IDENT : %i\n",IDENT);
+	printf("NUMBER: %i\n",NUMBER);
+	printf("STRING: %i\n",STRING);
+	printf("CHARACTER:%i\n",CHARACTER);
+	printf("\n");
+	printf("IF    : %i\n",IF);
+	printf("ELSE  : %i\n",ELSE);
+	printf("WHILE : %i\n",WHILE);
+	printf("RETURN: %i\n",RETURN);
+	printf("\n");
+	printf("COMMENT: %i\n",COMMENT);
+	printf("DOT    : %i\n",DOT);
+	printf("INCLUDE: %i\n",INCLUDE);
+	printf("LF     : %i\n",LF);
+	printf("END    : %i\n",END);
+	printf("ARROW  : %i\n",ARROW);
+	printf("SIZEOF : %i\n",SIZEOF);
+	printf("MALLOC : %i\n", MALLOC);
+	printf("\n");
 }

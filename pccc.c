@@ -14,6 +14,7 @@ int main(int argc, char *argv[]){
 	strnCpy(ofile, "./my_pccc", 20); 
 
 	initScanner(sfile);
+	printTokenMapping();
 	startParsing(sfile, ofile);
 	printf("\n");
 	return 0;
