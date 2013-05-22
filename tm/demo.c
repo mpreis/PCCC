@@ -9,7 +9,7 @@
 
 int encode(int op, int a, int b, int c) {
 	if (c < 0)
-	c = c + 65536; // 0x10000: 2^16
+		c = c + 65536; // 0x10000: 2^16
 	return (((((op * 32) + a) * 32) + b) * 65536) + c;
 }
 void main(int argc, char *argv) {
@@ -18,41 +18,46 @@ void main(int argc, char *argv) {
 	int *buff = malloc(15*32);
 	char *file = "./bdemo";
 	FILE *fp = fopen(file, "w");
-//	if(fp == 0) { printf("\tERROR: can not open file.\n"); }
+	if(fp == 0) { printf("\tERROR: can not open file.\n"); }
 	
 	initTMCmd();
 	printf(" -- generate bin file (%s).\n", file);
 
-	buff[0]  = encode(BR,	0, 0, 11);	// jump to main
-	// gcd
-	// loop	
-	buff[1]  = encode(SUB,	3, 1,  2);
-	buff[2]  = encode(BEQ,	3, 0,  8);	// jump to end
-	buff[3]  = encode(BGT,	3, 0,  3); 	// jump to if
-	buff[4]  = encode(BLE,	3, 0,  4);	// jump to else
-	buff[5]  = encode(BR,	0, 0, -4);	// jump to loop
-	// if
-	buff[6]  = encode(SUB,	1, 1,  2);
-	buff[7]  = encode(BR, 	0, 0, -6);	// jump to loop
-	// else
-	buff[8]  = encode(SUB,	2, 2,  1);
-	buff[9]  = encode(BR, 	0, 0, -8);	// jump to loop
-	// end
-	buff[10] = encode(RET,	0, 0, 31);
-	// main
-	buff[11] = encode(ADDI,	1, 0,  x);
-	buff[12] = encode(ADDI,	2, 0,  y);
-	buff[13] = encode(JSR, 	0, 0,  4);	// jump to loop
-	buff[14] = encode(TRAP, 0, 0,  0);
+	// meta data
+	buff[0]  = encode(CS,	0, 0, 15);
+	buff[1]  = encode(GP,	0, 0, 16); 
+	buff[2]  = encode(SP,	0, 0,  0);
+/*
+	addi(10) 1 0 12
+	addi(10) 1 30 0
+	stw (31) 1 28 -12
+	ldw (30) 1 28 16884
+	addi(10) 2 0 12
+	addi(10) 2 30 12
+	stw (31) 2 1 -8
+	ldw (30) 1 28 -12
+	ldw (30) 1 1 -8
+	addi(10) 2 0 4
+	stw (31) 2 1 4
+	trap(9) 0 0 0
+*/
+
+	buff[3]  = encode(ADDI,	1, 0, 	12);
+	buff[4]  = encode(ADDI,	1, 30,  0);
+	buff[5]  = encode(STW,	1, 28,  -12);
+	buff[6]  = encode(LDW,	1, 28,  -12);
+	buff[7]  = encode(ADDI,	2, 0,  	12);	
+	buff[8]  = encode(ADDI,	2, 30, 	12);	
+	buff[9]  = encode(STW,	2, 1,  	-8);
+	buff[10] = encode(LDW, 	1, 28, 	-12);
+	buff[11] = encode(LDW,	1, 1, 	-8);
+	buff[12] = encode(ADDI, 2, 0, 	4);	
+	buff[13] = encode(STW,	2, 1, 	4);
+	buff[14] = encode(TRAP, 0, 0,  	0);
 
 	fwrite(buff,4,15,fp);
 	fclose(fp);
 
 //	startTM(file);
-
-	printf(" -- encode: %i\n", encode(ADDI, 1, 0, 5));
-	printf(" -- encode: %i\n", encode(ADDI, 2, 0, 3));
-	printf(" -- encode: %i\n", encode(SUB,  1, 1, 2));
-
 	startTM("../my_pccc");
 }

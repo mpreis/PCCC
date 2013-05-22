@@ -13,11 +13,42 @@
 #include <stdio.h>
 #include "tmCmd.h"
 
+#include <unistd.h>
+#include <fcntl.h>
+
 int pc;
+int mem_max;
 int eomem;
 int *reg;	// register
 int *mem;	// memory
 int *ir;	// instruction register
+
+/*
+	memory structure:
+
+	+-------------+<- reg[29] (mem_max)
+	|    stack    |
+	~             ~
+	+-------------+<- reg
+	|      ↓      |
+	|             |
+	|      ↑      |
+	+-------------+<- sptr[30] (heap ptr)
+	~             ~
+	|    heap     |
+	+-------------+<- reg[28]
+	|   global    |
+	|  variables  |
+	+-------------+<- reg[27] (string ptr)
+	|   string    |
+	+-------------+
+	|    code     |
+	+-------------+ 0
+
+	stack: local variables
+		   procedure calls
+	heap : allocated variables
+*/
 
 /*
 	|<---------------------- meta data ---------------------->|
@@ -26,40 +57,67 @@ int *ir;	// instruction register
 	+---------------+--------------------+--------------------+-- ~~~~ --+
 */
 void loadMeta(FILE *fp) {
+	int instruction;	
 	int *buff = malloc(4*8);
+	int *temp = malloc(4*32);
 
-	fread(buff,1,1,fp);		// read 1 byte
-	decode(buff[0]);	
-	int codesize = ir[3];
+	// read codesize
+	fread(buff,1,1,fp); temp[0] = buff[0];
+	fread(buff,1,1,fp); temp[1] = buff[0];
+	fread(buff,1,1,fp); temp[2] = buff[0];
+	fread(buff,1,1,fp); temp[3] = buff[0];
 
-	fread(buff,1,1,fp);		// read 1 byte
-	decode(buff[0]);	
-	reg[28] = ir[3];
+	instruction = temp[0] | temp[1]<<8  | temp[2]<<16 | temp[3]<<24;
+	decode(instruction);
+	int codesize = (ir[3] * 4);
 
-	fread(buff,1,1,fp);		// read 1 byte
-	decode(buff[0]);	
-	int strp = ir[3];		
+	// read global pointer
+	fread(buff,1,1,fp); temp[0] = buff[0];
+	fread(buff,1,1,fp); temp[1] = buff[0];
+	fread(buff,1,1,fp); temp[2] = buff[0];
+	fread(buff,1,1,fp); temp[3] = buff[0];
+
+	instruction = temp[0] | temp[1]<<8  | temp[2]<<16 | temp[3]<<24;
+	decode(instruction);
+	int gp = ir[3];
+	
+	// read string pointer
+	fread(buff,1,1,fp); temp[0] = buff[0];
+	fread(buff,1,1,fp); temp[1] = buff[0];
+	fread(buff,1,1,fp); temp[2] = buff[0];
+	fread(buff,1,1,fp); temp[3] = buff[0];
+
+	instruction = temp[0] | temp[1]<<8  | temp[2]<<16 | temp[3]<<24;
+	decode(instruction);
+	int strp = ir[3];
+
+	reg[27] = codesize + strp;
+	reg[28] = codesize + strp + gp; 
+	reg[29] = reg[28] + 512; /*heap & stack*/
+	reg[30] = reg[28] + 1;	 /*next free after global variables*/
+	mem_max = reg[29];
+
+	mem = malloc(mem_max * 32);
+
+	printf(" -- metadata loaded. (reg[27]: %i, reg[28]: %i, reg[29]: %i, reg[30]: %i, mem_mex: %i)\n",reg[27],reg[28],reg[29],reg[30], mem_max);
 }
 
 void loadCode(char *file) {
-
-	int r;
+	int r, i;
 	int *buff;
 	FILE *fp;
 
+	pc = 0;
+	eomem = 0;
+	ir = malloc(4*32);	
 	reg = malloc(31*32);
-	int i; 
 	for(i = 0; i < 32; i++) reg[i] = 0;
 
 	fp = fopen(file, "r");
 	if(fp == 0) { printf("\tERROR: can not open file.\n"); }
 
 	loadMeta(fp);
-	
-	mem = malloc(100*32);
-	ir = malloc(4*32);
-	pc = 0;
-	eomem = 0;
+	for(i = 0; i < mem_max; i++) mem[i] = 0;
 
 	r = 1;
 	buff = malloc(4*8);
@@ -69,12 +127,13 @@ void loadCode(char *file) {
 		eomem = eomem + 1; 
 	}
 	printf(" -- cmds loaded (%i).", (eomem/4));
+
 }
 
 void fetch() {
-	int instruction = mem[pc+0] | mem[pc+1]<<8  | mem[pc+2]<<16 | mem[pc+3]<<24;
+	int instruction = mem[pc+0] | (mem[pc+1]<<8)  | (mem[pc+2]<<16) | (mem[pc+3]<<24);
 	decode(instruction);
-	printf("\n -- %s(%i) %i %i %i\n", getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3]);
+	printf("\n -- %s(%i) %i %i %i encode: %i \n", getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3],instruction);
 }
 
 void decode(int instruction) {
@@ -84,9 +143,12 @@ void decode(int instruction) {
 	ir[3] = instruction & 65535; 		// 0xFFFF: 16 lsbs
 	if (ir[3] >= 32768)
 	ir[3] = ir[3] - 65536; 				// 0x10000: 2^16
+
+//	printf("\nDEBUG %i op: %i a: %i b: %i c: %i",instruction,ir[0],ir[1],ir[2],ir[3]);
 }
 
 void execute() {
+	printf("\nDEBUG op: %i a: %i b: %i c: %i\n",ir[0],ir[1],ir[2],ir[3]);
 		 if(ir[0] == ADDI) addi(ir[1], ir[2], ir[3]);
 	else if(ir[0] == SUBI) subi(ir[1], ir[2], ir[3]);
 	else if(ir[0] == MULI) muli(ir[1], ir[2], ir[3]);
@@ -187,17 +249,17 @@ void startTM(char *file) {
 /*******************************************************************/
 printMem() {
 	int i;
-	for(i = 0; i < eomem; i++)
-		printf("MEM[%i]:%i\n", i, mem[i]);
+	printf("MEM #: ");
+	for(i = 0; i < mem_max; i++) printf("%3i ",mem[i]);
 }
 
 printReg() {
 	int i;
 	printf("REG #: ");
-	for(i = 0; i < 31; i++)
+	for(i = 0; i < 32; i++)
 		printf("%3i ", i);
 	printf("\nVALUE: ");
-	for(i = 0; i < 31; i++)
+	for(i = 0; i < 32; i++)
 		printf("%3i ", reg[i]);
 	printf("\n");
 }

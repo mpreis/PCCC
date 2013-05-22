@@ -53,7 +53,6 @@ int WRC; //= 63;
 /* end of code */
 int TRAP; //= 1;
 
-
 /* meta data */
 int GP; // = 1;		/* global pointer */
 int SP; // = 3; 	/* string pointer */

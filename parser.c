@@ -13,63 +13,9 @@
 #include "tokenMapping.h"
 #include "./tm/tmCmd.h"
 
-/* code generation */
-char *srcfile;
-char *outfile;
-int out_fp_bin;
-int out_fp_ass;
-
-int GP;
-int LP;
-
-int *regs;
-int nrOfRegs;
-int ITEM_MODE_CONST;
-int ITEM_MODE_VAR;
-int ITEM_MODE_REF;
-int ITEM_MODE_REG;
-int ITEM_MODE_NONE;
-
-int OP_NONE;
-int OP_ADD;
-int OP_SUB;
-int OP_MUL;
-int OP_DIV;
-int OP_AND;
-int OP_OR;
-int OP_EQ;
-int OP_NEQ;
-int OP_GT;
-int OP_GET;
-int OP_LT;
-int OP_LET;
-
-
-/* symbol table */
-int GLOBAL_SCOPE;
-int LOCAL_SCOPE;
-
-int TYPE_FORM_INT;
-int	TYPE_FORM_CHAR;
-int	TYPE_FORM_VOID;
-int	TYPE_FORM_ARRAY;
-int	TYPE_FORM_RECORD;
-
-int	OBJECT_CLASS_VAR;
-int	OBJECT_CLASS_TYPE;
-int	OBJECT_CLASS_FIELD;
-
-int globOffset;
-int locOffset;
-int paramOffset;
-char *file;
-struct object_t *globList;
-struct object_t *locList;
-
 /*************************************************************
  * CODE GENERATION METHODS
  ************************************************************/
-
 void testCodeGen() {
 	/* 2 = 5 - 3 */
 	put(ADDI, 1, 0, 5);
@@ -85,7 +31,20 @@ int initOutputFile() {
 		printError("can not open/create output file.");
 		return -1;
 	}
-	
+	/* meta data - dummy values */
+printf("CS: %i \n",CS);
+	put(CS,	0, 0, 0);
+	put(GP,	0, 0, 0);
+	put(SP,	0, 0, 0);
+}
+
+void finalizeOutputFile() {
+	close(out_fp_bin);
+	out_fp_bin = open(outfile, 65, 448);
+	put(CS,	0, 0, nrOfCmds);
+	put(GP,	0, 0, nrOfGVar*4);	/* !!! da globale variablen NICHT initialisiert werden können, */
+								/* !!! sind immer nur 4 byte speicher nötig */
+	put(SP,	0, 0, nrOfStrs);	/*TODO potentielles problem !!!*/
 }
 
 int encode(int op, int a, int b, int c) {
@@ -94,12 +53,13 @@ int encode(int op, int a, int b, int c) {
 	return (((((op * 32) + a) * 32) + b) * 65536) + c;
 }
 
+
 void put(int op, int a, int b, int c) {
 	int wb; int size;
 	int *abuffParam;
 	int *buff; 
 	char *abuff;
-
+/*
 	write (out_fp_ass, getCmdName(op), 4);
 	write (out_fp_ass, " ", 1);
 	size = 6 * sizeof(char);
@@ -115,11 +75,29 @@ void put(int op, int a, int b, int c) {
 	abuff[5] = 0;
 	write (out_fp_ass, abuff, 5);
 	write (out_fp_ass, "\n", 1);
+*/
+
 
 	buff = malloc(1*32);
 	buff[0] = encode(op,a,b,c);	
+
+	printf("cmd: %s %i %i %i encode: %i\n",getCmdName(op),a,b,c,buff[0]);
+
+	int *ir = malloc(sizeof(int) * 4);
+	ir[0] = (buff[0] >> 26) & 63; 	// 0x3F: 6 lsbs
+	ir[1] = (buff[0] >> 21) & 31; 	// 0x1F: 5 lsbs
+	ir[2] = (buff[0] >> 16) & 31;	// 0x1F: 5 lsbs
+	ir[3] = buff[0] & 65535; 		// 0xFFFF: 16 lsbs
+	if (ir[3] >= 32768)
+	ir[3] = ir[3] - 65536; 				// 0x10000: 2^16
+//	printf("cmd: %i\n", buff[0]);
+//	printf("DEBUG %i op: %i a: %i b: %i c: %i\n",buff[0],ir[0],ir[1],ir[2],ir[3]);
+
+
+
 	wb = write(out_fp_bin, buff, 4);
     if ( wb != 4 ) { printf(" --- could only write %i byte.\n", wb); }
+	nrOfCmds = nrOfCmds + 1;
 }
 
 void copyItem(struct item_t *copy, struct item_t *orig) {
@@ -136,23 +114,6 @@ void initItemModes() {
 	ITEM_MODE_VAR = 2;
 	ITEM_MODE_REF = 3;
 	ITEM_MODE_REG = 4;
-}
-
-void initSymbolTable() {
-	globList = malloc(sizeof(struct object_t));
-
-	GLOBAL_SCOPE = 0;
-	LOCAL_SCOPE = 1;
-
-	TYPE_FORM_INT = 1;
-	TYPE_FORM_CHAR = 2;
-	TYPE_FORM_VOID = 3;
-	TYPE_FORM_ARRAY = 4;
-	TYPE_FORM_RECORD = 5;
-
-	OBJECT_CLASS_VAR = 1;
-	OBJECT_CLASS_TYPE = 2;
-	OBJECT_CLASS_FIELD = 3;
 }
 
 void initOperators() {
@@ -175,8 +136,9 @@ void initOperators() {
 void initRegs() {
 	int i; i = 0;
 	nrOfRegs = 32;
-	GP = 28;
-	LP = 29;
+	GPTR = 28;
+	LPTR = 29;
+	HPTR = 30;
 	regs = malloc( nrOfRegs*sizeof(int) );
 	while (i < nrOfRegs) { regs[i] = 0; i = i + 1; }
 }
@@ -184,7 +146,7 @@ int requestReg() {
 	int i; i = 1;
 	/* register for calculation: 1-27 */
 	while (i < 28) { 
-		if (regs[i] == 0) { return i; }
+		if (regs[i] == 0) { regs[i] = 1; return i; }
 		i = i + 1;
 	}
 	return -1;		
@@ -200,7 +162,6 @@ void cg_const2Reg(struct item_t *item) {
 }
 
 void cg_var2Reg(struct item_t *item) {
-	printf(" -- cg_var2Reg\n");
 	int newReg;
 	item->mode = ITEM_MODE_REG;
 	newReg = requestReg();
@@ -223,21 +184,20 @@ void cg_load(struct item_t *item) {
 
 
 void cg_calcArithExp(struct item_t *leftItem, struct item_t *rightItem, int op) {
-	printf("\n\n================================================================================\n");
-	printf(" CG: "); printItem(leftItem);
-	printf(" CG: "); printItem(rightItem);
-	printf(" CG: OP: %i\n", op);
+	printf("L:"); printItem(leftItem);
+	printf("R:"); printItem(rightItem);
+	printf("OP: %i\n",op);
+
 	if(leftItem->type->form == TYPE_FORM_INT && rightItem->type->form == TYPE_FORM_INT) {
 		if(rightItem->mode == ITEM_MODE_CONST) {
 			if(leftItem->mode == ITEM_MODE_CONST) {
+	printf("2 CONST\n");
 					 if(op == OP_ADD) { leftItem->value = leftItem->value + rightItem->value; } 
 				else if(op == OP_SUB) { leftItem->value = leftItem->value - rightItem->value; } 
 				else if(op == OP_MUL) { leftItem->value = leftItem->value * rightItem->value; } 
 				else if(op == OP_DIV) { leftItem->value = leftItem->value / rightItem->value; } 
 				else { printError("nich so gut..."); }
 			} else {
-				printf(" -- var op const ");
-				printItem(leftItem);
 				cg_load(leftItem);
 					 if(op == OP_ADD) { put(ADDI, leftItem->reg, leftItem->reg, rightItem->value); } 
 				else if(op == OP_SUB) { put(SUBI, leftItem->reg, leftItem->reg, rightItem->value); } 
@@ -248,6 +208,8 @@ void cg_calcArithExp(struct item_t *leftItem, struct item_t *rightItem, int op) 
 		} else {
 			cg_load(leftItem);
 			cg_load(rightItem);
+			printf("LL:");printItem(leftItem);
+			printf("LR:");printItem(rightItem);
 				 if(op == OP_ADD) { put(ADD, leftItem->reg, leftItem->reg, rightItem->reg); } 
 			else if(op == OP_SUB) { put(SUB, leftItem->reg, leftItem->reg, rightItem->reg); } 
 			else if(op == OP_MUL) { put(MUL, leftItem->reg, leftItem->reg, rightItem->reg); } 
@@ -256,8 +218,6 @@ void cg_calcArithExp(struct item_t *leftItem, struct item_t *rightItem, int op) 
 			releaseReg(rightItem->reg);
 		}
 	} else { printError("Type mismatch (int expected)."); }
-	printf(" END CG: "); printItem(leftItem);
-	printf("\n================================================================================\n\n");
 }
 
 void cg_field(struct item_t *item, struct object_t *object) {
@@ -271,10 +231,10 @@ void cg_index(struct item_t *item, struct item_t *indexItem) {
 	if(indexItem->mode == ITEM_MODE_CONST) {
 		cg_load(item);
 		item->mode = ITEM_MODE_REF;
-		item->offset = indexItem->value * 4;
+		item->offset = indexItem->value * (-4);
 	} else {
 		cg_load(indexItem);
-		put(MULI, indexItem->reg, indexItem->reg, 4);
+		put(MULI, indexItem->reg, indexItem->reg, -4);
 		cg_load(item);
 		item->mode = ITEM_MODE_REF;
 		put(ADD, item->reg, item->reg, indexItem->reg);	
@@ -284,12 +244,25 @@ void cg_index(struct item_t *item, struct item_t *indexItem) {
 }
 
 void cg_assignment(struct item_t *leftItem, struct item_t *rightItem) {
-	printf("----- lt: %i rt: %i", leftItem->type->form, rightItem->type->form);
-	if(leftItem->type->form != rightItem->type->form) { printError("type mismatch in assignment"); }
+	if(leftItem->type->form != rightItem->type->form && rightItem->type->form != TYPE_FORM_VOID) { 
+		printError("[assignment] Type mismatch in assignment"); 
+	}
 	cg_load(rightItem);
 	put(STW, rightItem->reg, leftItem->reg, leftItem->offset);
 	if(leftItem->mode == ITEM_MODE_REF) { releaseReg(leftItem->reg); }
 	releaseReg(rightItem->reg);
+}
+
+void cg_allocate(struct item_t *item) {
+	int tempHeapOffset;
+
+	tempHeapOffset = heapOffset;
+	heapOffset = heapOffset + item->value;
+
+	cg_load(item);
+	item->type->form = TYPE_FORM_VOID;
+	item->type->fields = 0;
+	put(ADDI, item->reg, HPTR, heapOffset);
 }
 
 /*************************************************************
@@ -340,22 +313,33 @@ int identifier() {
 }
 
 /* "int" | "char" | "void" | identifier. */ 
-int typeSpec(struct object_t *head) {
+int typeSpec(struct item_t *item, struct object_t *head) {
 	struct object_t *ptr;
+
+	item->mode = ITEM_MODE_CONST;
+	item->type->size = 4;
+	item->value = 4;
+
 	if(symbol->id == TYPEDEF) { 
 		if(hasMoreTokens() == 0) { return 0; }		
 		getNextToken(); 
 	}
-	if(symbol->id == INT ) { return TYPE_FORM_INT; }
-	if(symbol->id == CHAR) { return TYPE_FORM_CHAR; }		/* return value for symbol table */
-	if(symbol->id == VOID) { return TYPE_FORM_VOID; }
+	if(symbol->id == INT ) { item->type->form = TYPE_FORM_INT; return TYPE_FORM_INT; }
+	if(symbol->id == CHAR) { item->type->form = TYPE_FORM_CHAR; return TYPE_FORM_CHAR; } /* return value for symbol table */
+	if(symbol->id == VOID) { item->type->form = TYPE_FORM_VOID; return TYPE_FORM_VOID; }
 	if(identifier()) {
 		ptr = lookUp(globList, symbol->valueStr);
-		if(ptr != 0 && ptr->type->form == TYPE_FORM_RECORD) { 
+		if(ptr != 0 && ptr->class == OBJECT_CLASS_TYPE) {
+			item->type->form = ptr->type->form;
+			item->type->size = ptr->type->size;
+			item->value = ptr->type->size;
 			return TYPE_FORM_RECORD;
 		}
 		ptr = lookUp(head, symbol->valueStr);
-		if(ptr != 0 && ptr->type->form == TYPE_FORM_RECORD) { 
+		if(ptr != 0 && ptr->class == OBJECT_CLASS_TYPE) { 
+			item->type->form = ptr->type->form;
+			item->type->size = ptr->type->size;
+			item->value = ptr->type->size;
 			return TYPE_FORM_RECORD;
 		} else {
 			printError("unknown type.");
@@ -410,7 +394,7 @@ int include() {
 }
 
 /* sizeof "(" (typeSpec | identifier) ")" . */
-int sizeOf(struct object_t *head) {
+int sizeOf(struct item_t *item, struct object_t *head) {
 	if(symbol->id == SIZEOF) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
@@ -421,7 +405,11 @@ int sizeOf(struct object_t *head) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
 			}
-			if(typeSpec(head)) {
+			if(typeSpec(item, head)) {
+				item->type->form = TYPE_FORM_INT;
+				item->type->fields = 0;
+
+
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
 				if(symbol->id == RPAR) { 
@@ -436,12 +424,13 @@ int sizeOf(struct object_t *head) {
 int selector(struct item_t *item){
 	struct object_t *object;
 	struct item_t * indexItem;
-
 	while(symbol->id == ARROW || symbol->id == LSQBR) {
 		if(symbol->id == ARROW) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
+
 			if(identifier()) {
+
 				object = lookUp(item->type->fields, symbol->valueStr);
 				if(object != 0) { cg_field(item,object); }
 				else { printError("unknown field"); }
@@ -449,13 +438,15 @@ int selector(struct item_t *item){
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
 			} else {
-				printError("identifier expected");
+				printError("[selector] identifier expected");
 			}
-		} else if(symbol->id == LSQBR) {			
+		} else if(symbol->id == LSQBR) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
+
 			indexItem = malloc(sizeof(struct item_t));
 			indexItem->type = malloc(sizeof(struct type_t));
+
 			expression(indexItem);
 			cg_index(item, indexItem);
 			if(symbol->id == RSQBR) {
@@ -464,17 +455,15 @@ int selector(struct item_t *item){
 			} else { printError("']' missing"); }
 		}
 	}
+	return 1;
 }
 
 /* identifier | number | procCall | reference | "(" arithExp ")" . */
 int factor(struct item_t *item) {
-printSymbol(" -- factor: ");
 	int result;
-
 	struct item_t *leftItem;
 	struct item_t *rightItem;
 	struct object_t *object;
-
 	leftItem = malloc(sizeof(struct item_t));
 	leftItem->type = malloc(sizeof(struct type_t));
 	rightItem = malloc(sizeof(struct item_t));
@@ -495,16 +484,13 @@ printSymbol(" -- factor: ");
 			item->type->form = TYPE_FORM_CHAR;
 			item->value = symbol->valueStr[0];
 		}
+
+
+		printf("NUMBER: %i",symbol->digitValue);printItem(item);
 		
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
-		/*		
-		if(op()) {
-			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();
-			return expression(item);
-		}
-		*/
+
 		return 1;
 	}
 	else if(symbol->id == LPAR) { 
@@ -531,16 +517,18 @@ printSymbol(" -- factor: ");
 			return 1;
 		}
 	}
-	else if(sizeOf(globList)) {
+	else if(sizeOf(item, globList)) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
-		if(op()) {
-			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();
-			return expression(item); 
-		}
 		return 1;
-	}
+	} 
+	else if(symbol->id == MALLOC) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		result = expression(item);
+		cg_allocate(item);
+		return result;
+	} 
 	else if(identifier()) {
 		object = lookUp(locList, symbol->valueStr);
 		if(object == 0) {
@@ -550,43 +538,37 @@ printSymbol(" -- factor: ");
 				return 0;
 			}
 		}
-		printf(">>>>>>>>>>>>>>>>>> "); printObject(object);
 		leftItem->mode = ITEM_MODE_VAR;
-		leftItem->type->form = object->type->form;
-		printItem(leftItem);
+		leftItem->type = object->type;
 
-		if(object->scope == GLOBAL_SCOPE) { leftItem->reg = GP; } 
-		else /*if(opject->scope == LOCAL_SCOPE)*/ { leftItem->reg = LP; }
+		if(object->scope == GLOBAL_SCOPE) { leftItem->reg = GPTR; } 
+		else { leftItem->reg = LPTR; }
+
 		leftItem->offset = object->offset;
-		selector(item);
 
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
+
+		printSymbol("XXXXXXXXXX: ");
+//		printSymbol("IDENT: ");printItem(leftItem);
+
+		selector(leftItem);
+
 		/* var = */		
 		if(symbol->id == EQSIGN) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
+		printSymbol("XXXXXXXXX1: ");
 			result = expression(rightItem);
 			cg_assignment(leftItem, rightItem);
+			copyItem(item, leftItem);
 			return result;
 		}
 
 		/* var +  */
-		else if(op()) {
-			copyItem(item,leftItem);
-			return 1;
-/*
-			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();
-			return expression(item);
-*/
-		}		
-
+		else if(op()) { copyItem(item,leftItem); return 1; }		
 		/* var ) */
-		else if(symbol->id == RPAR) {
-			return 1;
-		}
-
+		else if(symbol->id == RPAR) { copyItem(item,leftItem); return 1; }
 		/* var ( */
 		else if(symbol->id == LPAR) {
 			if(hasMoreTokens() == 0) { return 0; }
@@ -595,11 +577,14 @@ printSymbol(" -- factor: ");
 			if(symbol->id == RPAR) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
+/*
 				if(op()) {
 					if(hasMoreTokens() == 0) { return 0; }
 					getNextToken();
 					return expression(item);
 				}
+*/
+				copyItem(item,leftItem);
 				return 1;
 			} else {
 				printError("')' missing.");
@@ -607,45 +592,11 @@ printSymbol(" -- factor: ");
 			return 0;
 		}
 
-		/*** replaced by selector ***/
-		/* var -> | var . 
-		else if(reference()) {			
-			if(symbol->id == EQSIGN || op()) {
-				if(hasMoreTokens() == 0) { return 0; }
-				getNextToken();
-				return expression();
-			}
-			return 1; 
-		}
-		*/
-		/* var [
-		else if(symbol->id == LSQBR) {
-			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();
-			if(number() || identifier()) {	
-				if(hasMoreTokens() == 0) { return 0; }
-				getNextToken();
-				if(symbol->id == RSQBR) {
-					if(hasMoreTokens() == 0) { return 0; }
-					getNextToken();
-					/* var [1] = | var [1] + /
-					if(symbol->id == EQSIGN || op()) {
-						if(hasMoreTokens() == 0) { return 0; }
-						getNextToken();
-						return expression();	
-					}
-					return 1;
-				} else { printError("']' missing."); }
-			} else { printError("identifier or number expected."); }
-			return 0;
-		}
-		*/
-
 		/* var; */		
-		if(symbol->id == SEMCOL) { return 1; }
+		if(symbol->id == SEMCOL) { copyItem(item, leftItem); return 1; }
 
 		/* var,  paramList*/		
-		if(symbol->id == COMMA) { return 1; }
+		if(symbol->id == COMMA) { copyItem(item, leftItem); return 1; }
 	}
 	return 0;
 }
@@ -659,10 +610,8 @@ int term(struct item_t *item) {
 	op = OP_NONE;
 	leftItem = 0;
 	rightItem = 0;
-printf("------------------------------\n");
 	while(1) {
 		if(factor(item)) {
-	printf("l:%d, r:%d, op:%d\n", leftItem, rightItem, op);
 			if(leftItem == 0){
 				leftItem = malloc(sizeof(struct item_t));
 				leftItem->type = malloc(sizeof(struct type_t));
@@ -674,22 +623,22 @@ printf("------------------------------\n");
 				copyItem(rightItem, item);
 			} 
 			if(leftItem != 0 && rightItem != 0) {
+printf("op: %i \n", op);
 				if(op != OP_NONE) {
 					cg_calcArithExp(leftItem, rightItem, op);
-					printf(" TERM: "); printItem(leftItem);
 					rightItem = 0;
 					op = OP_NONE;
 				} else { printError("[term] missing operator"); }
 			}
 		} else{ return 0; }
-		printSymbol(" TERM: ");
 		if(symbol->id == PLUS || symbol->id == MINUS || boolOp() || symbol->id == RPAR ||  
-				symbol->id == SEMCOL || symbol->id == COMMA) {
+				symbol->id == SEMCOL || symbol->id == COMMA || symbol->id == RSQBR) {
 			copyItem(item, leftItem);
-			printf("END\n");
 			return 1;
 		}
+printSymbol("TERM SYM");
 		if(symbol->id == TIMES || symbol->id == DIV) {
+printf("TERM OP: %i\n", symbol->id);
 			if(symbol->id == TIMES) { op = OP_MUL; }
 			if(symbol->id == DIV) { op = OP_DIV; }
 			if(hasMoreTokens() == 0) { return 0; }
@@ -721,8 +670,6 @@ int arithExp(struct item_t *item) {
 	}
 	while(1) {
 		if(term(item)) {
-	printf(" ARITH_EXP l:%d, r:%d, op:%d\n", leftItem, rightItem, op);
-			printf(" ARITH_EXP "); printItem(item);
 			if(leftItem == 0){
 				leftItem = malloc(sizeof(struct item_t));
 				leftItem->type = malloc(sizeof(struct type_t));
@@ -745,7 +692,7 @@ int arithExp(struct item_t *item) {
 			}
 		} else { return 0; }
 
-		if(boolOp() || symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || symbol->id == COMMA) {
+		if(boolOp() || symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || symbol->id == COMMA  || symbol->id == RSQBR) {
 			copyItem(item, leftItem);
 			return 1;
 		}
@@ -766,7 +713,7 @@ int expression(struct item_t *item) {
 	while(1) {
 		if(arithExp(item) == 0) { return 0; }
 		/*TODO*/
-		if(symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || symbol->id == COMMA) {
+		if(symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || symbol->id == COMMA || symbol->id == RSQBR) {
 			return 1;
 		}
 		if(boolOp()) {
@@ -913,6 +860,10 @@ int procParList(struct object_t *head) {
 	struct object_t *ptr;
 	struct type_t *type;
 	struct type_t *array;
+	struct item_t *item;
+
+	item = malloc(sizeof(struct item_t));
+	item->type = malloc(sizeof(struct type_t));
 
 	if(symbol->id == RPAR) { return 1; }
 	while(1) {
@@ -927,7 +878,7 @@ int procParList(struct object_t *head) {
 			if(hasMoreTokens() == 0) { return 0; }		
 			getNextToken();
 		}
-		type = newType(typeSpec(head));
+		type = newType(typeSpec(item, head));
 		object->offset = paramOffset;
 		if(type->form == 0) {
 			return 1;
@@ -1005,6 +956,10 @@ int declaration(struct object_t *head, int isStruct) {
 	struct object_t *ptr;
 	struct type_t *type;
 	struct type_t *array;
+	struct item_t *item;
+
+	item = malloc(sizeof(struct item_t));
+	item->type = malloc(sizeof(struct type_t));
 
 	while(1) {
 		type = 0;
@@ -1021,12 +976,13 @@ int declaration(struct object_t *head, int isStruct) {
 			if(hasMoreTokens() == 0) { return 0; }		
 			getNextToken();
 		}
-		type = newType(typeSpec(head));
+		type = newType(typeSpec(item, head));
 		object->offset = locOffset;
 		if(type->form == 0) {
 			return 1;
 		} else if(type->form == TYPE_FORM_RECORD) {
 			ptr = lookUp(head, symbol->valueStr);
+
 			if(ptr == 0) {
 				ptr = lookUp(globList, symbol->valueStr);
 				if(ptr != 0) {
@@ -1046,6 +1002,7 @@ int declaration(struct object_t *head, int isStruct) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();			
 		}
+printSymbol("dec: ");
 		if(identifier()) {
 			object->name = malloc(64 * sizeof(char));
 			strnCpy(object->name, symbol->valueStr, 64);
@@ -1064,7 +1021,7 @@ int declaration(struct object_t *head, int isStruct) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
 			} else { printError("';' missing."); }
-		} else { printError("identifier expected."); }
+		} else { printError("[declaration] identifier expected."); }
 	}
 }
 
@@ -1074,11 +1031,14 @@ int typedefDec(struct object_t *head) {
 	struct object_t *ptr;
 	struct type_t *type;
 	struct type_t *array;
+	struct item_t *item;
 	type = 0;
 	array = 0;
 	ptr = 0;
 	object = malloc(sizeof(struct object_t));
 	object->class = OBJECT_CLASS_TYPE;
+	item = malloc(sizeof(struct item_t));
+	item->type = malloc(sizeof(struct type_t));
 
 	if(symbol->id == TYPEDEF) {
 		if(hasMoreTokens() == 0) { return 0; }
@@ -1087,7 +1047,7 @@ int typedefDec(struct object_t *head) {
 			if(hasMoreTokens() == 0) { return 0; }		
 			getNextToken();
 		}
-		type = newType(typeSpec(head));
+		type = newType(typeSpec(item, head));
 		if(type->form == 0) {
 			return 1;
 		} else if(type->form == TYPE_FORM_RECORD) {
@@ -1141,6 +1101,7 @@ int structDec() {
 	if(symbol->id == STRUCT) {
 		fieldObj = malloc(sizeof(struct object_t));
 		object = malloc(sizeof(struct object_t));
+		object->type = malloc(sizeof(struct type_t));
 		object->class = OBJECT_CLASS_TYPE;
 		record = 0;
 		record = newType(5);
@@ -1157,13 +1118,13 @@ int structDec() {
 				declaration(fieldObj, 1);
 
 				/* count fields */
-				i = 1;
+				i = 0;
 				count = fieldObj;
 				while(count != 0) {
 					count = count->next;
+					i = i + 1;
 				}
-				object->offset = globOffset;
-				globOffset = globOffset + (i * 4 * (-1));
+				record->size = (i * 4);
 
 				if(symbol->id == RCUBR) {
 					if(hasMoreTokens() == 0) { return 0; }
@@ -1173,7 +1134,8 @@ int structDec() {
 			if(symbol->id == SEMCOL) {
 				record->fields = fieldObj;
 				object->type = record;
-				if(globList->name != 0 && lookUp(globList, object->name) != 0)	{ /* delete implicite struct declaration */
+				/* delete implicite struct declaration */
+				if(globList != 0 && globList->name != 0 && lookUp(globList, object->name) != 0)	{ 
 					if(globList != 0) {
 						if(strCmp(globList->name, object->name) == 0) {
 							ptr = globList->next;
@@ -1190,6 +1152,8 @@ int structDec() {
 						}
 					}
 				}
+				object->offset = globOffset;
+				globOffset = globOffset - 4;
 				object->scope = GLOBAL_SCOPE;
 				insert(globList, object);
 				return 1;
@@ -1204,15 +1168,18 @@ int globalDec() {
 	struct object_t *ptr;
 	struct type_t *type;
 	struct type_t *array;
+	struct item_t *item;
+
+	item = malloc(sizeof(struct item_t));
+	item->type = malloc(sizeof(struct type_t));
 
 	while(1) { 	
 		type = 0;
 		array = 0;
 		ptr = 0;
 		object = malloc(sizeof(struct object_t));
-
 		while(typedefDec(globList)) {}
-		while(typeSpec(globList) == 0 && symbol->id != STRUCT && hasMoreTokens()) {
+		while(typeSpec(item, globList) == 0 && symbol->id != STRUCT && hasMoreTokens()) {
 			printError("globalDec: typeSpec (char, int or void) expected.");
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
@@ -1221,7 +1188,8 @@ int globalDec() {
 			if(hasMoreTokens() == 0) { return 1; }		
 			getNextToken();
 		}
-		type = newType(typeSpec(globList));
+
+		type = newType(typeSpec(item, globList));
 		object->offset = globOffset;
 		if(type->form == 0) {
 			return 0;
@@ -1229,11 +1197,13 @@ int globalDec() {
 			ptr = lookUp(globList, symbol->valueStr);
 			if(ptr != 0) {
 				object->type = ptr->type;
-				globOffset = globOffset - ptr->offset; /* add size of struct */
-			}
+				globOffset = globOffset - 4;	/* add size of struct */
+			} else { printError("[global dec] Type not found."); }
 		} else { globOffset = globOffset - 4; } /* add size of datatype */
+
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
+
 		if(symbol->id == TIMES) {
 			array = newType(4);
 			array->base = type;
@@ -1283,7 +1253,6 @@ int globalDec() {
 				insert(globList, object);
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
-		printSymbol(" -3- globaldec: ");
 			}
 		}
 	}
@@ -1361,14 +1330,18 @@ int programm() {
 int startParsing(char *sfile, char *ofile){
 	int i;
 	srcfile = sfile;
-	outfile = ofile;	
+	outfile = ofile;
 
+	nrOfGVar = 0;
+	nrOfStrs = 0;
+	nrOfCmds = 0;	
+
+	initTMCmd();
 	initRegs();
 	initItemModes();
 	initOperators();	
 	initSymbolTable();
 	initOutputFile();
-	initTMCmd();
 
 	printf("\nstart parsing %s...\n", srcfile);
 	while ( hasMoreTokens() ) {
@@ -1377,6 +1350,7 @@ int startParsing(char *sfile, char *ofile){
 	}
 	printTable(globList);
 	put(TRAP,0,0,0);
+	finalizeOutputFile();
 	close(out_fp_bin); 
 	close(out_fp_ass); 
 	printf("\n -- DONE. --\n\n");
