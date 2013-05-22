@@ -81,7 +81,7 @@ void put(int op, int a, int b, int c) {
 	buff = malloc(1*32);
 	buff[0] = encode(op,a,b,c);	
 
-	printf("cmd: %s %i %i %i encode: %i\n",getCmdName(op),a,b,c,buff[0]);
+//	printf("cmd: %s %i %i %i encode: %i\n",getCmdName(op),a,b,c,buff[0]);
 
 	int *ir = malloc(sizeof(int) * 4);
 	ir[0] = (buff[0] >> 26) & 63; 	// 0x3F: 6 lsbs
@@ -96,7 +96,7 @@ void put(int op, int a, int b, int c) {
 
 
 	wb = write(out_fp_bin, buff, 4);
-    if ( wb != 4 ) { printf(" --- could only write %i byte.\n", wb); }
+//    if ( wb != 4 ) { printf(" --- could only write %i byte.\n", wb); }
 	nrOfCmds = nrOfCmds + 1;
 }
 
@@ -191,7 +191,6 @@ void cg_calcArithExp(struct item_t *leftItem, struct item_t *rightItem, int op) 
 	if(leftItem->type->form == TYPE_FORM_INT && rightItem->type->form == TYPE_FORM_INT) {
 		if(rightItem->mode == ITEM_MODE_CONST) {
 			if(leftItem->mode == ITEM_MODE_CONST) {
-	printf("2 CONST\n");
 					 if(op == OP_ADD) { leftItem->value = leftItem->value + rightItem->value; } 
 				else if(op == OP_SUB) { leftItem->value = leftItem->value - rightItem->value; } 
 				else if(op == OP_MUL) { leftItem->value = leftItem->value * rightItem->value; } 
@@ -611,6 +610,7 @@ int term(struct item_t *item) {
 	leftItem = 0;
 	rightItem = 0;
 	while(1) {
+printf(" -- term beginn\n");
 		if(factor(item)) {
 			if(leftItem == 0){
 				leftItem = malloc(sizeof(struct item_t));
