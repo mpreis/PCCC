@@ -250,7 +250,6 @@ void getNextToken() {
 				symbol->id = COMMENT;
 			}
 			else {
-printTokenMapping();
 				symbol->id = DIV;
 				ungetChar(nc);
 			}

@@ -3,11 +3,6 @@
  * authors: thomas huetter 1120239, mario preishuber 1120643
  *
  */
-
-/* TODO only to reduce warnings */
-#include <stdlib.h>
-#include <stdio.h>
-
 #include "parser.h"
 #include "scanner.h"
 #include "tokenMapping.h"
@@ -32,7 +27,6 @@ int initOutputFile() {
 		return -1;
 	}
 	/* meta data - dummy values */
-printf("CS: %i \n",CMD_CS);
 	put(CMD_CS,	0, 0, 0);
 	put(CMD_GP,	0, 0, 0);
 	put(CMD_SP,	0, 0, 0);
@@ -55,46 +49,10 @@ int encode(int op, int a, int b, int c) {
 
 
 void put(int op, int a, int b, int c) {
-	int wb; int size;
-	int *abuffParam;
+	int wb;
 	int *buff; 
-	char *abuff;
-/*
-	write (out_fp_ass, getCmdName(op), 4);
-	write (out_fp_ass, " ", 1);
-	size = 6 * sizeof(char);
-	abuff = malloc(size);
-//	abuff[0] = (a + '0');
-	abuff[0] = a;
-	abuff[1] = ' ';
-//	abuff[2] = (b + '0');
-	abuff[2] = b;
-	abuff[3] = ' ';
-//	abuff[4] = (c + '0');
-	abuff[4] = c;
-	abuff[5] = 0;
-	write (out_fp_ass, abuff, 5);
-	write (out_fp_ass, "\n", 1);
-*/
-
-
 	buff = malloc(1*32);
 	buff[0] = encode(op,a,b,c);	
-
-	printf("cmd: %s %i %i %i encode: %i\n",getCmdName(op),a,b,c,buff[0]);
-
-	int *ir = malloc(sizeof(int) * 4);
-	ir[0] = (buff[0] >> 26) & 63; 	// 0x3F: 6 lsbs
-	ir[1] = (buff[0] >> 21) & 31; 	// 0x1F: 5 lsbs
-	ir[2] = (buff[0] >> 16) & 31;	// 0x1F: 5 lsbs
-	ir[3] = buff[0] & 65535; 		// 0xFFFF: 16 lsbs
-	if (ir[3] >= 32768)
-	ir[3] = ir[3] - 65536; 				// 0x10000: 2^16
-//	printf("cmd: %i\n", buff[0]);
-//	printf("DEBUG %i op: %i a: %i b: %i c: %i\n",buff[0],ir[0],ir[1],ir[2],ir[3]);
-
-
-
 	wb = write(out_fp_bin, buff, 4);
     if ( wb != 4 ) { printf(" --- could only write %i byte.\n", wb); }
 	nrOfCmds = nrOfCmds + 1;
@@ -184,14 +142,9 @@ void cg_load(struct item_t *item) {
 
 
 void cg_calcArithExp(struct item_t *leftItem, struct item_t *rightItem, int op) {
-	printf("L:"); printItem(leftItem);
-	printf("R:"); printItem(rightItem);
-	printf("OP: %i\n",op);
-
 	if(leftItem->type->form == TYPE_FORM_INT && rightItem->type->form == TYPE_FORM_INT) {
 		if(rightItem->mode == ITEM_MODE_CONST) {
 			if(leftItem->mode == ITEM_MODE_CONST) {
-	printf("2 CONST\n");
 					 if(op == OP_ADD) { leftItem->value = leftItem->value + rightItem->value; } 
 				else if(op == OP_SUB) { leftItem->value = leftItem->value - rightItem->value; } 
 				else if(op == OP_MUL) { leftItem->value = leftItem->value * rightItem->value; } 
@@ -208,8 +161,6 @@ void cg_calcArithExp(struct item_t *leftItem, struct item_t *rightItem, int op) 
 		} else {
 			cg_load(leftItem);
 			cg_load(rightItem);
-			printf("LL:");printItem(leftItem);
-			printf("LR:");printItem(rightItem);
 				 if(op == OP_ADD) { put(CMD_ADD, leftItem->reg, leftItem->reg, rightItem->reg); } 
 			else if(op == OP_SUB) { put(CMD_SUB, leftItem->reg, leftItem->reg, rightItem->reg); } 
 			else if(op == OP_MUL) { put(CMD_MUL, leftItem->reg, leftItem->reg, rightItem->reg); } 
@@ -342,7 +293,8 @@ int typeSpec(struct item_t *item, struct object_t *head) {
 			item->value = ptr->type->size;
 			return TYPE_FORM_RECORD;
 		} else {
-			printError("unknown type.");
+			/*TODO only for presentation  */
+			/*printError("unknown type.");*/
 		}
 	}
 	return 0;
@@ -485,9 +437,6 @@ int factor(struct item_t *item) {
 			item->value = symbol->valueStr[0];
 		}
 
-
-		printf("NUMBER: %i",symbol->digitValue);printItem(item);
-		
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 
@@ -549,16 +498,12 @@ int factor(struct item_t *item) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 
-		printSymbol("XXXXXXXXXX: ");
-//		printSymbol("IDENT: ");printItem(leftItem);
-
 		selector(leftItem);
 
 		/* var = */		
 		if(symbol->id == EQSIGN) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
-		printSymbol("XXXXXXXXX1: ");
 			result = expression(rightItem);
 			cg_assignment(leftItem, rightItem);
 			copyItem(item, leftItem);
@@ -623,7 +568,6 @@ int term(struct item_t *item) {
 				copyItem(rightItem, item);
 			} 
 			if(leftItem != 0 && rightItem != 0) {
-printf("op: %i \n", op);
 				if(op != OP_NONE) {
 					cg_calcArithExp(leftItem, rightItem, op);
 					rightItem = 0;
@@ -636,9 +580,7 @@ printf("op: %i \n", op);
 			copyItem(item, leftItem);
 			return 1;
 		}
-printSymbol("TERM SYM");
 		if(symbol->id == TIMES || symbol->id == DIV) {
-printf("TERM OP: %i\n", symbol->id);
 			if(symbol->id == TIMES) { op = OP_MUL; }
 			if(symbol->id == DIV) { op = OP_DIV; }
 			if(hasMoreTokens() == 0) { return 0; }
@@ -1002,7 +944,6 @@ int declaration(struct object_t *head, int isStruct) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();			
 		}
-printSymbol("dec: ");
 		if(identifier()) {
 			object->name = malloc(64 * sizeof(char));
 			strnCpy(object->name, symbol->valueStr, 64);
@@ -1348,7 +1289,6 @@ int startParsing(char *sfile, char *ofile){
 		getNextToken();
 		i = programm();
 	}
-	printTable(globList);
 	put(CMD_TRAP,0,0,0);
 	finalizeOutputFile();
 	close(out_fp_bin); 

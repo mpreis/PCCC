@@ -95,9 +95,9 @@ void loadMeta(FILE *fp) {
 	reg[28] = codesize + strp + gp; 
 	reg[29] = reg[28] + 512; /*heap & stack*/
 	reg[30] = reg[28] + 1;	 /*next free after global variables*/
-	mem_max = reg[29];
+	mem_max = reg[29] + 1;
 
-	mem = malloc(mem_max * 32);
+	mem = malloc(mem_max * sizeof(int));
 
 	printf(" -- metadata loaded. (reg[27]: %i, reg[28]: %i, reg[29]: %i, reg[30]: %i, mem_mex: %i)\n",reg[27],reg[28],reg[29],reg[30], mem_max);
 }
@@ -133,7 +133,7 @@ void loadCode(char *file) {
 void fetch() {
 	int instruction = mem[pc+0] | (mem[pc+1]<<8)  | (mem[pc+2]<<16) | (mem[pc+3]<<24);
 	decode(instruction);
-	printf("\n -- %s(%i) %i %i %i encode: %i \n", getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3],instruction);
+	printf("\n -- %s(%i) %i %i %i\n", getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3]);
 }
 
 void decode(int instruction) {
@@ -201,8 +201,8 @@ void cmp (int a, int b, int c) { reg[a] = reg[b] - reg[c]; pc = pc + 4; }
 /*void mod (int a, int b, int c) { reg[a] = reg[b] % reg[c]; pc = pc + 4; }	not supported! */
 
 /* memory: load and store */
-void ldw (int a, int b, int c) { reg[a] = mem[(reg[b] + c)/4]; pc = pc + 4; }
-void stw (int a, int b, int c) { mem[(reg[b] + c)/4] = reg[a]; pc = pc + 4; }
+void ldw (int a, int b, int c) { reg[a] = mem[(reg[b] + c)]; pc = pc + 4; }
+void stw (int a, int b, int c) { mem[(reg[b] + c)] = reg[a]; pc = pc + 4; }
 
 /* stack operations */
 void pop (int a, int b, int c) { reg[a] = mem[reg[b]/4]; reg[b] = reg[b] + c; pc = pc + 4; }
@@ -246,8 +246,9 @@ void startTM(char *file) {
 /*******************************************************************/
 printMem() {
 	int i;
-	printf("MEM #: ");
-	for(i = 0; i < mem_max; i++) printf("%3i ",mem[i]);
+	printf("MEM #: \n");
+	for(i = 0; i < mem_max; i++) printf("%2i ",mem[i]);
+	printf("\n");
 }
 
 printReg() {
