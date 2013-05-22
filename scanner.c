@@ -250,8 +250,7 @@ void getNextToken() {
 				symbol->id = COMMENT;
 			}
 			else {
-printf("SCANNER: div = %i\n", DIV);
-				symbol->id = 15;
+				symbol->id = DIV;
 				ungetChar(nc);
 			}
 		}

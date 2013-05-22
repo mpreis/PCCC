@@ -95,9 +95,9 @@ void loadMeta(FILE *fp) {
 	reg[28] = codesize + strp + gp; 
 	reg[29] = reg[28] + 512; /*heap & stack*/
 	reg[30] = reg[28] + 1;	 /*next free after global variables*/
-	mem_max = reg[29];
+	mem_max = reg[29] + 1;
 
-	mem = malloc(mem_max * 32);
+	mem = malloc(mem_max * sizeof(int));
 
 	printf(" -- metadata loaded. (reg[27]: %i, reg[28]: %i, reg[29]: %i, reg[30]: %i, mem_mex: %i)\n",reg[27],reg[28],reg[29],reg[30], mem_max);
 }
@@ -133,7 +133,7 @@ void loadCode(char *file) {
 void fetch() {
 	int instruction = mem[pc+0] | (mem[pc+1]<<8)  | (mem[pc+2]<<16) | (mem[pc+3]<<24);
 	decode(instruction);
-	printf("\n -- %s(%i) %i %i %i encode: %i \n", getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3],instruction);
+	printf("\n -- %s(%i) %i %i %i\n", getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3]);
 }
 
 void decode(int instruction) {
@@ -143,47 +143,44 @@ void decode(int instruction) {
 	ir[3] = instruction & 65535; 		// 0xFFFF: 16 lsbs
 	if (ir[3] >= 32768)
 	ir[3] = ir[3] - 65536; 				// 0x10000: 2^16
-
-//	printf("\nDEBUG %i op: %i a: %i b: %i c: %i",instruction,ir[0],ir[1],ir[2],ir[3]);
 }
 
 void execute() {
-	printf("\nDEBUG op: %i a: %i b: %i c: %i\n",ir[0],ir[1],ir[2],ir[3]);
-		 if(ir[0] == ADDI) addi(ir[1], ir[2], ir[3]);
-	else if(ir[0] == SUBI) subi(ir[1], ir[2], ir[3]);
-	else if(ir[0] == MULI) muli(ir[1], ir[2], ir[3]);
-	else if(ir[0] == DIVI) divi(ir[1], ir[2], ir[3]); 
-	else if(ir[0] == CMPI) cmpi(ir[1], ir[2], ir[3]); 
+		 if(ir[0] == CMD_ADDI) addi(ir[1], ir[2], ir[3]);
+	else if(ir[0] == CMD_SUBI) subi(ir[1], ir[2], ir[3]);
+	else if(ir[0] == CMD_MULI) muli(ir[1], ir[2], ir[3]);
+	else if(ir[0] == CMD_DIVI) divi(ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_CMPI) cmpi(ir[1], ir[2], ir[3]); 
 
-	else if(ir[0] == ADD)  add (ir[1], ir[2], ir[3]); 
-	else if(ir[0] == SUB)  sub (ir[1], ir[2], ir[3]); 
-	else if(ir[0] == MUL)  mul (ir[1], ir[2], ir[3]); 
-	else if(ir[0] == DIV)  div (ir[1], ir[2], ir[3]); 
-	else if(ir[0] == CMP)  cmp (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_ADD)  add (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_SUB)  sub (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_MUL)  mul (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_DIV)  div (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_CMP)  cmp (ir[1], ir[2], ir[3]); 
 
-	else if(ir[0] == LDW)  ldw (ir[1], ir[2], ir[3]); 
-	else if(ir[0] == STW)  stw (ir[1], ir[2], ir[3]); 
-	else if(ir[0] == POP)  pop (ir[1], ir[2], ir[3]); 
-	else if(ir[0] == PSH)  psh (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_LDW)  ldw (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_STW)  stw (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_POP)  pop (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_PSH)  psh (ir[1], ir[2], ir[3]); 
 
-	else if(ir[0] == BEQ)  beq (ir[1], ir[3]); 
-	else if(ir[0] == BGE)  bge (ir[1], ir[3]); 
-	else if(ir[0] == BGT)  bgt (ir[1], ir[3]); 
-	else if(ir[0] == BLE)  ble (ir[1], ir[3]); 
-	else if(ir[0] == BLT)  blt (ir[1], ir[3]); 
-	else if(ir[0] == BNE)  bne (ir[1], ir[3]); 
+	else if(ir[0] == CMD_BEQ)  beq (ir[1], ir[3]); 
+	else if(ir[0] == CMD_BGE)  bge (ir[1], ir[3]); 
+	else if(ir[0] == CMD_BGT)  bgt (ir[1], ir[3]); 
+	else if(ir[0] == CMD_BLE)  ble (ir[1], ir[3]); 
+	else if(ir[0] == CMD_BLT)  blt (ir[1], ir[3]); 
+	else if(ir[0] == CMD_BNE)  bne (ir[1], ir[3]); 
 	
-	else if(ir[0] == BR )  br  (ir[3]); 
-	else if(ir[0] == BSR)  bsr (ir[3]);
-	else if(ir[0] == JSR)  jsr (ir[3]);
-	else if(ir[0] == RET)  ret (ir[3]);
+	else if(ir[0] == CMD_BR )  br  (ir[3]); 
+	else if(ir[0] == CMD_BSR)  bsr (ir[3]);
+	else if(ir[0] == CMD_JSR)  jsr (ir[3]);
+	else if(ir[0] == CMD_RET)  ret (ir[3]);
 
-	else if(ir[0] == FLO)  flo (ir[1], ir[2], ir[3]); 
-	else if(ir[0] == FLC)  flc (ir[1], ir[2], ir[3]); 
-	else if(ir[0] == RDC)  rdc (ir[1], ir[2], ir[3]); 
-	else if(ir[0] == WRC)  wrc (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_FLO)  flo (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_FLC)  flc (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_RDC)  rdc (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_WRC)  wrc (ir[1], ir[2], ir[3]); 
 
-	else if(ir[0] == TRAP) {}
+	else if(ir[0] == CMD_TRAP) {}
 	else { printf("\nERROR: invalid command (%i)!\n", ir[0]); exit(1); /*pc = pc + 4;*/ }
 }
 
@@ -204,8 +201,8 @@ void cmp (int a, int b, int c) { reg[a] = reg[b] - reg[c]; pc = pc + 4; }
 /*void mod (int a, int b, int c) { reg[a] = reg[b] % reg[c]; pc = pc + 4; }	not supported! */
 
 /* memory: load and store */
-void ldw (int a, int b, int c) { reg[a] = mem[(reg[b] + c)/4]; pc = pc + 4; }
-void stw (int a, int b, int c) { mem[(reg[b] + c)/4] = reg[a]; pc = pc + 4; }
+void ldw (int a, int b, int c) { reg[a] = mem[(reg[b] + c)]; pc = pc + 4; }
+void stw (int a, int b, int c) { mem[(reg[b] + c)] = reg[a]; pc = pc + 4; }
 
 /* stack operations */
 void pop (int a, int b, int c) { reg[a] = mem[reg[b]/4]; reg[b] = reg[b] + c; pc = pc + 4; }
@@ -236,7 +233,7 @@ void startTM(char *file) {
 	int i;
 	initTMCmd();
 	loadCode(file);
-	for(i = 0; ir[0] != TRAP; i++) {
+	for(i = 0; ir[0] != CMD_TRAP; i++) {
 		fetch();
 		execute();
 		printReg();
@@ -249,8 +246,9 @@ void startTM(char *file) {
 /*******************************************************************/
 printMem() {
 	int i;
-	printf("MEM #: ");
-	for(i = 0; i < mem_max; i++) printf("%3i ",mem[i]);
+	printf("MEM #: \n");
+	for(i = 0; i < mem_max; i++) printf("%2i ",mem[i]);
+	printf("\n");
 }
 
 printReg() {
