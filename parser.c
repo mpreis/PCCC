@@ -11,51 +11,55 @@
 /*************************************************************
  * CODE GENERATION METHODS
  ************************************************************/
-void testCodeGen() {
-	/* 2 = 5 - 3 */
-	put(CMD_ADDI, 1, 0, 5);
-	put(CMD_ADDI, 2, 0, 3);
-	put(CMD_SUB,  1, 1, 2);
-	put(CMD_TRAP, 0, 0, 0);
-}
-
 int initOutputFile() {
-	out_fp_bin = open(outfile, 65, 448); /* 65 ... O_CREAT | O_WRONLY 448 ... S_IWUSR | S_IRUSR | S_IXUSR */
-	out_fp_ass = open("./out.txt", 65, 448); /* 65 ... O_CREAT | O_WRONLY 448 ... S_IWUSR | S_IRUSR | S_IXUSR */
-	if(out_fp_bin < 0) {
-		printError("can not open/create output file.");
-		return -1;
-	}
-	/* meta data - dummy values */
-	put(CMD_CS,	0, 0, 0);
-	put(CMD_GP,	0, 0, 0);
-	put(CMD_SP,	0, 0, 0);
+	out_cmd_buff = malloc(sizeof(struct cmd_t *) * 1024);
 }
 
 void finalizeOutputFile() {
+	int wb;
+	int i;
+	int out_fp_bin;
+	int *tempBuff;
+	tempBuff = malloc(32);
+	out_fp_bin = open(outfile, 513, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
+										 /* 513 ... O_CREAT (512) | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Mac */
+	if(out_fp_bin < 0) {
+		printError("can not open/create output file.");
+		return;
+	}
+	cg_put(CMD_TRAP,0,0,0);
+	tempBuff[0] = cg_encode(CMD_CS,	0, 0, PC);
+	write(out_fp_bin, tempBuff, 4); 
+	tempBuff[0] = cg_encode(CMD_GP,	0, 0, nrOfGVar*4);	/* !!! da globale variablen NICHT initialisiert werden können, */
+	write(out_fp_bin, tempBuff, 4); 						/* !!! sind immer nur 4 byte speicher nötig */
+	tempBuff[0] = cg_encode(CMD_SP,	0, 0, nrOfStrs);		/*TODO potentielles problem !!!*/
+	write(out_fp_bin, tempBuff, 4); 
+	i = 0;
+printf("\n\n\n");
+	while(i < PC) {
+printf("%s %i %i %i\n", getCmdName(out_cmd_buff[i]->op), out_cmd_buff[i]->a, out_cmd_buff[i]->b, out_cmd_buff[i]->c);
+		tempBuff[0] = cg_encode(out_cmd_buff[i]->op, out_cmd_buff[i]->a, out_cmd_buff[i]->b, out_cmd_buff[i]->c);
+		wb = write(out_fp_bin, tempBuff, 4); 
+    		if ( wb != 4 ) { printf(" --- could only write %i byte.\n", wb); }
+		i = i + 1;
+	}
+printf("\n\n\n");
 	close(out_fp_bin);
-	out_fp_bin = open(outfile, 65, 448);
-	put(CMD_CS,	0, 0, nrOfCmds);
-	put(CMD_GP,	0, 0, nrOfGVar*4);	/* !!! da globale variablen NICHT initialisiert werden können, */
-								/* !!! sind immer nur 4 byte speicher nötig */
-	put(CMD_SP,	0, 0, nrOfStrs);	/*TODO potentielles problem !!!*/
 }
 
-int encode(int op, int a, int b, int c) {
+int cg_encode(int op, int a, int b, int c) {
 	if (c < 0)
 	c = c + 65536; // 0x10000: 2^16
 	return (((((op * 32) + a) * 32) + b) * 65536) + c;
 }
 
-
-void put(int op, int a, int b, int c) {
-	int wb;
-	int *buff; 
-	buff = malloc(1*32);
-	buff[0] = encode(op,a,b,c);	
-	wb = write(out_fp_bin, buff, 4);
-    if ( wb != 4 ) { printf(" --- could only write %i byte.\n", wb); }
-	nrOfCmds = nrOfCmds + 1;
+void cg_put(int op, int a, int b, int c) {
+	out_cmd_buff[PC] = malloc(sizeof(struct cmd_t*));
+	out_cmd_buff[PC]->op = op;
+	out_cmd_buff[PC]->a = a;
+	out_cmd_buff[PC]->b = b;
+	out_cmd_buff[PC]->c = c;
+	PC = PC + 1;
 }
 
 void copyItem(struct item_t *copy, struct item_t *orig) {
@@ -64,14 +68,29 @@ void copyItem(struct item_t *copy, struct item_t *orig) {
 	copy->reg = orig->reg;
 	copy->offset = orig->offset;
 	copy->value = orig->value;
+	copy->op = orig->op;
+	copy->fls = orig->fls;
+	copy->tru = orig->tru;
 }
+/*
+void copyType(struct type_t *copy, struct type_t *orig) {
+
+	while(1) {
+		copy->form = orig->form;
+		copy->size = orig->size;
+		if(orig->type != 0) { 
+			copy->type = malloc(sizeof(struct type_t)); 
+		}
+	}
+}*/
 
 void initItemModes() {
-	ITEM_MODE_NONE = 0;
+	ITEM_MODE_NONE  = 0;
 	ITEM_MODE_CONST = 1;
-	ITEM_MODE_VAR = 2;
-	ITEM_MODE_REF = 3;
-	ITEM_MODE_REG = 4;
+	ITEM_MODE_VAR   = 2;
+	ITEM_MODE_REF   = 3;
+	ITEM_MODE_REG   = 4;
+	ITEM_MODE_COND  = 5;
 }
 
 void initOperators() {
@@ -91,7 +110,7 @@ void initOperators() {
 }
 
 /***  REGISTER METHODS ***/
-void initRegs() {
+void cg_initRegs() {
 	int i; i = 0;
 	nrOfRegs = 32;
 	GPTR = 28;
@@ -100,7 +119,7 @@ void initRegs() {
 	regs = malloc( nrOfRegs*sizeof(int) );
 	while (i < nrOfRegs) { regs[i] = 0; i = i + 1; }
 }
-int requestReg() {
+int cg_requestReg() {
 	int i; i = 1;
 	/* register for calculation: 1-27 */
 	while (i < 28) { 
@@ -109,12 +128,12 @@ int requestReg() {
 	}
 	return -1;		
 }
-void releaseReg(int r) { regs[r] = 0; }
+void cg_releaseReg(int r) { regs[r] = 0; }
 
 void cg_const2Reg(struct item_t *item) {
 	item->mode = ITEM_MODE_REG;
-	item->reg = requestReg();
-	put(CMD_ADDI, item->reg, 0, item->value);
+	item->reg = cg_requestReg();
+	cg_put(CMD_ADDI, item->reg, 0, item->value);
 	item->value = 0;
 	item->offset = 0;
 }
@@ -122,15 +141,15 @@ void cg_const2Reg(struct item_t *item) {
 void cg_var2Reg(struct item_t *item) {
 	int newReg;
 	item->mode = ITEM_MODE_REG;
-	newReg = requestReg();
-	put(CMD_LDW, newReg, item->reg, item->offset);
+	newReg = cg_requestReg();
+	cg_put(CMD_LDW, newReg, item->reg, item->offset);
 	item->reg = newReg;
 	item->offset = 0;
 }
 
 void cg_ref2Reg(struct item_t *item) {
 	item->mode = ITEM_MODE_REG;
-	put(CMD_LDW, item->reg, item->reg, item->offset);
+	cg_put(CMD_LDW, item->reg, item->reg, item->offset);
 	item->offset = 0;
 }
 
@@ -140,68 +159,129 @@ void cg_load(struct item_t *item) {
 	else if(item->mode == ITEM_MODE_REF) { cg_ref2Reg(item); }
 }
 
-
-void cg_calcArithExp(struct item_t *leftItem, struct item_t *rightItem, int op) {
-	if(leftItem->type->form == TYPE_FORM_INT && rightItem->type->form == TYPE_FORM_INT) {
+void cg_simpleExpBinOp(struct item_t *leftItem, struct item_t *rightItem, int op) {
+	if(op == OR) {
+		if ((leftItem->type->form == TYPE_FORM_BOOL) && (rightItem->type->form == TYPE_FORM_BOOL)) { 
+			cg_loadBool(rightItem);
+			leftItem->reg = rightItem->reg; 
+			leftItem->fls = rightItem->fls;
+			leftItem->tru = cg_concatenate(rightItem->tru, leftItem->tru);
+			leftItem->op = rightItem->op;
+		} else { printError("boolean expressions expected"); }
+	}
+	else if(leftItem->type->form == TYPE_FORM_INT && rightItem->type->form == TYPE_FORM_INT) {
 		if(rightItem->mode == ITEM_MODE_CONST) {
 			if(leftItem->mode == ITEM_MODE_CONST) {
 					 if(op == OP_ADD) { leftItem->value = leftItem->value + rightItem->value; } 
 				else if(op == OP_SUB) { leftItem->value = leftItem->value - rightItem->value; } 
-				else if(op == OP_MUL) { leftItem->value = leftItem->value * rightItem->value; } 
-				else if(op == OP_DIV) { leftItem->value = leftItem->value / rightItem->value; } 
 				else { printError("nich so gut..."); }
 			} else {
 				cg_load(leftItem);
-					 if(op == OP_ADD) { put(CMD_ADDI, leftItem->reg, leftItem->reg, rightItem->value); } 
-				else if(op == OP_SUB) { put(CMD_SUBI, leftItem->reg, leftItem->reg, rightItem->value); } 
-				else if(op == OP_MUL) { put(CMD_MULI, leftItem->reg, leftItem->reg, rightItem->value); } 
-				else if(op == OP_DIV) { put(CMD_DIVI, leftItem->reg, leftItem->reg, rightItem->value); } 
+					 if(op == OP_ADD) { cg_put(CMD_ADDI, leftItem->reg, leftItem->reg, rightItem->value); } 
+				else if(op == OP_SUB) { cg_put(CMD_SUBI, leftItem->reg, leftItem->reg, rightItem->value); } 
 				else { printError("nich so gut..."); }
 			}
 		} else {
 			cg_load(leftItem);
 			cg_load(rightItem);
-				 if(op == OP_ADD) { put(CMD_ADD, leftItem->reg, leftItem->reg, rightItem->reg); } 
-			else if(op == OP_SUB) { put(CMD_SUB, leftItem->reg, leftItem->reg, rightItem->reg); } 
-			else if(op == OP_MUL) { put(CMD_MUL, leftItem->reg, leftItem->reg, rightItem->reg); } 
-			else if(op == OP_DIV) { put(CMD_DIV, leftItem->reg, leftItem->reg, rightItem->reg); } 
+				 if(op == OP_ADD) { cg_put(CMD_ADD, leftItem->reg, leftItem->reg, rightItem->reg); } 
+			else if(op == OP_SUB) { cg_put(CMD_SUB, leftItem->reg, leftItem->reg, rightItem->reg); } 
 			else { printError("nich so gut..."); }
-			releaseReg(rightItem->reg);
+			cg_releaseReg(rightItem->reg);
 		}
 	} else { printError("Type mismatch (int expected)."); }
+}
+
+void cg_termOperator(struct item_t *leftItem, struct item_t *rightItem, int op) {
+	if(op == AND) {
+		if ((leftItem->type->form == TYPE_FORM_BOOL) && (rightItem->type->form == TYPE_FORM_BOOL)) { 
+			cg_loadBool(rightItem);
+			leftItem->reg = rightItem->reg;
+			leftItem->fls = cg_concatenate(rightItem->fls, leftItem->fls);
+			leftItem->tru = rightItem->tru;
+			leftItem->op = rightItem->op;
+		} else { printError("boolean expressions expected"); }
+	}	
+	else if(leftItem->type->form == TYPE_FORM_INT && rightItem->type->form == TYPE_FORM_INT) {
+		if(rightItem->mode == ITEM_MODE_CONST) {
+			if(leftItem->mode == ITEM_MODE_CONST) {
+				if(op == OP_MUL) { leftItem->value = leftItem->value * rightItem->value; } 
+				else if(op == OP_DIV) { leftItem->value = leftItem->value / rightItem->value; } 
+				else { printError("nich so gut..."); }
+			} else {
+				cg_load(leftItem);
+				if(op == OP_MUL) { cg_put(CMD_MULI, leftItem->reg, leftItem->reg, rightItem->value); } 
+				else if(op == OP_DIV) { cg_put(CMD_DIVI, leftItem->reg, leftItem->reg, rightItem->value); } 
+				else { printError("nich so gut..."); }
+			}
+		} else {
+			cg_load(leftItem);
+			cg_load(rightItem);
+			if(op == OP_MUL) { cg_put(CMD_MUL, leftItem->reg, leftItem->reg, rightItem->reg); } 
+			else if(op == OP_DIV) { cg_put(CMD_DIV, leftItem->reg, leftItem->reg, rightItem->reg); } 
+			else { printError("nich so gut..."); }
+			cg_releaseReg(rightItem->reg);
+		}
+	} else { printError("Type mismatch (int expected)."); }
+}
+
+void cg_expressionOperator(struct item_t *leftItem, struct item_t *rightItem, int op) {
+	if ((leftItem->type->form == TYPE_FORM_INT) && (rightItem->type->form == TYPE_FORM_INT)) {
+		cg_load(leftItem);
+		if ((rightItem->mode != ITEM_MODE_CONST) || (rightItem->value != 0)) {
+			cg_load(rightItem);
+			cg_put(CMD_CMP, leftItem->reg, leftItem->reg, rightItem->reg); 
+			cg_releaseReg(rightItem->reg);
+		}
+		leftItem->mode = ITEM_MODE_COND; 
+		leftItem->type->form = TYPE_FORM_BOOL; 
+		leftItem->op = op;
+		leftItem->fls = 0;
+		leftItem->tru = 0;
+	} else { printError("integer expressions expected"); }
 }
 
 void cg_field(struct item_t *item, struct object_t *object) {
 	cg_load(item);
 	item->mode = ITEM_MODE_REF;
-	item->type = object->type;
+/*	item->type = object->type;*/
+
+	item->type->form = object->type->form;
+	item->type->size = object->type->size;
+	item->type->fields = object->type->fields;
+	item->type->base = object->type->base;
+
 	item->offset = object->offset;
 }
 
 void cg_index(struct item_t *item, struct item_t *indexItem) {
+printf(" -- CG_INDEX\n");
 	if(indexItem->mode == ITEM_MODE_CONST) {
 		cg_load(item);
 		item->mode = ITEM_MODE_REF;
 		item->offset = indexItem->value * (-4);
 	} else {
 		cg_load(indexItem);
-		put(CMD_MULI, indexItem->reg, indexItem->reg, -4);
+		cg_put(CMD_MULI, indexItem->reg, indexItem->reg, -4);
 		cg_load(item);
 		item->mode = ITEM_MODE_REF;
-		put(CMD_ADD, item->reg, item->reg, indexItem->reg);	
-		releaseReg(indexItem->reg);
+		cg_put(CMD_ADD, item->reg, item->reg, indexItem->reg);	
+		cg_releaseReg(indexItem->reg);
 	}
 	item->type = item->type->base;
 }
 
 void cg_assignment(struct item_t *leftItem, struct item_t *rightItem) {
+printf("\n -- l: "); printItem(leftItem);
+printf(" -- r: "); printItem(rightItem);
+
 	if(leftItem->type->form != rightItem->type->form && rightItem->type->form != TYPE_FORM_VOID) { 
 		printError("[assignment] Type mismatch in assignment"); 
 	}
 	cg_load(rightItem);
-	put(CMD_STW, rightItem->reg, leftItem->reg, leftItem->offset);
-	if(leftItem->mode == ITEM_MODE_REF) { releaseReg(leftItem->reg); }
-	releaseReg(rightItem->reg);
+	cg_put(CMD_STW, rightItem->reg, leftItem->reg, leftItem->offset);
+	if(leftItem->mode == ITEM_MODE_REF) { cg_releaseReg(leftItem->reg); }
+	cg_releaseReg(rightItem->reg);
 }
 
 void cg_allocate(struct item_t *item) {
@@ -213,7 +293,74 @@ void cg_allocate(struct item_t *item) {
 	cg_load(item);
 	item->type->form = TYPE_FORM_VOID;
 	item->type->fields = 0;
-	put(CMD_ADDI, item->reg, HPTR, heapOffset);
+	cg_put(CMD_ADDI, item->reg, HPTR, heapOffset);
+}
+
+void cg_cJump(struct item_t *item) {
+	cg_put(cg_branch(cg_negateOperator(item->op)), item->reg, 0, item->fls);
+	cg_releaseReg(item->reg);
+	item->fls = PC - 1;
+}
+
+int cg_fJump() {
+	cg_put(CMD_BR, 0, 0, 0);
+	return PC - 1;
+}
+
+void cg_bJump(int backAddress) { cg_put(CMD_BR, 0, 0, backAddress - PC); }
+
+void cg_fixUp(int branchAddress) { cg_encodeC(branchAddress, PC - branchAddress); }
+
+void cg_fixLink(int branchAddress) {
+	int nextBranchAddress;
+	while (branchAddress != 0) {
+		nextBranchAddress = cg_decodeC(branchAddress);
+		cg_fixUp(branchAddress);
+		branchAddress = nextBranchAddress;
+	}
+}
+
+int cg_negateOperator(int op) {
+	if(op == OP_LT)	 { return OP_GET; }
+	if(op == OP_GT)	 { return OP_LET; }
+	if(op == OP_LET)	 { return OP_GT;  }
+	if(op == OP_GET)	 { return OP_LT;  }
+	if(op == OP_EQ)	 { return OP_NEQ; }
+	if(op == OP_NEQ)	 { return OP_EQ;  }
+	return -1;
+}
+
+int cg_branch(int op) {
+	if(op == OP_LT)	 { return CMD_BLT; }
+	if(op == OP_GT)	 { return CMD_BGT; }
+	if(op == OP_LET)	 { return CMD_BLE; }
+	if(op == OP_GET)	 { return CMD_BGE; }
+	if(op == OP_EQ)	 { return CMD_BEQ; }
+	if(op == OP_NEQ) { return CMD_BNE; }
+	return -1;
+}
+
+void cg_encodeC(int branchAddress, int newC) {
+	out_cmd_buff[branchAddress]->c = newC;
+}
+
+int cg_decodeC(int branchAddress) {
+	return out_cmd_buff[branchAddress]->c;
+}
+
+void cg_loadBool(struct item_t *item) {
+	if(item->mode != ITEM_MODE_COND) {
+		cg_load(item);
+		item->mode = ITEM_MODE_COND;
+		item->op = NEQ;
+		item->fls = 0;
+		item->tru = 0;
+	}
+}
+
+int cg_concatenate(int left, int right) {
+	printf("concatenate\n");
+	return 0;
 }
 
 /*************************************************************
@@ -278,6 +425,7 @@ int typeSpec(struct item_t *item, struct object_t *head) {
 	if(symbol->id == INT ) { item->type->form = TYPE_FORM_INT; return TYPE_FORM_INT; }
 	if(symbol->id == CHAR) { item->type->form = TYPE_FORM_CHAR; return TYPE_FORM_CHAR; } /* return value for symbol table */
 	if(symbol->id == VOID) { item->type->form = TYPE_FORM_VOID; return TYPE_FORM_VOID; }
+	if(symbol->id == BOOL) { item->type->form = TYPE_FORM_BOOL; return TYPE_FORM_BOOL; }
 	if(identifier()) {
 		ptr = lookUp(globList, symbol->valueStr);
 		if(ptr != 0 && ptr->class == OBJECT_CLASS_TYPE) {
@@ -295,45 +443,6 @@ int typeSpec(struct item_t *item, struct object_t *head) {
 		} else {
 			/*TODO only for presentation  */
 			/*printError("unknown type.");*/
-		}
-	}
-	return 0;
-}
-
-/* 
-	ident.ident 
-		 |
-	current position
-		 |
-	ident->ident
-*/
-int reference() {
-	if(symbol->id != ARROW && symbol->id != DOT) {
-		return 0;
-	}
-	while(1)	 {
-		if(hasMoreTokens() == 0) { return 0; }
-		getNextToken();
-		if(identifier()) {
-			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();
-			if(symbol->id == LSQBR) {
-				if(hasMoreTokens() == 0) { return 0; }
-				getNextToken();	
-				if(identifier() || number()) {
-					if(hasMoreTokens() == 0) { return 0; }
-					getNextToken();
-					if(symbol->id == RSQBR) {
-						if(hasMoreTokens() == 0) { return 0; }
-						getNextToken();
-						return 1; 
-					} 
-					else { printError("']' missing."); }
-				}
-			}
-			if(symbol->id != ARROW && symbol->id != DOT) {
-				return 1;
-			}
 		}
 	}
 	return 0;
@@ -399,7 +508,10 @@ int selector(struct item_t *item){
 			indexItem = malloc(sizeof(struct item_t));
 			indexItem->type = malloc(sizeof(struct type_t));
 
-			expression(indexItem);
+int i;			
+			i = expression(indexItem);
+printf("%d\n", i);
+printf(" -- -- "); printItem(indexItem);
 			cg_index(item, indexItem);
 			if(symbol->id == RSQBR) {
 				if(hasMoreTokens() == 0) { return 0; }
@@ -410,7 +522,7 @@ int selector(struct item_t *item){
 	return 1;
 }
 
-/* identifier | number | procCall | reference | "(" arithExp ")" . */
+/* identifier | number | procCall | "(" arithExp ")" . */
 int factor(struct item_t *item) {
 	int result;
 	struct item_t *leftItem;
@@ -436,7 +548,6 @@ int factor(struct item_t *item) {
 			item->type->form = TYPE_FORM_CHAR;
 			item->value = symbol->valueStr[0];
 		}
-
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 
@@ -454,7 +565,7 @@ int factor(struct item_t *item) {
 				printError("')' missing.");
 			}
 		} else {
-			printError("expression expected.");
+			printError("[factor] expression expected.");
 		}
 	}
 	else if(symbol->id == TIMES) {
@@ -488,7 +599,14 @@ int factor(struct item_t *item) {
 			}
 		}
 		leftItem->mode = ITEM_MODE_VAR;
-		leftItem->type = object->type;
+		/*leftItem->type = object->type;		//problem, es wird beim expressionOperator der typ in der symboltable überschrieben*/
+		leftItem->type->form = object->type->form;
+		leftItem->type->size = object->type->size;
+		leftItem->type->fields = object->type->fields;
+		leftItem->type->base = object->type->base;
+printSymbol("\n -- ");
+printf(" -- item: ");printItem(leftItem);
+
 
 		if(object->scope == GLOBAL_SCOPE) { leftItem->reg = GPTR; } 
 		else { leftItem->reg = LPTR; }
@@ -500,6 +618,7 @@ int factor(struct item_t *item) {
 
 		selector(leftItem);
 
+printSymbol(" ** vor schluss");
 		/* var = */		
 		if(symbol->id == EQSIGN) {
 			if(hasMoreTokens() == 0) { return 0; }
@@ -509,9 +628,8 @@ int factor(struct item_t *item) {
 			copyItem(item, leftItem);
 			return result;
 		}
-
 		/* var +  */
-		else if(op()) { copyItem(item,leftItem); return 1; }		
+		else if(op() || boolOp()) { copyItem(item,leftItem); return 1; }		
 		/* var ) */
 		else if(symbol->id == RPAR) { copyItem(item,leftItem); return 1; }
 		/* var ( */
@@ -522,13 +640,6 @@ int factor(struct item_t *item) {
 			if(symbol->id == RPAR) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
-/*
-				if(op()) {
-					if(hasMoreTokens() == 0) { return 0; }
-					getNextToken();
-					return expression(item);
-				}
-*/
 				copyItem(item,leftItem);
 				return 1;
 			} else {
@@ -537,11 +648,8 @@ int factor(struct item_t *item) {
 			return 0;
 		}
 
-		/* var; */		
-		if(symbol->id == SEMCOL) { copyItem(item, leftItem); return 1; }
-
-		/* var,  paramList*/		
-		if(symbol->id == COMMA) { copyItem(item, leftItem); return 1; }
+		if(symbol->id == SEMCOL || symbol->id == COMMA || symbol->id == RSQBR || symbol->id == ARROW) 
+		{ printf(" ......................\n"); copyItem(item, leftItem); return 1; }
 	}
 	return 0;
 }
@@ -556,7 +664,6 @@ int term(struct item_t *item) {
 	leftItem = 0;
 	rightItem = 0;
 	while(1) {
-printf(" -- term beginn\n");
 		if(factor(item)) {
 			if(leftItem == 0){
 				leftItem = malloc(sizeof(struct item_t));
@@ -570,14 +677,16 @@ printf(" -- term beginn\n");
 			} 
 			if(leftItem != 0 && rightItem != 0) {
 				if(op != OP_NONE) {
-					cg_calcArithExp(leftItem, rightItem, op);
+					cg_termOperator(leftItem, rightItem, op);
 					rightItem = 0;
 					op = OP_NONE;
 				} else { printError("[term] missing operator"); }
 			}
 		} else{ return 0; }
+
 		if(symbol->id == PLUS || symbol->id == MINUS || boolOp() || symbol->id == RPAR ||  
-				symbol->id == SEMCOL || symbol->id == COMMA || symbol->id == RSQBR) {
+				symbol->id == SEMCOL || symbol->id == COMMA || symbol->id == RSQBR  || 
+				symbol->id == RSQBR || symbol->id == ARROW) {
 			copyItem(item, leftItem);
 			return 1;
 		}
@@ -626,7 +735,7 @@ int arithExp(struct item_t *item) {
 
 			if(leftItem != 0 && rightItem != 0) {
 				if(op != OP_NONE) {
-					cg_calcArithExp(leftItem, rightItem, op);
+					cg_simpleExpBinOp(leftItem, rightItem, op);
 					rightItem = 0;
 					op = OP_NONE;
 				} else {
@@ -635,7 +744,8 @@ int arithExp(struct item_t *item) {
 			}
 		} else { return 0; }
 
-		if(boolOp() || symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || symbol->id == COMMA  || symbol->id == RSQBR) {
+		if(boolOp() || symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || 
+			symbol->id == COMMA  || symbol->id == RSQBR || symbol->id == RCUBR || symbol->id == ARROW) {
 			copyItem(item, leftItem);
 			return 1;
 		}
@@ -653,13 +763,48 @@ int arithExp(struct item_t *item) {
 
 /* arithExp { boolOp arithExp } . */
 int expression(struct item_t *item) {
+	struct item_t *leftItem;
+	struct item_t *rightItem;
+	int op; 
+
+	leftItem = 0;
+	rightItem = 0;
+	op = OP_NONE;
+
 	while(1) {
-		if(arithExp(item) == 0) { return 0; }
-		/*TODO*/
-		if(symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || symbol->id == COMMA || symbol->id == RSQBR) {
+		if(arithExp(item)) {
+			if(leftItem == 0){
+				leftItem = malloc(sizeof(struct item_t));
+				leftItem->type = malloc(sizeof(struct type_t));
+				copyItem(leftItem, item);
+			} else if(rightItem == 0) {
+				rightItem = malloc(sizeof(struct item_t));
+				rightItem->type = malloc(sizeof(struct type_t));
+				copyItem(rightItem, item);
+			} 
+
+			if(leftItem != 0 && rightItem != 0) {
+				if(op != OP_NONE) {
+					cg_expressionOperator(leftItem, rightItem, op);
+					rightItem = 0;
+					op = OP_NONE;
+				} else {
+					printError("[arithExp] missing operator");
+				}
+			}
+		} else { return 0; }
+		if(symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || 
+			symbol->id == COMMA || symbol->id == RSQBR || symbol->id == RCUBR || symbol->id == ARROW) {
+			copyItem(item, leftItem);
 			return 1;
 		}
 		if(boolOp()) {
+			if(symbol->id == EQ) { op = OP_EQ; }
+			if(symbol->id == NEQ) { op = OP_NEQ; }
+			if(symbol->id == GT) { op = OP_GT; }
+			if(symbol->id == GET) { op = OP_GET; }
+			if(symbol->id == LT) { op = OP_LT; }
+			if(symbol->id == LET) { op = OP_LET; }
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 		} else {
@@ -671,7 +816,6 @@ int expression(struct item_t *item) {
 
 /* identifier {"," identifier} . */
 int paramList() {
-	int i;
 	struct item_t *item;
 	item = malloc(sizeof(struct item_t));
 	item->type = malloc(sizeof(struct type_t));
@@ -717,10 +861,9 @@ int paramList() {
 }
 
 /* ifCmd = "if" "(" expression ")" block [elseCmd] . */	
-int ifCmd() {
-	struct item_t *item;
-	item = malloc(sizeof(struct item_t));
-	item->type = malloc(sizeof(struct type_t));
+int ifCmd(struct item_t *item) {
+	int fJumpAddress;
+
 	if(symbol->id == IF) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
@@ -728,6 +871,12 @@ int ifCmd() {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			if(expression(item)) {
+				if (item->type->form == TYPE_FORM_BOOL) { 
+					cg_loadBool(item);
+					cg_cJump(item); 
+					cg_fixLink(item->tru);
+				} else { printError("boolean expression expected"); }
+
 				if(symbol->id == RPAR) {
 					if(hasMoreTokens() == 0) { return 0; }
 					getNextToken();
@@ -737,28 +886,66 @@ int ifCmd() {
 						if(symbol->id == ELSE) {
 							if(hasMoreTokens() == 0) { return 0; }
 							getNextToken();
+							fJumpAddress = cg_fJump(); 
+							cg_fixLink(item->fls);
 							if(symbol->id == IF) {
-								ifCmd();
+								ifCmd(item);
 							} else {
 								block();
 								if(hasMoreTokens() == 0) { return 0; }
 								getNextToken();
+								cg_fixUp(fJumpAddress);
 							}
-						}
+						} else { cg_fixLink(item->fls); }
 					}
 					return 1;
 				} else { printError("')' missing."); }
-			} else { printError("expression expected."); }
+			} else { printError("[if] expression expected."); }
 		} else { printError("'(' missing."); }
 	}
 	return 0;
 }
 
-/* "while" "(" expression ")" block . */
-int whileLoop() {
-	struct item_t *item;
-	item = malloc(sizeof(struct item_t));
-	item->type = malloc(sizeof(struct type_t));
+
+int whileLoop(struct item_t *item) {
+	int bJumpAddress;
+	if (symbol->id == WHILE) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+	} else { return 0; }
+	if (symbol->id == LPAR) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+	} else { printError("missing '('"); return 0;  }
+	bJumpAddress = PC;
+	expression(item);
+	if (item->type->form == TYPE_FORM_BOOL) { 
+		cg_loadBool(item);
+		cg_cJump(item);
+		cg_fixLink(item->tru);
+	} else { printError("boolean expression expected"); return 0; } 
+	if (symbol->id == RPAR) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+	} else { printError("missing ')'"); return 0; }
+	if (symbol->id == LCUBR) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		statementSeq();
+		if (symbol->id == RCUBR) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+		} else { printError("missing '}'"); return 0; }
+	}
+printf("DO IT");
+	cg_bJump(bJumpAddress);
+	cg_fixLink(item->fls);
+	return 1;
+}
+
+
+/* "while" "(" expression ")" block . 
+int whileLoop(struct item_t *item) {
 	if(symbol->id == WHILE) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
@@ -780,6 +967,7 @@ int whileLoop() {
 	}
 	return 0;
 }
+*/
 
 /* ret = "return" expression . */
 int ret() {
@@ -1202,17 +1390,19 @@ int globalDec() {
 
 int statementSeq () {
 	struct item_t *item;
-	item = malloc(sizeof(struct item_t));
-	item->type = malloc(sizeof(struct type_t));
 	if(symbol->id == RCUBR) { return 1; }
 	while(1) {
+		item = malloc(sizeof(struct item_t));
+		item->type = malloc(sizeof(struct type_t));
 		while(identifier() == 0 && number() == 0 && symbol->id != WHILE && symbol->id != IF 
 				&& symbol->id != RETURN && symbol->id != LPAR && symbol->id != ELSE) {
 			if(hasMoreTokens() == 0) { return 0; }			
 			getNextToken();
 			printError("statSeq(1): identifier, number, while, if or return expected.");
 		}
-		if(expression(item) || ret()) {
+		if(ifCmd(item)) {} 
+		else if(whileLoop(item)) {}
+		else if(expression(item) || ret()) {
 			if(symbol->id == SEMCOL) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
@@ -1220,8 +1410,6 @@ int statementSeq () {
 				printError("';' missing.");	
 			}
 		}
-		else if(ifCmd()) {} 
-		else if(whileLoop()) {}
 
 		if(symbol->id == RCUBR) {
 			return 1;
@@ -1276,10 +1464,10 @@ int startParsing(char *sfile, char *ofile){
 
 	nrOfGVar = 0;
 	nrOfStrs = 0;
-	nrOfCmds = 0;	
+	PC = 0;	
 
 	initTMCmd();
-	initRegs();
+	cg_initRegs();
 	initItemModes();
 	initOperators();	
 	initSymbolTable();
@@ -1290,10 +1478,7 @@ int startParsing(char *sfile, char *ofile){
 		getNextToken();
 		i = programm();
 	}
-	put(CMD_TRAP,0,0,0);
 	finalizeOutputFile();
-	close(out_fp_bin); 
-	close(out_fp_ass); 
 	printf("\n -- DONE. --\n\n");
 	return i;
 

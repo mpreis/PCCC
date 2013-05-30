@@ -39,7 +39,7 @@ void initTokenMapping() {
 	VOID		= 32;	/* key-word: void 	*/
 	STRUCT		= 33;	/* key-word: struct */
 	TYPEDEF		= 34;	/* key-word: typedef*/
-	BOOLEAN	 	= 35;	/* boolean value 	*/
+	BOOL		 	= 35;	/* boolean value 	*/
 	IDENT		= 36;	/* identifier 		*/
 	NUMBER		= 37;	/* number value		*/
 	STRING		= 38;	/* string value		*/
@@ -95,7 +95,7 @@ void printTokenMapping () {
 	printf("VOID  : %i\n",VOID);
 	printf("STRUCT: %i\n",STRUCT);
 	printf("TYPEDEF:%i\n",TYPEDEF);
-	printf("BOOLEAN:%i\n",BOOLEAN);
+	printf("BOOL  :%i\n",BOOL);
 	printf("IDENT : %i\n",IDENT);
 	printf("NUMBER: %i\n",NUMBER);
 	printf("STRING: %i\n",STRING);

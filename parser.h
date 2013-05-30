@@ -11,16 +11,25 @@ struct item_t {
 	int reg;
 	int offset;
 	int value;
+	int op;
+	int fls;
+	int tru;
+};
+
+struct cmd_t {
+	int op;
+	int a;
+	int b;
+	int c;
 };
 
 /* code generation */
 char *srcfile;
 char *outfile;
-int out_fp_bin;
-int out_fp_ass;
+struct cmd_t * *out_cmd_buff;
 /* int nrOfGVar; have a look at symboltable */
 int nrOfStrs;
-int nrOfCmds;
+int PC;
 
 int GPTR;	/* global pointer */
 int LPTR;	/* local pointer */
@@ -32,6 +41,7 @@ int ITEM_MODE_CONST;
 int ITEM_MODE_VAR;
 int ITEM_MODE_REF;
 int ITEM_MODE_REG;
+int ITEM_MODE_COND;
 int ITEM_MODE_NONE;
 
 int OP_NONE;
@@ -58,4 +68,10 @@ int block();
 int paramList();
 int typedefDec(struct object_t *head);
 int startParsing(char *sfile, char *ofile);
-void put(int op, int a, int b, int c);
+void cg_put(int op, int a, int b, int c);
+void cg_encodeC(int branchAddress, int newC);
+int cg_decodeC(int branchAddress);
+int cg_encode(int op, int a, int b, int c);
+int cg_negateOperator(int op);
+int cg_branch(int op);
+void cg_loadBool(struct item_t *item);

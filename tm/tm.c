@@ -10,11 +10,13 @@
  * 		5. goto 2
  *
  */
-#include <stdio.h>
-#include "tmCmd.h"
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include "tmCmd.h"
+#include "tm.h"
+
 
 int pc;
 int mem_max;
@@ -170,15 +172,15 @@ void execute() {
 	else if(ir[0] == CMD_BLT)  blt (ir[1], ir[3]); 
 	else if(ir[0] == CMD_BNE)  bne (ir[1], ir[3]); 
 	
-	else if(ir[0] == CMD_BR )  br  (ir[3]); 
+	else if(ir[0] == CMD_BR )  br  (ir[3]);
 	else if(ir[0] == CMD_BSR)  bsr (ir[3]);
 	else if(ir[0] == CMD_JSR)  jsr (ir[3]);
 	else if(ir[0] == CMD_RET)  ret (ir[3]);
 
 	else if(ir[0] == CMD_FLO)  flo (ir[1], ir[2], ir[3]); 
-	else if(ir[0] == CMD_FLC)  flc (ir[1], ir[2], ir[3]); 
-	else if(ir[0] == CMD_RDC)  rdc (ir[1], ir[2], ir[3]); 
-	else if(ir[0] == CMD_WRC)  wrc (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_FLC)  flc (ir[3]); 
+	else if(ir[0] == CMD_RDC)  rdc (ir[1], ir[3]); 
+	else if(ir[0] == CMD_WRC)  wrc (ir[1], ir[3]); 
 
 	else if(ir[0] == CMD_TRAP) {}
 	else { printf("\nERROR: invalid command (%i)!\n", ir[0]); exit(1); /*pc = pc + 4;*/ }
@@ -237,6 +239,7 @@ void startTM(char *file) {
 		fetch();
 		execute();
 		printReg();
+		//printMem();
 	}
 	printf("\n -- ende -- \n\n");
 }
