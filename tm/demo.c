@@ -12,7 +12,7 @@ int encode(int op, int a, int b, int c) {
 		c = c + 65536; // 0x10000: 2^16
 	return (((((op * 32) + a) * 32) + b) * 65536) + c;
 }
-void main(int argc, char *argv) {
+void main(int argc) {
 	int x = 963;
 	int y = 33;
 	int *buff = malloc(15*32);

@@ -50,21 +50,23 @@ void blt (int a, int c);
 void bne (int a, int c);
 
 /* unconditional branching */
-void br (int c);
+void br  (int c);
 void bsr (int c);
+void jsr (int c);
+void ret (int c);
+
+/* i/o */
+void flo (int a, int b, int c);
+void flc (int c); 
+void rdc (int a, int c); 
+void wrc (int a, int c); 
+
 
 /*******************************************************************/
 /* HELPER METHODS                                                  */
 /*******************************************************************/
 printMem();
 printReg();
-
-/*******************************************************************/
-/* METHODS FOR THE COMPILER                                        */
-/*******************************************************************/
-int encode(int op, int a, int b, int c);
-void writeToFile(char *file);
-
 
 /*******************************************************************/
 /* ONLY FOR TESTING!!!                                             */
