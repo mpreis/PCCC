@@ -75,7 +75,7 @@ char *getCmdName(id) {
 	if(id == CMD_STW ) return "stw ";
 	if(id == CMD_POP ) return "pop ";
 	if(id == CMD_PSH ) return "psh ";
-	if(id == CMD_BEQ ) return "beg ";
+	if(id == CMD_BEQ ) return "beq ";
 	if(id == CMD_BGE ) return "bge ";
 	if(id == CMD_BGT ) return "bgt ";
 	if(id == CMD_BLE ) return "ble ";
