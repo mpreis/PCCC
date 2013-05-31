@@ -64,7 +64,10 @@ void cg_put(int op, int a, int b, int c) {
 
 void copyItem(struct item_t *copy, struct item_t *orig) {
 	copy->mode = orig->mode;
-	copy->type = orig->type;
+	copy->type->form = orig->type->form;
+	copy->type->size = orig->type->size;
+	copy->type->fields = orig->type->fields;
+	copy->type->base = orig->type->base;
 	copy->reg = orig->reg;
 	copy->offset = orig->offset;
 	copy->value = orig->value;
@@ -72,17 +75,6 @@ void copyItem(struct item_t *copy, struct item_t *orig) {
 	copy->fls = orig->fls;
 	copy->tru = orig->tru;
 }
-/*
-void copyType(struct type_t *copy, struct type_t *orig) {
-
-	while(1) {
-		copy->form = orig->form;
-		copy->size = orig->size;
-		if(orig->type != 0) { 
-			copy->type = malloc(sizeof(struct type_t)); 
-		}
-	}
-}*/
 
 void initItemModes() {
 	ITEM_MODE_NONE  = 0;
@@ -167,7 +159,7 @@ void cg_simpleExpOR(struct item_t* item) {
 		item->tru = PC - 1;
 		cg_fixLink(item->fls);
 		item->fls = 0;
-	} else { printError("boolean expression expected"); }
+	} else { printError("[simpleExpOR] boolean expression expected"); }
 }
 
 void cg_termOpAND(struct item_t* item) { 
@@ -178,19 +170,18 @@ void cg_termOpAND(struct item_t* item) {
 		item->fls = PC - 1;
 		cg_fixLink(item->tru);
 		item->tru = 0;
-	} else { printError("boolean expression expected"); }
+	} else { printError("[termOpAND] boolean expression expected"); }
 }
 
 void cg_simpleExpBinOp(struct item_t *leftItem, struct item_t *rightItem, int op) {
 	if(op == OP_OR) {
 		if ((leftItem->type->form == TYPE_FORM_BOOL) && (rightItem->type->form == TYPE_FORM_BOOL)) { 
-			//cg_simpleExpOR(leftItem);
 			cg_loadBool(rightItem);
 			leftItem->reg = rightItem->reg; 
 			leftItem->fls = rightItem->fls;
 			leftItem->tru = cg_concatenate(rightItem->tru, leftItem->tru);
 			leftItem->op = rightItem->op;
-		} else { printError("boolean expressions expected"); }
+		} else { printError("[simpleExpBinOp] boolean expressions expected"); }
 	}
 	else if(leftItem->type->form == TYPE_FORM_INT && rightItem->type->form == TYPE_FORM_INT) {
 		if(rightItem->mode == ITEM_MODE_CONST) {
@@ -218,13 +209,12 @@ void cg_simpleExpBinOp(struct item_t *leftItem, struct item_t *rightItem, int op
 void cg_termOperator(struct item_t *leftItem, struct item_t *rightItem, int op) {
 	if(op == OP_AND) {
 		if ((leftItem->type->form == TYPE_FORM_BOOL) && (rightItem->type->form == TYPE_FORM_BOOL)) {  
-			//cg_termOpAND(leftItem);
 			cg_loadBool(rightItem);
 			leftItem->reg = rightItem->reg;
 			leftItem->fls = cg_concatenate(rightItem->fls, leftItem->fls);
 			leftItem->tru = rightItem->tru;
 			leftItem->op = rightItem->op;
-		} else { printError("boolean expressions expected"); }
+		} else { printError("[termOperator] boolean expressions expected"); }
 	}	
 	else if(leftItem->type->form == TYPE_FORM_INT && rightItem->type->form == TYPE_FORM_INT) {
 		if(rightItem->mode == ITEM_MODE_CONST) {
@@ -724,8 +714,7 @@ int term(struct item_t *item) {
 		if(symbol->id == TIMES || symbol->id == DIV || symbol->id == AND) {
 			if(symbol->id == TIMES) { op = OP_MUL; }
 			if(symbol->id == DIV) { op = OP_DIV; }
-			if(symbol->id == AND) { op = OP_AND; }
-			cg_termOpAND(leftItem);
+			if(symbol->id == AND) { op = OP_AND; cg_termOpAND(leftItem); }
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 		} else {
@@ -784,8 +773,7 @@ int arithExp(struct item_t *item) {
 		if(symbol->id == PLUS || symbol->id == MINUS || symbol->id == OR) {
 			if(symbol->id == PLUS) { op = OP_ADD; }
 			if(symbol->id == MINUS) { op = OP_SUB; }
-			if(symbol->id == OR) { op = OP_OR; }
-			cg_simpleExpOR(leftItem);
+			if(symbol->id == OR) { op = OP_OR; cg_simpleExpOR(leftItem); }
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 		} else {
