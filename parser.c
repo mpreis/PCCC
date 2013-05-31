@@ -159,9 +159,32 @@ void cg_load(struct item_t *item) {
 	else if(item->mode == ITEM_MODE_REF) { cg_ref2Reg(item); }
 }
 
+void cg_simpleExpOR(struct item_t* item) { 
+	if (item->type->form == TYPE_FORM_BOOL) {
+		cg_loadBool(item);
+		cg_put(cg_branch(item->op), item->reg, 0, item->tru);
+		cg_releaseReg(item->reg);
+		item->tru = PC - 1;
+		cg_fixLink(item->fls);
+		item->fls = 0;
+	} else { printError("boolean expression expected"); }
+}
+
+void cg_termOpAND(struct item_t* item) { 
+	if (item->type->form == TYPE_FORM_BOOL) {
+		cg_loadBool(item);
+		cg_put(cg_branch(cg_negateOperator(item->op)), item->reg, 0, item->fls);
+		cg_releaseReg(item->reg);
+		item->fls = PC - 1;
+		cg_fixLink(item->tru);
+		item->tru = 0;
+	} else { printError("boolean expression expected"); }
+}
+
 void cg_simpleExpBinOp(struct item_t *leftItem, struct item_t *rightItem, int op) {
-	if(op == OR) {
+	if(op == OP_OR) {
 		if ((leftItem->type->form == TYPE_FORM_BOOL) && (rightItem->type->form == TYPE_FORM_BOOL)) { 
+			//cg_simpleExpOR(leftItem);
 			cg_loadBool(rightItem);
 			leftItem->reg = rightItem->reg; 
 			leftItem->fls = rightItem->fls;
@@ -193,8 +216,9 @@ void cg_simpleExpBinOp(struct item_t *leftItem, struct item_t *rightItem, int op
 }
 
 void cg_termOperator(struct item_t *leftItem, struct item_t *rightItem, int op) {
-	if(op == AND) {
-		if ((leftItem->type->form == TYPE_FORM_BOOL) && (rightItem->type->form == TYPE_FORM_BOOL)) { 
+	if(op == OP_AND) {
+		if ((leftItem->type->form == TYPE_FORM_BOOL) && (rightItem->type->form == TYPE_FORM_BOOL)) {  
+			//cg_termOpAND(leftItem);
 			cg_loadBool(rightItem);
 			leftItem->reg = rightItem->reg;
 			leftItem->fls = cg_concatenate(rightItem->fls, leftItem->fls);
@@ -244,8 +268,6 @@ void cg_expressionOperator(struct item_t *leftItem, struct item_t *rightItem, in
 void cg_field(struct item_t *item, struct object_t *object) {
 	cg_load(item);
 	item->mode = ITEM_MODE_REF;
-/*	item->type = object->type;*/
-
 	item->type->form = object->type->form;
 	item->type->size = object->type->size;
 	item->type->fields = object->type->fields;
@@ -255,7 +277,6 @@ void cg_field(struct item_t *item, struct object_t *object) {
 }
 
 void cg_index(struct item_t *item, struct item_t *indexItem) {
-printf(" -- CG_INDEX\n");
 	if(indexItem->mode == ITEM_MODE_CONST) {
 		cg_load(item);
 		item->mode = ITEM_MODE_REF;
@@ -272,12 +293,12 @@ printf(" -- CG_INDEX\n");
 }
 
 void cg_assignment(struct item_t *leftItem, struct item_t *rightItem) {
-printf("\n -- l: "); printItem(leftItem);
-printf(" -- r: "); printItem(rightItem);
-
 	if(leftItem->type->form != rightItem->type->form && rightItem->type->form != TYPE_FORM_VOID) { 
 		printError("[assignment] Type mismatch in assignment"); 
 	}
+
+	if (rightItem->type->form == TYPE_FORM_BOOL) { cg_unloadBool(rightItem); }
+
 	cg_load(rightItem);
 	cg_put(CMD_STW, rightItem->reg, leftItem->reg, leftItem->offset);
 	if(leftItem->mode == ITEM_MODE_REF) { cg_releaseReg(leftItem->reg); }
@@ -320,6 +341,22 @@ void cg_fixLink(int branchAddress) {
 	}
 }
 
+int cg_concatenate(int right, int left) {
+	int nextBranchAddress;
+	int newTru;
+
+	if(right == 0) { return left; }
+	if(left == 0) { return right; }
+
+	newTru = right;
+	while (right != 0) {
+		nextBranchAddress = cg_decodeC(right);
+		right = nextBranchAddress; 
+	}
+	cg_encodeC(right, left);
+	return newTru;
+}
+
 int cg_negateOperator(int op) {
 	if(op == OP_LT)	 { return OP_GET; }
 	if(op == OP_GT)	 { return OP_LET; }
@@ -352,16 +389,24 @@ void cg_loadBool(struct item_t *item) {
 	if(item->mode != ITEM_MODE_COND) {
 		cg_load(item);
 		item->mode = ITEM_MODE_COND;
-		item->op = NEQ;
+		item->op = OP_NEQ;
 		item->fls = 0;
 		item->tru = 0;
 	}
 }
 
-int cg_concatenate(int left, int right) {
-	printf("concatenate\n");
-	return 0;
+void cg_unloadBool(struct item_t *item) {
+	if(item->mode == ITEM_MODE_COND) {
+		cg_cJump(item);
+		cg_fixLink(item->tru);
+		item->mode = ITEM_MODE_REG;
+		cg_put(CMD_ADDI, item->reg, 0, 1);
+		cg_put(CMD_BR, 0, 0, 2);
+		cg_fixLink(item->fls);
+		cg_put(CMD_ADDI, item->reg, 0, 0);
+	}
 }
+
 
 /*************************************************************
  * HELP METHODS
@@ -371,7 +416,7 @@ void printError(char *msg) {
 }
 
 void printItem(struct item_t *item) {
-	printf(" [ITEM] m:%i t:%i r:%i o:%i v:%i\n", item->mode, item->type->form, item->reg, item->offset, item->value);
+	printf(" [ITEM] m:%i t:%i r:%i o:%i v:%i op:%i f:%i t:%i\n", item->mode, item->type->form, item->reg, item->offset, item->value, item->op, item->fls, item->tru);
 }
 
 /*************************************************************
@@ -389,16 +434,16 @@ int number() {
 }
 
 /* "==" | "!=" | "<=" | ">=" | "<" | ">" | "&&" | "||" . */
-int boolOp() {
+int compOp() {
 	if( symbol->id == EQ || symbol->id == NEQ || symbol->id == LT || symbol->id == GT || 
-		symbol->id == LET || symbol->id == GET || symbol->id == AND || symbol->id == OR) {
+		symbol->id == LET || symbol->id == GET) {
 		return 1;
 	}
 	return 0;
 }
 
 int op() {
-	if(symbol->id == PLUS || symbol->id == MINUS || symbol->id == DIV || symbol->id == TIMES || boolOp()) {
+	if(symbol->id == PLUS || symbol->id == MINUS || symbol->id == DIV || symbol->id == TIMES || compOp() || symbol->id == AND || symbol->id == OR) {
 		return 1;
 	}
 	return 0;
@@ -508,10 +553,7 @@ int selector(struct item_t *item){
 			indexItem = malloc(sizeof(struct item_t));
 			indexItem->type = malloc(sizeof(struct type_t));
 
-int i;			
-			i = expression(indexItem);
-printf("%d\n", i);
-printf(" -- -- "); printItem(indexItem);
+			expression(indexItem);
 			cg_index(item, indexItem);
 			if(symbol->id == RSQBR) {
 				if(hasMoreTokens() == 0) { return 0; }
@@ -599,14 +641,10 @@ int factor(struct item_t *item) {
 			}
 		}
 		leftItem->mode = ITEM_MODE_VAR;
-		/*leftItem->type = object->type;		//problem, es wird beim expressionOperator der typ in der symboltable überschrieben*/
 		leftItem->type->form = object->type->form;
 		leftItem->type->size = object->type->size;
 		leftItem->type->fields = object->type->fields;
 		leftItem->type->base = object->type->base;
-printSymbol("\n -- ");
-printf(" -- item: ");printItem(leftItem);
-
 
 		if(object->scope == GLOBAL_SCOPE) { leftItem->reg = GPTR; } 
 		else { leftItem->reg = LPTR; }
@@ -618,18 +656,18 @@ printf(" -- item: ");printItem(leftItem);
 
 		selector(leftItem);
 
-printSymbol(" ** vor schluss");
 		/* var = */		
 		if(symbol->id == EQSIGN) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			result = expression(rightItem);
+
 			cg_assignment(leftItem, rightItem);
 			copyItem(item, leftItem);
 			return result;
 		}
 		/* var +  */
-		else if(op() || boolOp()) { copyItem(item,leftItem); return 1; }		
+		else if(op()) { copyItem(item,leftItem); return 1; }		
 		/* var ) */
 		else if(symbol->id == RPAR) { copyItem(item,leftItem); return 1; }
 		/* var ( */
@@ -649,7 +687,7 @@ printSymbol(" ** vor schluss");
 		}
 
 		if(symbol->id == SEMCOL || symbol->id == COMMA || symbol->id == RSQBR || symbol->id == ARROW) 
-		{ printf(" ......................\n"); copyItem(item, leftItem); return 1; }
+		{ copyItem(item, leftItem); return 1; }
 	}
 	return 0;
 }
@@ -684,15 +722,17 @@ int term(struct item_t *item) {
 			}
 		} else{ return 0; }
 
-		if(symbol->id == PLUS || symbol->id == MINUS || boolOp() || symbol->id == RPAR ||  
-				symbol->id == SEMCOL || symbol->id == COMMA || symbol->id == RSQBR  || 
-				symbol->id == RSQBR || symbol->id == ARROW) {
+		if(symbol->id == PLUS || symbol->id == MINUS || symbol->id == OR || 
+				compOp() || symbol->id == RPAR || symbol->id == SEMCOL || symbol->id == COMMA || 
+				symbol->id == RSQBR || symbol->id == RSQBR || symbol->id == ARROW) {
 			copyItem(item, leftItem);
 			return 1;
 		}
-		if(symbol->id == TIMES || symbol->id == DIV) {
+		if(symbol->id == TIMES || symbol->id == DIV || symbol->id == AND) {
 			if(symbol->id == TIMES) { op = OP_MUL; }
 			if(symbol->id == DIV) { op = OP_DIV; }
+			if(symbol->id == AND) { op = OP_AND; }
+			cg_termOpAND(leftItem);
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 		} else {
@@ -732,7 +772,6 @@ int arithExp(struct item_t *item) {
 				rightItem->type = malloc(sizeof(struct type_t));
 				copyItem(rightItem, item);
 			} 
-
 			if(leftItem != 0 && rightItem != 0) {
 				if(op != OP_NONE) {
 					cg_simpleExpBinOp(leftItem, rightItem, op);
@@ -744,14 +783,16 @@ int arithExp(struct item_t *item) {
 			}
 		} else { return 0; }
 
-		if(boolOp() || symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || 
+		if(compOp() || symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || 
 			symbol->id == COMMA  || symbol->id == RSQBR || symbol->id == RCUBR || symbol->id == ARROW) {
 			copyItem(item, leftItem);
 			return 1;
 		}
-		if(symbol->id == PLUS || symbol->id == MINUS) {
+		if(symbol->id == PLUS || symbol->id == MINUS || symbol->id == OR) {
 			if(symbol->id == PLUS) { op = OP_ADD; }
 			if(symbol->id == MINUS) { op = OP_SUB; }
+			if(symbol->id == OR) { op = OP_OR; }
+			cg_simpleExpOR(leftItem);
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 		} else {
@@ -789,7 +830,7 @@ int expression(struct item_t *item) {
 					rightItem = 0;
 					op = OP_NONE;
 				} else {
-					printError("[arithExp] missing operator");
+					printError("[expression] missing operator");
 				}
 			}
 		} else { return 0; }
@@ -798,7 +839,7 @@ int expression(struct item_t *item) {
 			copyItem(item, leftItem);
 			return 1;
 		}
-		if(boolOp()) {
+		if(compOp()) {
 			if(symbol->id == EQ) { op = OP_EQ; }
 			if(symbol->id == NEQ) { op = OP_NEQ; }
 			if(symbol->id == GT) { op = OP_GT; }
@@ -937,37 +978,10 @@ int whileLoop(struct item_t *item) {
 			getNextToken();
 		} else { printError("missing '}'"); return 0; }
 	}
-printf("DO IT");
 	cg_bJump(bJumpAddress);
 	cg_fixLink(item->fls);
 	return 1;
 }
-
-
-/* "while" "(" expression ")" block . 
-int whileLoop(struct item_t *item) {
-	if(symbol->id == WHILE) {
-		if(hasMoreTokens() == 0) { return 0; }
-		getNextToken();
-		if(symbol->id == LPAR) {
-			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();
-			if(expression(item)) {
-				if(symbol->id == RPAR) {
-					if(hasMoreTokens() == 0) { return 0; }
-					getNextToken();
-					if(block()) { 
-						if(hasMoreTokens() == 0) { return 0; }
-						getNextToken();
-						return 1; 
-					}
-				} else { printError("')' missing."); }
-			} else { printError("expression expected."); }
-		} else { printError("'(' missing."); }
-	}
-	return 0;
-}
-*/
 
 /* ret = "return" expression . */
 int ret() {

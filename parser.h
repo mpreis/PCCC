@@ -75,3 +75,5 @@ int cg_encode(int op, int a, int b, int c);
 int cg_negateOperator(int op);
 int cg_branch(int op);
 void cg_loadBool(struct item_t *item);
+void cg_fixLink(int branchAddress);
+void cg_unloadBool(struct item_t *item);
