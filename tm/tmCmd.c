@@ -53,9 +53,10 @@ void initTMCmd() {
 	CMD_TRAP = 9;
 
 	/* meta data */
-	CMD_GP = 1;		/* global pointer */
-	CMD_SP = 2; 	/* string pointer */
-	CMD_CS = 3; 	/* code size */
+	CMD_GP  = 1;	/* global pointer */
+	CMD_SP  = 2; 	/* string pointer */
+	CMD_CS  = 3; 	/* code size */
+	CMD_MAL = 4;	/* malloc */
 }
 
 char *getCmdName(id) {
@@ -88,5 +89,6 @@ char *getCmdName(id) {
 	if(id == CMD_GP  ) return "gp  ";
 	if(id == CMD_SP  ) return "sp  ";
 	if(id == CMD_CS  ) return "cs  ";
+	if(id == CMD_MAL ) return "mal ";
 	return "unknown";
 }

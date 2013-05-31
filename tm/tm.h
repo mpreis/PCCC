@@ -61,6 +61,9 @@ void flc (int c);
 void rdc (int a, int c); 
 void wrc (int a, int c); 
 
+/* malloc */
+void mal (int c);
+
 
 /*******************************************************************/
 /* HELPER METHODS                                                  */

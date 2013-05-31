@@ -31,7 +31,6 @@ int	OBJECT_CLASS_FIELD;
 
 int globOffset;
 int locOffset;
-int heapOffset;
 int paramOffset;
 int nrOfGVar;
 char *file;
