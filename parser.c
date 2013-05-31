@@ -272,7 +272,6 @@ void cg_field(struct item_t *item, struct object_t *object) {
 	item->type->size = object->type->size;
 	item->type->fields = object->type->fields;
 	item->type->base = object->type->base;
-
 	item->offset = object->offset;
 }
 
@@ -283,7 +282,7 @@ void cg_index(struct item_t *item, struct item_t *indexItem) {
 		item->offset = indexItem->value * (-4);
 	} else {
 		cg_load(indexItem);
-		cg_put(CMD_MULI, indexItem->reg, indexItem->reg, -4);
+		cg_put(CMD_MULI, indexItem->reg, indexItem->reg, -1);
 		cg_load(item);
 		item->mode = ITEM_MODE_REF;
 		cg_put(CMD_ADD, item->reg, item->reg, indexItem->reg);	
@@ -306,15 +305,10 @@ void cg_assignment(struct item_t *leftItem, struct item_t *rightItem) {
 }
 
 void cg_allocate(struct item_t *item) {
-	int tempHeapOffset;
-
-	tempHeapOffset = heapOffset;
-	heapOffset = heapOffset + item->value;
-
 	cg_load(item);
 	item->type->form = TYPE_FORM_VOID;
 	item->type->fields = 0;
-	cg_put(CMD_ADDI, item->reg, HPTR, heapOffset);
+	cg_put(CMD_MAL,0,0,item->reg);
 }
 
 void cg_cJump(struct item_t *item) {
@@ -485,9 +479,8 @@ int typeSpec(struct item_t *item, struct object_t *head) {
 			item->type->size = ptr->type->size;
 			item->value = ptr->type->size;
 			return TYPE_FORM_RECORD;
-		} else {
-			/*TODO only for presentation  */
-			/*printError("unknown type.");*/
+		} else if(head->scope != 0 && head->class != 0 && head->type != 0) {	// first element in list
+			printError("unknown type.");
 		}
 	}
 	return 0;
@@ -538,6 +531,7 @@ int selector(struct item_t *item){
 			if(identifier()) {
 
 				object = lookUp(item->type->fields, symbol->valueStr);
+
 				if(object != 0) { cg_field(item,object); }
 				else { printError("unknown field"); }
 
@@ -648,7 +642,6 @@ int factor(struct item_t *item) {
 
 		if(object->scope == GLOBAL_SCOPE) { leftItem->reg = GPTR; } 
 		else { leftItem->reg = LPTR; }
-
 		leftItem->offset = object->offset;
 
 		if(hasMoreTokens() == 0) { return 0; }
@@ -1102,42 +1095,40 @@ int declaration(struct object_t *head, int isStruct) {
 	struct type_t *type;
 	struct type_t *array;
 	struct item_t *item;
-
+	int off;
 	item = malloc(sizeof(struct item_t));
 	item->type = malloc(sizeof(struct type_t));
+
+	if(isStruct) { off = 0; }
+	else { off = locOffset; }
 
 	while(1) {
 		type = 0;
 		array = 0;
 		ptr = 0;
 		object = malloc(sizeof(struct object_t));
-		if(isStruct == 0) {
-			object->class = OBJECT_CLASS_VAR;
-		} else {
-			object->class = OBJECT_CLASS_FIELD;
-		}
+		if(isStruct == 0) { object->class = OBJECT_CLASS_VAR; } 
+		else { object->class = OBJECT_CLASS_FIELD; }
+
 		typedefDec(head);
 		if(symbol->id == STRUCT) { 
 			if(hasMoreTokens() == 0) { return 0; }		
 			getNextToken();
 		}
 		type = newType(typeSpec(item, head));
-		object->offset = locOffset;
-		if(type->form == 0) {
-			return 1;
-		} else if(type->form == TYPE_FORM_RECORD) {
-			ptr = lookUp(head, symbol->valueStr);
+		object->offset = off;
 
+		if(type->form == 0) { return 1; } 
+		else if(type->form == TYPE_FORM_RECORD) {
+			ptr = lookUp(head, symbol->valueStr);
 			if(ptr == 0) {
 				ptr = lookUp(globList, symbol->valueStr);
 				if(ptr != 0) {
 					object->type = ptr->type;
 				}
-			} else {
-				object->type = ptr->type;
-				locOffset = locOffset - ptr->offset; /* add size of struct */
-			}
-		} else { locOffset = locOffset - 4; } /* add size of datatype */
+			} else { object->type = ptr->type; }
+		}
+		off = off - 4;	/* size of local variable int,char 4byte; pointer to struct 4byte  */
 
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
@@ -1251,11 +1242,13 @@ int structDec() {
 		record = newType(5);
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
+		
 		if(identifier()) {
 			object->name = malloc(64 * sizeof(char));
 			strnCpy(object->name, symbol->valueStr, 64);
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
+
 			if(symbol->id == LCUBR) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
@@ -1269,7 +1262,6 @@ int structDec() {
 					i = i + 1;
 				}
 				record->size = (i * 4);
-
 				if(symbol->id == RCUBR) {
 					if(hasMoreTokens() == 0) { return 0; }
 					getNextToken();
@@ -1296,8 +1288,6 @@ int structDec() {
 						}
 					}
 				}
-				object->offset = globOffset;
-				globOffset = globOffset - 4;
 				object->scope = GLOBAL_SCOPE;
 				insert(globList, object);
 				return 1;
@@ -1339,11 +1329,10 @@ int globalDec() {
 			return 0;
 		} else if(type->form == TYPE_FORM_RECORD) {
 			ptr = lookUp(globList, symbol->valueStr);
-			if(ptr != 0) {
-				object->type = ptr->type;
-				globOffset = globOffset - 4;	/* add size of struct */
-			} else { printError("[global dec] Type not found."); }
-		} else { globOffset = globOffset - 4; } /* add size of datatype */
+			if(ptr != 0) { object->type = ptr->type; } 
+			else { printError("[global dec] Type not found."); }
+		}
+		globOffset = globOffset - 4;
 
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
@@ -1385,6 +1374,7 @@ int globalDec() {
 			} 
 			/* declaration */
 			else if(symbol->id == SEMCOL) {
+				nrOfGVar = nrOfGVar + 1;
 				object->class = OBJECT_CLASS_VAR;
 				object->scope = GLOBAL_SCOPE;
 				if(type->form != TYPE_FORM_RECORD) {
@@ -1497,3 +1487,4 @@ int startParsing(char *sfile, char *ofile){
 	return i;
 
 }
+

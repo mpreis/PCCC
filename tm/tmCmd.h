@@ -54,6 +54,7 @@ int CMD_WRC; //= 63;
 int CMD_TRAP; //= 1;
 
 /* meta data */
-int CMD_GP; // = 1;		/* global pointer */
-int CMD_SP; // = 3; 	/* string pointer */
-int CMD_CS; // = 2; 	/* code size */
+int CMD_GP;  // = 1;	/* global pointer */
+int CMD_SP;  // = 3; 	/* string pointer */
+int CMD_CS;  // = 2; 	/* code size */
+int CMD_MAL; // = 4;	/* malloc */

@@ -250,6 +250,11 @@ void getNextToken() {
 				}
 				symbol->id = COMMENT;
 			}
+			else if(nc == '/') {
+				nc = getChar();
+				while(nc != '\n' && hasMoreChars()) { nc = getChar(); }
+				symbol->id = COMMENT;
+			}
 			else {
 				symbol->id = DIV;
 				ungetChar(nc);
