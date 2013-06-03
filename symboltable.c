@@ -62,7 +62,6 @@ int insert(struct object_t *head, struct object_t *obj) {
 		}
 		ptr->next = obj;
 	}
-	if(obj->scope == GLOBAL_SCOPE) { nrOfGVar = nrOfGVar + 1; }
 	return 1;
 }
 
@@ -136,8 +135,9 @@ void initSymbolTable() {
 	TYPE_FORM_INT = 1;
 	TYPE_FORM_CHAR = 2;
 	TYPE_FORM_VOID = 3;
-	TYPE_FORM_ARRAY = 4;
-	TYPE_FORM_RECORD = 5;
+	TYPE_FORM_BOOL = 4;
+	TYPE_FORM_ARRAY = 5;
+	TYPE_FORM_RECORD = 6;
 
 	OBJECT_CLASS_VAR = 1;
 	OBJECT_CLASS_TYPE = 2;
@@ -148,7 +148,6 @@ void initSymbolTable() {
 	globOffset = 0;
 	locOffset = 0;
 	paramOffset = 0;
-	heapOffset = 0;
 }
 
 /*

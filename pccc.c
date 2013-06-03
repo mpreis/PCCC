@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "scanner.h"
 #include "tokenMapping.h"
+#include "./tm/tm.h"
 
 int main(int argc, char *argv[]){
 	char *sfile;
@@ -15,6 +16,7 @@ int main(int argc, char *argv[]){
 
 	initScanner(sfile);
 	startParsing(sfile, ofile);
+
 	printf("\n");
 	return 0;
 }

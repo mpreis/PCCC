@@ -21,6 +21,7 @@ int LOCAL_SCOPE;
 int TYPE_FORM_INT;
 int	TYPE_FORM_CHAR;
 int	TYPE_FORM_VOID;
+int	TYPE_FORM_BOOL;
 int	TYPE_FORM_ARRAY;
 int	TYPE_FORM_RECORD;
 
@@ -30,7 +31,6 @@ int	OBJECT_CLASS_FIELD;
 
 int globOffset;
 int locOffset;
-int heapOffset;
 int paramOffset;
 int nrOfGVar;
 char *file;
