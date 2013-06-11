@@ -15,7 +15,7 @@ int encode(int op, int a, int b, int c) {
 void main(int argc) {
 	int x = 963;
 	int y = 33;
-	int *buff = malloc(15*32);
+	int *buff = malloc(9*32);
 	char *file = "./bdemo";
 	FILE *fp = fopen(file, "w");
 	if(fp == 0) { printf("\tERROR: can not open file.\n"); }
@@ -24,10 +24,10 @@ void main(int argc) {
 	printf(" -- generate bin file (%s).\n", file);
 
 	// meta data
-	buff[0]  = encode(CMD_CS,	0, 0, 15);
+/*	buff[0]  = encode(CMD_CS,	0, 0, 15);
 	buff[1]  = encode(CMD_GP,	0, 0, 16); 
 	buff[2]  = encode(CMD_SP,	0, 0,  0);
-/*
+
 	addi(10) 1 0 12
 	addi(10) 1 30 0
 	stw (31) 1 28 -12
@@ -40,7 +40,6 @@ void main(int argc) {
 	addi(10) 2 0 4
 	stw (31) 2 1 4
 	trap(9) 0 0 0
-*/
 
 	buff[3]  = encode(CMD_ADDI,	1, 0, 	12);
 	buff[4]  = encode(CMD_ADDI,	1, 30,  0);
@@ -54,8 +53,24 @@ void main(int argc) {
 	buff[12] = encode(CMD_ADDI, 2, 0, 	4);	
 	buff[13] = encode(CMD_STW,	2, 1, 	4);
 	buff[14] = encode(CMD_TRAP, 0, 0,  	0);
+*/
 
-	fwrite(buff,4,15,fp);
+
+	buff[0]  = encode(CMD_CS,	0, 0, 15);
+	buff[1]  = encode(CMD_GP,	0, 0, 16); 
+	buff[2]  = encode(CMD_SP,	0, 0,  0);
+
+	buff[3]  = encode(CMD_ADDI,	1, 0, 12);
+	buff[4]  = encode(CMD_PSH,  1, 29, 0);
+	buff[5]  = encode(CMD_ADDI,	2, 0, 25);
+	buff[6]  = encode(CMD_PSH,  2, 29, 4);
+
+	buff[7]  = encode(CMD_POP, 3, 29, 4);
+
+	buff[8]  = encode(CMD_TRAP, 0, 0,   0);
+
+
+	fwrite(buff,4,9,fp);
 	fclose(fp);
 
 //	startTM(file);

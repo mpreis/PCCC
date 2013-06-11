@@ -188,8 +188,8 @@ void ldw (int a, int b, int c) { reg[a] = mem[reg[b] + c/4]; pc = pc + 4; }
 void stw (int a, int b, int c) { mem[reg[b] + c/4] = reg[a]; pc = pc + 4; }
 
 /* stack operations */
-void pop (int a, int b, int c) { reg[a] = mem[reg[b]/4]; reg[b] = reg[b] + c; pc = pc + 4; }
-void psh (int a, int b, int c) { reg[b] = reg[b] - c; mem[reg[b]/4] = reg[a]; pc = pc + 4; }
+void pop (int a, int b, int c) { reg[a] = mem[reg[b]]; reg[b] = reg[b] + c/4; pc = pc + 4; }
+void psh (int a, int b, int c) { reg[b] = reg[b] - c/4; mem[reg[b]] = reg[a]; pc = pc + 4; }
 
 /* conditional branching */
 void beq (int a, int c) { if (reg[a] == 0) pc = pc + c * 4; else pc = pc + 4; }
