@@ -884,7 +884,7 @@ int paramList() {
 	}
 }
 
-int printfMethod(struct item_t *item) {
+int printMethod(struct item_t *item) {
 	int i;
 	int reg;
 	if(symbol->id == PRINTF) {
@@ -913,12 +913,12 @@ int printfMethod(struct item_t *item) {
 			} else {
 				if (expression(item)) {
 					cg_load(item);
-					if(item->type == TYPE_FORM_CHAR) {
+					if(item->type->form == TYPE_FORM_CHAR) {
 						cg_put(CMD_PRC, item->reg, 0, 0);
 					} else {
 						cg_put(CMD_PRN, item->reg, 0, 0);
 					}
-				} else { printError("[printfMethod] expression expected."); }
+				} else { printError("[printMethod] expression expected."); }
 			}
 			if(symbol->id == RPAR) {
 				if(hasMoreTokens() == 0) { return 0; }
@@ -1230,9 +1230,6 @@ int structDec() {
 	return 0;
 }
 
-
-// *****************MILESTONE 6***********************************************
-
 int returnType(struct item_t *item) {
 	if(symbol->id == STRUCT) { 
 		if(hasMoreTokens() == 0) { return 0; }		
@@ -1306,8 +1303,6 @@ void epilogue(int paramSize) {
 	if(strCmp(procedureContext->name, "main") != 0) {cg_put(CMD_RET, 0, 0, LINK); }			// return 
 	else { cg_put(CMD_TRAP, 0, 0, 0); }
 }
-
-/* variableDeclarationSequence is the older version of declaration */
 
 int procedureImplementation(struct item_t* item, string_t identifier) {
 	struct object_t* object;
@@ -1461,8 +1456,6 @@ int fJumpChain(int branchAddress) {
 	return PC - 1;
 }
 
-// ******PROC CALL*******************************************************
-
 int pushUsedRegisters() {
 	int counter;
 	int i; 
@@ -1607,13 +1600,6 @@ struct object_t* actualParameter(struct object_t* object, struct object_t* forma
 	return formalParameter;
 }
 
-
-
-
-// ****************************************************************************
-
-
-
 int globalDec() {
 	struct object_t *object;
 	struct object_t *ptr;
@@ -1621,7 +1607,6 @@ int globalDec() {
 	struct type_t *array;
 	struct item_t *item;
 	string_t identName;
-	
 
 	while(1) { 	
 		type = 0;
@@ -1711,7 +1696,7 @@ int statementSeq () {
 			printError("statSeq(1): identifier, number, while, if or return expected.");
 		}
 		if(ifCmd(item)) {} 
-		else if(printfMethod(item)) {}
+		else if(printMethod(item)) {}
 		else if(whileLoop(item)) {}
 		else if(expression(item) || procedureReturn()) {
 			if(symbol->id == SEMCOL) {
@@ -1792,6 +1777,4 @@ int startParsing(char *sfile, char *ofile){
 	finalizeOutputFile();
 	printf("\n -- DONE. --\n\n");
 	return i;
-
 }
-

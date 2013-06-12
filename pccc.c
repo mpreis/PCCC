@@ -17,6 +17,7 @@ int main(int argc, char *argv[]){
 	initScanner(sfile);
 	startParsing(sfile, ofile);
 
+	startTM("./my_pccc");
 	printf("\n");
 	return 0;
 }

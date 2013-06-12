@@ -85,7 +85,7 @@ void cg_loadBool(struct item_t *item);
 void cg_fixLink(int branchAddress);
 void cg_unloadBool(struct item_t *item);
 
-/* new methods */
+int printMethod(struct item_t *item);
 int returnType(struct item_t *item);
 struct object_t *createObject(string_t name);
 struct type_t *basicArrayRecordType();
