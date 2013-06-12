@@ -87,7 +87,7 @@ void cg_unloadBool(struct item_t *item);
 
 /* new methods */
 int returnType(struct item_t *item);
-struct object_t *createObject(struct object_t *head, string_t name);
+struct object_t *createObject(string_t name);
 struct type_t *basicArrayRecordType();
 int variableDeclarationSequence(struct object_t *head, int isStruct);
 int procedureImplementation();

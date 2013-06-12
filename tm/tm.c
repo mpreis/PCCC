@@ -223,7 +223,7 @@ void startTM(char *file) {
 	for(i = 0; ir[0] != CMD_TRAP; i++) {
 		fetch();
 		execute();
-		printReg();
+		//printReg();
 	}
 	printMemParts();
 	printf("\n -- ende -- \n\n");

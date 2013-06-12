@@ -3,7 +3,10 @@
 /* struct object_t *globList = 0; */
 
 void printObject(struct object_t *ptr) {
+if(ptr->type != 0)
 	printf("|| %18s | %7d | %6d | %8d | %8d    ||\n", ptr->name,ptr->class,ptr->type->form,ptr->offset,ptr->scope);
+else
+	printf("|| %18s | %7d |     | %8d | %8d    ||\n", ptr->name,ptr->class,ptr->offset,ptr->scope);
 }
 void printType(struct type_t *t) {
 	printf("|| %18d | %7d | %6d | %8d |             ||\n", t->form,t->fields,t->base,t->size);
@@ -60,12 +63,12 @@ int insert(struct object_t *head, struct object_t *obj) {
 	struct object_t *ptr;
 	if(head->name == 0) {
 		head->name = malloc(64 * sizeof(char));
-		strnCpy(head->name, obj->name, 64);
-		head->class = obj->class;
-		head->offset = obj->offset;
-		head->scope = obj->scope;
-		head->type = obj->type;
-		head->next = 0;
+		strnCpy(head->name, "--first entry--", 64);
+		head->class = 0;
+		head->offset = 0;
+		head->scope = 0;
+		head->type = 0;
+		head->next = obj;
 	} else {
 		if(lookUp(head, obj->name) != 0)	{
 			printf("error: multible declaration of %s\n", obj->name);
