@@ -58,6 +58,7 @@ void initTokenMapping() {
 	ARROW		= 55;	/* ->				*/
 	SIZEOF		= 56;	/* size of type		*/
 	MALLOC		= 57;	/* allocate memory	*/
+	PRINTF		= 58;	/* write to output	*/
 }
 
 void printTokenMapping () {
@@ -114,5 +115,6 @@ void printTokenMapping () {
 	printf("ARROW  : %i\n",ARROW);
 	printf("SIZEOF : %i\n",SIZEOF);
 	printf("MALLOC : %i\n", MALLOC);
+	printf("PRINTF : %i\n", PRINTF);
 	printf("\n");
 }

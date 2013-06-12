@@ -11,7 +11,7 @@
 /*************************************************************
  * CODE GENERATION METHODS
  ************************************************************/
-int initOutputFile() {
+void initOutputFile() {
 	out_cmd_buff = malloc(sizeof(struct cmd_t *) * 1024);
 }
 
@@ -30,11 +30,15 @@ void finalizeOutputFile() {
 	cg_put(CMD_TRAP,0,0,0);
 	tempBuff[0] = cg_encode(CMD_CS,	0, 0, PC);
 	write(out_fp_bin, tempBuff, 4); 
-	tempBuff[0] = cg_encode(CMD_GP,	0, 0, nrOfGVar*4);	/* !!! da globale variablen NICHT initialisiert werden können, */
-	write(out_fp_bin, tempBuff, 4); 						/* !!! sind immer nur 4 byte speicher nötig */
-	tempBuff[0] = cg_encode(CMD_SP,	0, 0, nrOfStrs);		/*TODO potentielles problem !!!*/
+	tempBuff[0] = cg_encode(CMD_GP,	0, 0, nrOfGVar*4);
+	write(out_fp_bin, tempBuff, 4);
+	tempBuff[0] = cg_encode(CMD_SP,	0, 0, nrOfStrs);	
 	write(out_fp_bin, tempBuff, 4); 
-	i = 0;
+	if(mainPos != -1) {
+		tempBuff[0] = cg_encode(CMD_BR,	0, 0, mainPos);	
+		write(out_fp_bin, tempBuff, 4); 
+	} else { printError("missing main method"); }
+	i = 1;
 printf("\n\n\n");
 	while(i < PC) {
 printf("%s %i %i %i\n", getCmdName(out_cmd_buff[i]->op), out_cmd_buff[i]->a, out_cmd_buff[i]->b, out_cmd_buff[i]->c);
@@ -64,6 +68,7 @@ void cg_put(int op, int a, int b, int c) {
 
 void copyItem(struct item_t *copy, struct item_t *orig) {
 	copy->mode = orig->mode;
+	if(copy->type == 0) { copy->type = malloc(sizeof(struct type_t)); }
 	copy->type->form = orig->type->form;
 	copy->type->size = orig->type->size;
 	copy->type->fields = orig->type->fields;
@@ -105,16 +110,20 @@ void initOperators() {
 void cg_initRegs() {
 	int i; i = 0;
 	nrOfRegs = 32;
+	mainPos = -1;
+	RR   = 25;
+	FPTR = 26;
 	GPTR = 28;
-	LPTR = 29;
+	SPTR = 29;
 	HPTR = 30;
+	LINK = 31;
 	regs = malloc( nrOfRegs*sizeof(int) );
 	while (i < nrOfRegs) { regs[i] = 0; i = i + 1; }
 }
 int cg_requestReg() {
 	int i; i = 1;
 	/* register for calculation: 1-27 */
-	while (i < 28) { 
+	while (i < 25) { 
 		if (regs[i] == 0) { regs[i] = 1; return i; }
 		i = i + 1;
 	}
@@ -439,7 +448,7 @@ int identifier() {
 	return 0;
 }
 
-/* "int" | "char" | "void" | identifier. */ 
+/* "int" | "char" | "void" | "bool" | identifier. */ 
 int typeSpec(struct item_t *item, struct object_t *head) {
 	struct object_t *ptr;
 
@@ -451,7 +460,7 @@ int typeSpec(struct item_t *item, struct object_t *head) {
 		if(hasMoreTokens() == 0) { return 0; }		
 		getNextToken(); 
 	}
-	if(symbol->id == INT ) { item->type->form = TYPE_FORM_INT; return TYPE_FORM_INT; }
+	if(symbol->id == INT ) { item->type->form = TYPE_FORM_INT;  return TYPE_FORM_INT;  }
 	if(symbol->id == CHAR) { item->type->form = TYPE_FORM_CHAR; return TYPE_FORM_CHAR; } /* return value for symbol table */
 	if(symbol->id == VOID) { item->type->form = TYPE_FORM_VOID; return TYPE_FORM_VOID; }
 	if(symbol->id == BOOL) { item->type->form = TYPE_FORM_BOOL; return TYPE_FORM_BOOL; }
@@ -559,10 +568,10 @@ int factor(struct item_t *item) {
 	rightItem = malloc(sizeof(struct item_t));
 	rightItem->type = malloc(sizeof(struct type_t));
 	object = malloc(sizeof(struct object_t));
-
 	if(number() || symbol->id == CHARACTER || symbol->id == STRING) {
 		if(number()) {
 			item->mode = ITEM_MODE_CONST;
+			if(item->type == 0) { item->type = malloc(sizeof(struct type_t)); }
 			item->type->form = TYPE_FORM_INT;
 			item->value = symbol->digitValue;
 		} else if(symbol->id == STRING) {
@@ -576,7 +585,6 @@ int factor(struct item_t *item) {
 		}
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
-
 		return 1;
 	}
 	else if(symbol->id == LPAR) { 
@@ -618,10 +626,13 @@ int factor(struct item_t *item) {
 	else if(identifier()) {
 		object = lookUp(locList, symbol->valueStr);
 		if(object == 0) {
-			object = lookUp(globList, symbol->valueStr);
+			if(procedureContext->params != 0) { object = lookUp(procedureContext->params, symbol->valueStr); }
 			if(object == 0) {
-				printError("unknown identifier");
-				return 0;
+				object = lookUp(globList, symbol->valueStr);
+				if(object == 0) {
+					printError("unknown identifier");
+					return 0;
+				}
 			}
 		}
 		leftItem->mode = ITEM_MODE_VAR;
@@ -629,11 +640,9 @@ int factor(struct item_t *item) {
 		leftItem->type->size = object->type->size;
 		leftItem->type->fields = object->type->fields;
 		leftItem->type->base = object->type->base;
-
 		if(object->scope == GLOBAL_SCOPE) { leftItem->reg = GPTR; } 
-		else { leftItem->reg = LPTR; }
+		else { leftItem->reg = FPTR; }
 		leftItem->offset = object->offset;
-
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 
@@ -644,32 +653,24 @@ int factor(struct item_t *item) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			result = expression(rightItem);
-
 			cg_assignment(leftItem, rightItem);
 			copyItem(item, leftItem);
 			return result;
 		}
 		/* var +  */
 		else if(op()) { copyItem(item,leftItem); return 1; }		
-		/* var ) */
-		else if(symbol->id == RPAR) { copyItem(item,leftItem); return 1; }
 		/* var ( */
 		else if(symbol->id == LPAR) {
-			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();
-			paramList();
+			procedureCall(leftItem, object->name);
 			if(symbol->id == RPAR) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
-				copyItem(item,leftItem);
+				copyItem(item, leftItem);
 				return 1;
-			} else {
-				printError("')' missing.");
 			}
-			return 0;
 		}
 
-		if(symbol->id == SEMCOL || symbol->id == COMMA || symbol->id == RSQBR || symbol->id == ARROW) 
+		if(symbol->id == SEMCOL || symbol->id == COMMA || symbol->id == RSQBR || symbol->id == ARROW || symbol->id == RPAR) 
 		{ copyItem(item, leftItem); return 1; }
 	}
 	return 0;
@@ -776,6 +777,7 @@ int arithExp(struct item_t *item) {
 			if(symbol->id == OR) { op = OP_OR; cg_simpleExpOR(leftItem); }
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
+			cg_load(leftItem);
 		} else {
 			printError("'+', '-' or ';' expected..");
 			return 0;
@@ -882,6 +884,56 @@ int paramList() {
 	}
 }
 
+int printMethod(struct item_t *item) {
+	int i;
+	int reg;
+	if(symbol->id == PRINTF) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(symbol->id == LPAR) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(symbol->id == STRING) {
+				i = 0;
+				reg = cg_requestReg();
+				while(symbol->valueStr[i] != 0) { 
+					if((symbol->valueStr[i] == '\\') && (symbol->valueStr[i+1] == 'n')) {
+						cg_put(CMD_ADDI, reg, 0, '\n');
+						cg_put(CMD_PRC, reg, 0, 0);
+						i = i + 1;
+					} else {
+						cg_put(CMD_ADDI, reg, 0, symbol->valueStr[i]);
+						cg_put(CMD_PRC, reg, 0, 0); /* end of self comp (type mismatch) */ 
+					}
+					i = i + 1;
+				} 
+				cg_releaseReg(reg);
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+			} else {
+				if (expression(item)) {
+					cg_load(item);
+					if(item->type->form == TYPE_FORM_CHAR) {
+						cg_put(CMD_PRC, item->reg, 0, 0);
+					} else {
+						cg_put(CMD_PRN, item->reg, 0, 0);
+					}
+				} else { printError("[printMethod] expression expected."); }
+			}
+			if(symbol->id == RPAR) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+				if(symbol->id == SEMCOL) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+					return 1;
+				} else { printError("';' missing."); }
+			} else { printError("')' missing."); }
+		} else { printError("'(' missing."); }
+	}
+	return 0;
+}
+
 /* ifCmd = "if" "(" expression ")" block [elseCmd] . */	
 int ifCmd(struct item_t *item) {
 	int fJumpAddress;
@@ -910,14 +962,11 @@ int ifCmd(struct item_t *item) {
 							getNextToken();
 							fJumpAddress = cg_fJump(); 
 							cg_fixLink(item->fls);
-							if(symbol->id == IF) {
-								ifCmd(item);
-							} else {
-								block();
+							if(block()) {
 								if(hasMoreTokens() == 0) { return 0; }
 								getNextToken();
-								cg_fixUp(fJumpAddress);
 							}
+							cg_fixUp(fJumpAddress);
 						} else { cg_fixLink(item->fls); }
 					}
 					return 1;
@@ -964,132 +1013,21 @@ int whileLoop(struct item_t *item) {
 	return 1;
 }
 
-/* ret = "return" expression . */
-int ret() {
-	struct item_t *item;
-	item = malloc(sizeof(struct item_t));
-	item->type = malloc(sizeof(struct type_t));
-	if(symbol->id == RETURN) {
-		if(hasMoreTokens() == 0) { return 0; }
-		getNextToken();
-		if(expression(item)) { 
-			return 1; 
-		} else {
-			printError("expression expected.");
-		}
-	}
-	return 0;
-}
-
-int procParList(struct object_t *head) {
-	struct object_t *object;
-	struct object_t *ptr;
-	struct type_t *type;
-	struct type_t *array;
-	struct item_t *item;
-
-	item = malloc(sizeof(struct item_t));
-	item->type = malloc(sizeof(struct type_t));
-
-	if(symbol->id == RPAR) { return 1; }
-	while(1) {
-		type = 0;
-		array = 0;
-		ptr = 0;
-		object = malloc(sizeof(struct object_t));
-		object->class = OBJECT_CLASS_VAR;
-
-		if(symbol->id == RPAR) { return 1; }
-		if(symbol->id == STRUCT) { 
-			if(hasMoreTokens() == 0) { return 0; }		
-			getNextToken();
-		}
-		type = newType(typeSpec(item, head));
-		object->offset = paramOffset;
-		if(type->form == 0) {
-			return 1;
-		} else if(type->form == TYPE_FORM_RECORD) {
-			ptr = lookUp(head, symbol->valueStr);
-			if(ptr == 0) {
-				ptr = lookUp(globList, symbol->valueStr);
-				if(ptr != 0) {
-					object->type = ptr->type;
-				}
-			} else {
-				object->type = ptr->type;
-				paramOffset = paramOffset + ptr->offset; /* add size of struct */
-			}
-		} else { paramOffset = paramOffset + 4; } /* add size of datatype */
-
-		if(hasMoreTokens() == 0) { return 0; }
-		getNextToken();
-		if(symbol->id == TIMES) {
-			array = newType(4);
-			array->base = type;
-			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();
-		}
-		if(identifier()) {
-			object->name = malloc(64 * sizeof(char));
-			strnCpy(object->name, symbol->valueStr, 64);
-			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();
-			if(symbol->id == LSQBR) {
-				if(hasMoreTokens() == 0) { return 0; }
-				getNextToken();
-				if(symbol->id == RSQBR) {
-					if(hasMoreTokens() == 0) { return 0; }
-					getNextToken();
-				} else { 
-					printError("']' missing.");
-					return 0; 
-				}
-			}
-			if(symbol->id == RPAR) {
-				if(type->form != TYPE_FORM_RECORD) {
-					if (array != 0) {
-						object->type = array;
-					} else {
-						object->type = type;
-					}
-				}
-				insert(head, object);
-				return 1; 
-			}
-			if(symbol->id == COMMA) {
-				object->scope = LOCAL_SCOPE;
-				if(type->form != TYPE_FORM_RECORD) {
-					if (array != 0) {
-						object->type = array;
-					} else {
-						object->type = type;
-					}
-				}
-				insert(head, object);
-				if(hasMoreTokens() == 0) { return 0; }
-				getNextToken();
-			} else {
-				printError("',' missing.");
-			}
-		} else { return 0; }
-	}
-}
-
 /* declaration = (typedefDec | typeSpec ["*"] identifier) ";" . */
 /* declaration = (typedefDec | typeSpec [TIMES] identifier) SEMCOL . */
-int declaration(struct object_t *head, int isStruct) {
+int variableDeclarationSequence(struct object_t *head, int isStruct) {
 	struct object_t *object;
 	struct object_t *ptr;
 	struct type_t *type;
 	struct type_t *array;
 	struct item_t *item;
 	int off;
+	int decCounter;
 	item = malloc(sizeof(struct item_t));
 	item->type = malloc(sizeof(struct type_t));
-
+	decCounter = 0;
 	if(isStruct) { off = 0; }
 	else { off = locOffset; }
-
 	while(1) {
 		type = 0;
 		array = 0;
@@ -1100,13 +1038,12 @@ int declaration(struct object_t *head, int isStruct) {
 
 		typedefDec(head);
 		if(symbol->id == STRUCT) { 
-			if(hasMoreTokens() == 0) { return 0; }		
+			if(hasMoreTokens() == 0) { return decCounter; }		
 			getNextToken();
 		}
 		type = newType(typeSpec(item, head));
 		object->offset = off;
-
-		if(type->form == 0) { return 1; } 
+		if(type->form == 0) { return decCounter; } 
 		else if(type->form == TYPE_FORM_RECORD) {
 			ptr = lookUp(head, symbol->valueStr);
 			if(ptr == 0) {
@@ -1117,19 +1054,18 @@ int declaration(struct object_t *head, int isStruct) {
 			} else { object->type = ptr->type; }
 		}
 		off = off - 4;	/* size of local variable int,char 4byte; pointer to struct 4byte  */
-
-		if(hasMoreTokens() == 0) { return 0; }
+		if(hasMoreTokens() == 0) { return decCounter; }
 		getNextToken();
 		if(symbol->id == TIMES) {
 			array = newType(4);
 			array->base = type;
-			if(hasMoreTokens() == 0) { return 0; }
+			if(hasMoreTokens() == 0) { return decCounter; }
 			getNextToken();			
 		}
 		if(identifier()) {
 			object->name = malloc(64 * sizeof(char));
 			strnCpy(object->name, symbol->valueStr, 64);
-			if(hasMoreTokens() == 0) { return 0; }
+			if(hasMoreTokens() == 0) { return decCounter; }
 			getNextToken();
 			if(symbol->id == SEMCOL) {
 				object->scope = LOCAL_SCOPE;
@@ -1140,11 +1076,20 @@ int declaration(struct object_t *head, int isStruct) {
 						object->type = type;
 					}
 				}
-				insert(head, object);
-				if(hasMoreTokens() == 0) { return 0; }
+				if(isStruct) {
+					insert(head, object);
+				} else {
+					if(lookUp(head, object->name) != 0)	{	//check additionally, if the symbol is in de paramsList
+						printf("error: multible declaration of %s\n", object->name);
+					} else {
+						insert(locList, object);
+					}
+				}
+				if(hasMoreTokens() == 0) { return decCounter; }
 				getNextToken();
 			} else { printError("';' missing."); }
 		} else { printError("[declaration] identifier expected."); }
+		decCounter = decCounter + 1;
 	}
 }
 
@@ -1240,7 +1185,7 @@ int structDec() {
 			if(symbol->id == LCUBR) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
-				declaration(fieldObj, 1);
+				variableDeclarationSequence(fieldObj, 1);
 
 				/* count fields */
 				i = 0;
@@ -1285,21 +1230,395 @@ int structDec() {
 	return 0;
 }
 
+int returnType(struct item_t *item) {
+	if(symbol->id == STRUCT) { 
+		if(hasMoreTokens() == 0) { return 0; }		
+		getNextToken();
+	}
+	if(typeSpec(item, globList) == 0) {
+		printError("[returnType] type expected.");
+	}
+	if(hasMoreTokens() == 0) { return 0; }
+	getNextToken();
+	return 1;
+}
+
+struct object_t *createObject(string_t name) {
+	struct object_t *object;
+	object = malloc(sizeof(struct object_t));
+	object->type = malloc(sizeof(struct type_t));
+	object->name = name;
+	insert(globList, object);
+	return object;
+}
+
+struct type_t *basicArrayRecordType() {
+	struct type_t *type;
+	struct type_t *array;
+	struct object_t *ptr;
+	ptr = malloc(sizeof(struct object_t));
+	type = malloc(sizeof(struct type_t));
+
+	if(symbol->id == INT ) { type->form = TYPE_FORM_INT;  type->size = 4; }
+	if(symbol->id == CHAR) { type->form = TYPE_FORM_CHAR; type->size = 4; }
+	if(symbol->id == VOID) { type->form = TYPE_FORM_VOID; type->size = 4; }
+	if(symbol->id == BOOL) { type->form = TYPE_FORM_BOOL; type->size = 4; }
+	if(symbol->id == STRUCT) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(identifier()) {
+			ptr = lookUp(globList, symbol->valueStr);
+			if(ptr != 0 && ptr->class == OBJECT_CLASS_TYPE) {
+				type->form = ptr->type->form;
+				type->size = ptr->type->size;
+				type->fields = ptr->type->fields;
+				type->base = ptr->type->base;
+			}
+		}
+	}
+	if(hasMoreTokens() == 0) { return 0; }
+	getNextToken();
+	if(symbol->id == TIMES) {
+		array = newType(4);
+		array->base = type;
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();	
+		return array;		
+	}
+	return type;
+}
+
+void prologue(int localSize) {
+	cg_put(CMD_PSH, LINK, SPTR, 4); 				// save return address
+	cg_put(CMD_PSH, FPTR, SPTR, 4); 				// save caller's frame
+	cg_put(CMD_ADD, FPTR, 0, SPTR); 				// allocate callee's frame
+	cg_put(CMD_SUBI, SPTR, SPTR, localSize); 	// allocate callee's local variables
+}
+
+void epilogue(int paramSize) {
+	cg_put(CMD_ADD, SPTR, 0, FPTR); 				// deallocate callee's frame and local variables 
+	cg_put(CMD_POP, FPTR, SPTR, 4); 				// restore caller's frame
+	cg_put(CMD_POP, LINK, SPTR, paramSize + 4); 	// restore return address
+												// deallocate parameters
+	if(strCmp(procedureContext->name, "main") != 0) {cg_put(CMD_RET, 0, 0, LINK); }			// return 
+	else { cg_put(CMD_TRAP, 0, 0, 0); }
+}
+
+int procedureImplementation(struct item_t* item, string_t identifier) {
+	struct object_t* object;
+	if(strCmp(identifier, "main") == 0) { mainPos = PC + 1; }		//set jump to main method
+	object = findProcedureObject(globList, identifier);
+	if (object != 0) {
+		if (object->type->form != item->type->form) { printError("return type mismatch in procedure"); return 0; }
+		cg_fixLink(object->offset);
+	} else {	
+		object = createObject(identifier);
+		object->class = OBJECT_CLASS_PROC;
+	}
+	object->type->form = item->type->form;
+	object->type->size = item->type->size;
+	object->type->fields = item->type->fields;
+	object->type->base = item->type->base;
+	object->offset = PC;
+	object->scope = GLOBAL_SCOPE;
+	formalParameters(object);
+	returnFJumpAddress = 0;
+	if (symbol->id == LCUBR) { 
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+	} else if(symbol->id == SEMCOL) {
+		if(object->offset == 1) { object->offset = 0;}
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		return 1;
+	} else { printError("missing '{'"); return 0; }
+
+	prologue(variableDeclarationSequence(object, 0) * 4);
+	procedureContext = object;
+	statementSeq();
+	cg_fixLink(returnFJumpAddress);
+	epilogue(object->value * 4);
+	if (symbol->id == RCUBR) { 
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken(); 
+		return 1; 
+	} 
+	else { printError("missing '}'"); return 0; }
+}
+
+int formalParameters(struct object_t* object) {
+	int numberOfParameters; 
+	struct object_t* nextParameter;
+	numberOfParameters = 0;
+	if (symbol->id == LPAR) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+	} 
+	else { printError("missing '('"); }
+	nextParameter = object->params;
+	if ((symbol->id == INT) || (symbol->id == CHAR) || (symbol->id == BOOL) || identifier() || (symbol->id == STRUCT)) {
+		nextParameter = formalParameter(object, nextParameter);
+		numberOfParameters = numberOfParameters + 1;
+		while (symbol->id == COMMA) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			nextParameter = formalParameter(object, nextParameter);
+			numberOfParameters = numberOfParameters + 1;
+		}
+	}
+	object->value = numberOfParameters;
+	nextParameter = object->params;
+	while (nextParameter != 0) { 
+		numberOfParameters = numberOfParameters - 1; 
+		nextParameter->offset = numberOfParameters * 4 + 8; 
+		nextParameter = nextParameter->next;
+	}
+	if (symbol->id == RPAR) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		return 1;
+	}
+	else { printError("missing ')'"); } 
+	return 0;
+}
+
+struct object_t* createFormalParameter(struct object_t* object, struct type_t* type, string_t identifier) {
+	struct object_t *ptr;
+	if(object->params == 0) { object->params = malloc(sizeof(struct object_t)); }
+	ptr = object->params;
+	if(ptr->name == 0) {
+		ptr->name = malloc(sizeof(char)*64);
+		ptr->type = malloc(sizeof(struct type_t));
+		strncpy(ptr->name, identifier, 64);
+		ptr->type->form = type->form;
+		ptr->type->size = type->size;
+		ptr->type->fields = type->fields;
+		ptr->type->base = type->base;
+		ptr->scope = LOCAL_SCOPE;
+		ptr->next = 0;
+	} else {
+		while(ptr->next != 0) {
+			ptr = ptr->next;
+		}
+		ptr->next = malloc(sizeof(struct object_t)); 
+		ptr->next->name = malloc(sizeof(char)*64);
+		ptr->next->type = malloc(sizeof(struct type_t));
+		strncpy(ptr->next->name, identifier, 64);
+		ptr->next->type->form = type->form;
+		ptr->next->type->size = type->size;
+		ptr->next->type->fields = type->fields;
+		ptr->next->type->base = type->base;
+		ptr->next->scope = LOCAL_SCOPE;
+		ptr->next->next = 0;
+	}
+ 	return ptr;
+}
+
+struct object_t* formalParameter(struct object_t* object, struct object_t* formalParameter) {
+	struct type_t* type;
+	type = basicArrayRecordType();
+	if (identifier()) {
+		if (formalParameter != 0) {
+			if (type->form != formalParameter->type->form) { printError("type mismatch in procedure declaration and call"); }
+			//if (lookUp(object->params, symbol->valueStr) != 0) { printError("parameter name already used: "); } /* TODO:  */
+		} else { formalParameter = createFormalParameter(object, type, symbol->valueStr); }
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		formalParameter = formalParameter->next;
+	} else { printError("[formalParameter] identifier expected"); }
+	return formalParameter;
+}
+
+int procedureReturn() {
+	struct item_t* item;
+	if (symbol->id == RETURN) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+	} else { printError("return statement expected"); return 0; }
+
+	if ((symbol->id == PLUS) || (symbol->id == MINUS) || identifier() || (symbol->id == INT) ||
+		(symbol->id == LPAR) || (symbol->id == STRING || number())) {
+		item = malloc(sizeof(struct item_t)); 
+		item->type = malloc(sizeof(struct type_t));
+		expression(item); 
+		if (item->type->form != procedureContext->type->form) { printError("return type mismatch"); return 0; }
+		if (item->type->form == TYPE_FORM_BOOL) { cg_unloadBool(item); }
+		cg_load(item);
+		cg_put(CMD_ADD, RR, 0, item->reg);
+		cg_releaseReg(item->reg); 
+	}
+	returnFJumpAddress = fJumpChain(returnFJumpAddress);
+	return 1;
+}
+
+int fJumpChain(int branchAddress) {
+	cg_put(CMD_BR, 0, 0, branchAddress);
+	return PC - 1;
+}
+
+int pushUsedRegisters() {
+	int counter;
+	int i; 
+	i = 1;
+	counter = 0;
+	while (i < 25) { 
+		if (regs[i] == 1) { 
+			cg_put(CMD_PSH, i, SPTR, 4);
+			cg_releaseReg(i);
+			counter = counter + 1; 
+		}
+		i = i + 1;
+	}
+	return counter;
+}
+
+void popUsedRegisters(int counter) {
+	int i; i = counter;
+	while (i > 0) {
+		cg_put(CMD_POP, cg_requestReg(), SPTR, 4);
+		i = i - 1;
+	}
+}
+
+int isBSR(int offset) {
+	return (out_cmd_buff[offset]->op == CMD_BSR);
+}
+
+void procedureCall(struct item_t* item, string_t procName) {
+	struct object_t* object;
+	int nrOfRegs;
+	nrOfRegs = 0;
+	string_t identifier;
+	identifier = malloc(sizeof(char)*64);
+	strncpy(identifier, procName, 64);
+	object = findProcedureObject(globList, identifier);
+	if (object == 0) {
+		printError("undeclared procedure: ");
+		object = createObject(identifier);
+		object->class = OBJECT_CLASS_PROC;
+		object->type->form = TYPE_FORM_UNKNOWN; // TODO: infer return type 
+		object->offset = 0;
+	}
+	item->mode = ITEM_MODE_REG;
+	item->type = object->type; // type of return value
+	nrOfRegs = pushUsedRegisters();
+	actualParameters(object);
+	if ((object->offset != 0) && (isBSR(object->offset) == 0)) { sJump(object->offset - PC); }
+	else { object->offset = sJump(object->offset); }
+	popUsedRegisters(nrOfRegs);
+	item->reg = cg_requestReg(); 
+	cg_put(CMD_ADD, item->reg, 0, RR);
+}
+
+int sJump(int branchAddress) {
+	cg_put(CMD_BSR, 0, 0, branchAddress);
+	return PC - 1; 
+}
+
+void pushParameter(struct item_t* item) {
+	if (item->type->form == TYPE_FORM_BOOL) { cg_unloadBool(item); }
+	cg_load(item);
+	cg_put(CMD_PSH, item->reg, SPTR, 4);
+	cg_releaseReg(item->reg); 
+}
+
+int actualParameters(struct object_t* object) {
+	struct object_t* nextFormalParameter;
+	struct item_t* item;
+	if (symbol->id == LPAR) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+	} 
+	else { printError("missing '('"); }
+	nextFormalParameter = object->params;
+	if ((symbol->id == PLUS) || (symbol->id == MINUS) || identifier() || (symbol->id == INT) ||
+		(symbol->id == LPAR) || (symbol->id == STRING || number())) {
+		nextFormalParameter = actualParameter(object, nextFormalParameter);
+		while (symbol->id == COMMA) { 
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			nextFormalParameter = actualParameter(object, nextFormalParameter);
+		}
+	}
+
+	while (nextFormalParameter != 0) {
+		printError("[warning] actual parameter expected");
+		item = malloc(sizeof(struct item_t));
+		item->mode = ITEM_MODE_CONST; 
+		item->type->form = TYPE_FORM_INT; 
+		item->value = 0;
+		pushParameter(item);
+		nextFormalParameter = nextFormalParameter->next;
+	}
+	if (symbol->id == RPAR) {
+		return 1;
+	} 
+	else { printError("missing ')'"); }
+	return 0;
+}
+
+struct object_t* createAnonymousParameter(struct object_t* object, struct type_t *type) {
+	struct object_t *ptr;
+	if(object->params == 0) { object->params = malloc(sizeof(struct object_t)); }
+	ptr = object->params;
+	if(ptr->name == 0) {
+		ptr->type = malloc(sizeof(struct type_t));
+		ptr->type->form = type->form;
+		ptr->type->size = type->size;
+		ptr->type->fields = type->fields;
+		ptr->type->base = type->base;
+		ptr->scope = LOCAL_SCOPE;
+		ptr->next = 0;
+	} else {
+		while(ptr->next != 0) {
+			ptr = ptr->next;
+		}
+		ptr->next = malloc(sizeof(struct object_t)); 
+		ptr->next->type = malloc(sizeof(struct type_t));
+		ptr->next->type->form = type->form;
+		ptr->next->type->size = type->size;
+		ptr->next->type->fields = type->fields;
+		ptr->next->type->base = type->base;
+		ptr->next->scope = LOCAL_SCOPE;
+		ptr->next->next = 0;
+	}
+ 	return ptr;
+}
+
+struct object_t* actualParameter(struct object_t* object, struct object_t* formalParameter) {
+	struct item_t* item;
+	if ((symbol->id == PLUS) || (symbol->id == MINUS) || identifier() || (symbol->id == INT) ||
+		(symbol->id == LPAR) || (symbol->id == STRING || number())) {
+		item = malloc(sizeof(struct item_t));
+		expression(item);
+		if (formalParameter != 0) {
+			if (item->type->form != formalParameter->type->form) { printError("[warning] type mismatch in procedure call"); }
+		} else { formalParameter = createAnonymousParameter(object, item->type); }
+		pushParameter(item);
+		formalParameter = formalParameter->next;
+	} else { printError("actual parameter expected"); }
+	return formalParameter;
+}
+
 int globalDec() {
 	struct object_t *object;
 	struct object_t *ptr;
 	struct type_t *type;
 	struct type_t *array;
 	struct item_t *item;
-
-	item = malloc(sizeof(struct item_t));
-	item->type = malloc(sizeof(struct type_t));
+	string_t identName;
 
 	while(1) { 	
 		type = 0;
 		array = 0;
 		ptr = 0;
+		object = 0;
+		item = 0;
 		object = malloc(sizeof(struct object_t));
+		identName = malloc(sizeof(char)*64);
+		item = malloc(sizeof(struct item_t));
+		item->type = malloc(sizeof(struct type_t));
+
 		while(typedefDec(globList)) {}
 		while(typeSpec(item, globList) == 0 && symbol->id != STRUCT && hasMoreTokens()) {
 			printError("globalDec: typeSpec (char, int or void) expected.");
@@ -1334,31 +1653,15 @@ int globalDec() {
 		if(identifier()) {
 			object->name = malloc(64 * sizeof(char));
 			strnCpy(object->name, symbol->valueStr, 64);
-			locList = 0;
-			locList = malloc(sizeof(struct object_t));
-			locOffset = 0;
+			strnCpy(identName, symbol->valueStr, 64);
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			/* procHead */
 			if(symbol->id == LPAR) {
-				if(hasMoreTokens() == 0) { return 0; }
-				getNextToken();
-				if(procParList(locList)) {
-					if(hasMoreTokens() == 0) { return 0; }
-					getNextToken();
-					if(symbol->id == SEMCOL) { return 1; } 
-					else if(symbol->id == LCUBR) {
-						if(hasMoreTokens() == 0) { return 0; }
-						getNextToken();
-
-						declaration(locList, 0);
-
-						if(statementSeq()) {
-							if(symbol->id == RCUBR) { return 1; }
-							else { printError("'}' missing."); } 
-						}						
-					}
-				}
+				locList = 0;
+				locList = malloc(sizeof(struct object_t));
+				locOffset = -4;
+				procedureImplementation(item, identName); 
 			} 
 			/* declaration */
 			else if(symbol->id == SEMCOL) {
@@ -1387,19 +1690,20 @@ int statementSeq () {
 		item = malloc(sizeof(struct item_t));
 		item->type = malloc(sizeof(struct type_t));
 		while(identifier() == 0 && number() == 0 && symbol->id != WHILE && symbol->id != IF 
-				&& symbol->id != RETURN && symbol->id != LPAR && symbol->id != ELSE) {
+				&& symbol->id != RETURN && symbol->id != LPAR && symbol->id != ELSE && symbol->id != PRINTF) {
 			if(hasMoreTokens() == 0) { return 0; }			
 			getNextToken();
 			printError("statSeq(1): identifier, number, while, if or return expected.");
 		}
 		if(ifCmd(item)) {} 
+		else if(printMethod(item)) {}
 		else if(whileLoop(item)) {}
-		else if(expression(item) || ret()) {
+		else if(expression(item) || procedureReturn()) {
 			if(symbol->id == SEMCOL) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
 			} else {
-				printError("';' missing.");	
+				printError("[stateSeq] ';' missing.");	
 			}
 		}
 
@@ -1456,7 +1760,7 @@ int startParsing(char *sfile, char *ofile){
 
 	nrOfGVar = 0;
 	nrOfStrs = 0;
-	PC = 0;	
+	PC = 1;	
 
 	initTMCmd();
 	cg_initRegs();
@@ -1473,6 +1777,4 @@ int startParsing(char *sfile, char *ofile){
 	finalizeOutputFile();
 	printf("\n -- DONE. --\n\n");
 	return i;
-
 }
-

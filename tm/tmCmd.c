@@ -57,6 +57,8 @@ void initTMCmd() {
 	CMD_SP  = 2; 	/* string pointer */
 	CMD_CS  = 3; 	/* code size */
 	CMD_MAL = 4;	/* malloc */
+	CMD_PRN = 5;  /* print given value as integer */
+	CMD_PRC = 6;  /* print given value as char */
 }
 
 char *getCmdName(id) {
@@ -90,5 +92,7 @@ char *getCmdName(id) {
 	if(id == CMD_SP  ) return "sp  ";
 	if(id == CMD_CS  ) return "cs  ";
 	if(id == CMD_MAL ) return "mal ";
+	if(id == CMD_PRN ) return "prn ";
+	if(id == CMD_PRC ) return "prc ";
 	return "unknown";
 }
