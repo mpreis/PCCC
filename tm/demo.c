@@ -22,7 +22,7 @@ void main(int argc) {
 	
 	initTMCmd();
 	printf(" -- generate bin file (%s).\n", file);
-
+/*
 	// meta data
 	buff[0]  = encode(CMD_CS,	0, 0, 15);
 	buff[1]  = encode(CMD_GP,	0, 0, 16); 
@@ -40,7 +40,7 @@ void main(int argc) {
 	addi(10) 2 0 4
 	stw (31) 2 1 4
 	trap(9) 0 0 0
-*/
+
 
 	buff[3]  = encode(CMD_ADDI,	1, 0, 	12);
 	buff[4]  = encode(CMD_ADDI,	1, 30,  0);
@@ -57,7 +57,11 @@ void main(int argc) {
 
 	fwrite(buff,4,15,fp);
 	fclose(fp);
-
+*/
+	// meta data
+	buff[0]  = encode(CMD_CS,	0, 0, 15);
+	buff[1]  = encode(CMD_GP,	0, 0, 16); 
+	buff[2]  = encode(CMD_SP,	0, 0,  0);
 //	startTM(file);
 	startTM("../my_pccc");
 }
