@@ -180,6 +180,7 @@ void getNextToken() {
 		else if(strCmp(identifier, "sizeof" ) == 0) { symbol->id = SIZEOF;	strnCpy(symbol->valueStr, identifier, 6); }
 		else if(strCmp(identifier, "malloc" ) == 0) { symbol->id = MALLOC;	strnCpy(symbol->valueStr, identifier, 6); }
 		else if(strCmp(identifier, "struct" ) == 0) { symbol->id = STRUCT;	strnCpy(symbol->valueStr, identifier, 6); }
+		else if(strCmp(identifier, "printf" ) == 0) { symbol->id = PRINTF;	strnCpy(symbol->valueStr, identifier, 6); }
 		else if(strCmp(identifier, "typedef") == 0) { symbol->id = TYPEDEF;	strnCpy(symbol->valueStr, identifier, 7); }
 		else { symbol->id = IDENT; strnCpy(symbol->valueStr, identifier, 64); }
 	}

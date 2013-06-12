@@ -58,3 +58,5 @@ int CMD_GP;  // = 1;	/* global pointer */
 int CMD_SP;  // = 3; 	/* string pointer */
 int CMD_CS;  // = 2; 	/* code size */
 int CMD_MAL; // = 4;	/* malloc */
+int CMD_PRN; // = 5;  /* print given value as integer */
+int CMD_PRC; // = 6;  /* print given value as char */

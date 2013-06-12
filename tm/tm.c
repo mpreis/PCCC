@@ -114,7 +114,7 @@ void loadCode(char *file) {
 
 void fetch() {
 	decode(mem[pc/4]);
-	printf("\n -- %s(%i) %i %i %i\n", getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3]);
+	//printf("\n -- %s(%i) %i %i %i\n", getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3]);
 }
 
 void decode(int instruction) {
@@ -162,6 +162,8 @@ void execute() {
 	else if(ir[0] == CMD_WRC)  wrc (ir[1], ir[3]); 
 
 	else if(ir[0] == CMD_MAL)  mal (ir[3]);
+	else if(ir[0] == CMD_PRN)  prn (ir[1]);
+	else if(ir[0] == CMD_PRC)  prc (ir[1]);
 
 	else if(ir[0] == CMD_TRAP) {}
 	else { printf("\nERROR: invalid command (%i)!\n", ir[0]); exit(1); /*pc = pc + 4;*/ }
@@ -213,6 +215,10 @@ void wrc (int a, int c) { fwrite(reg[a],4,1,reg[c]); }
 
 /* malloc */
 void mal (int c) { reg[30] = reg[30] + reg[c]/4; reg[c] = reg[30]; pc = pc + 4; } 
+
+/* print */
+void prn (int a) { printf("%i", reg[a]); pc = pc + 4; }
+void prc (int a) { printf("%c", reg[a]); pc = pc + 4; }
 
 /* dlx */
 void startTM(char *file) {

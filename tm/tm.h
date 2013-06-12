@@ -64,6 +64,10 @@ void wrc (int a, int c);
 /* malloc */
 void mal (int c);
 
+/* printf */
+void prn (int a);
+void prc (int a);
+
 
 /*******************************************************************/
 /* HELPER METHODS                                                  */

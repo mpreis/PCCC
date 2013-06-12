@@ -884,12 +884,59 @@ int paramList() {
 	}
 }
 
+int printfMethod(struct item_t *item) {
+	int i;
+	int reg;
+	if(symbol->id == PRINTF) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(symbol->id == LPAR) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(symbol->id == STRING) {
+				i = 0;
+				reg = cg_requestReg();
+				while(symbol->valueStr[i] != 0) { 
+					if((symbol->valueStr[i] == '\\') && (symbol->valueStr[i+1] == 'n')) {
+						cg_put(CMD_ADDI, reg, 0, '\n');
+						cg_put(CMD_PRC, reg, 0, 0);
+						i = i + 1;
+					} else {
+						cg_put(CMD_ADDI, reg, 0, symbol->valueStr[i]);
+						cg_put(CMD_PRC, reg, 0, 0); /* end of self comp (type mismatch) */ 
+					}
+					i = i + 1;
+				} 
+				cg_releaseReg(reg);
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+			} else {
+				if (expression(item)) {
+					cg_load(item);
+					if(item->type == TYPE_FORM_CHAR) {
+						cg_put(CMD_PRC, item->reg, 0, 0);
+					} else {
+						cg_put(CMD_PRN, item->reg, 0, 0);
+					}
+				} else { printError("[printfMethod] expression expected."); }
+			}
+			if(symbol->id == RPAR) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
+				if(symbol->id == SEMCOL) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+					return 1;
+				} else { printError("';' missing."); }
+			} else { printError("')' missing."); }
+		} else { printError("'(' missing."); }
+	}
+	return 0;
+}
+
 /* ifCmd = "if" "(" expression ")" block [elseCmd] . */	
 int ifCmd(struct item_t *item) {
 	int fJumpAddress;
-	struct item_t *newItem;
-	newItem = malloc(sizeof(struct type_t));
-
 
 	if(symbol->id == IF) {
 		if(hasMoreTokens() == 0) { return 0; }
@@ -986,8 +1033,8 @@ int variableDeclarationSequence(struct object_t *head, int isStruct) {
 		array = 0;
 		ptr = 0;
 		object = malloc(sizeof(struct object_t));
-		if(isStruct == 0) { printf("weil1..."); object->class = OBJECT_CLASS_VAR; } 
-		else { printf("weil2..."); object->class = OBJECT_CLASS_FIELD; }
+		if(isStruct == 0) { object->class = OBJECT_CLASS_VAR; } 
+		else { object->class = OBJECT_CLASS_FIELD; }
 
 		typedefDec(head);
 		if(symbol->id == STRUCT) { 
@@ -1203,7 +1250,6 @@ struct object_t *createObject(string_t name) {
 	struct object_t *object;
 	object = malloc(sizeof(struct object_t));
 	object->type = malloc(sizeof(struct type_t));
-printf("object: %d\n", object);
 	object->name = name;
 	insert(globList, object);
 	return object;
@@ -1271,7 +1317,6 @@ int procedureImplementation(struct item_t* item, string_t identifier) {
 		if (object->type->form != item->type->form) { printError("return type mismatch in procedure"); return 0; }
 		cg_fixLink(object->offset);
 	} else {	
-printf("ident: %s, PC %d\n", identifier, PC);
 		object = createObject(identifier);
 		object->class = OBJECT_CLASS_PROC;
 	}
@@ -1453,7 +1498,6 @@ void procedureCall(struct item_t* item, string_t procName) {
 	string_t identifier;
 	identifier = malloc(sizeof(char)*64);
 	strncpy(identifier, procName, 64);
-printTable(globList);
 	object = findProcedureObject(globList, identifier);
 	if (object == 0) {
 		printError("undeclared procedure: ");
@@ -1661,12 +1705,13 @@ int statementSeq () {
 		item = malloc(sizeof(struct item_t));
 		item->type = malloc(sizeof(struct type_t));
 		while(identifier() == 0 && number() == 0 && symbol->id != WHILE && symbol->id != IF 
-				&& symbol->id != RETURN && symbol->id != LPAR && symbol->id != ELSE) {
+				&& symbol->id != RETURN && symbol->id != LPAR && symbol->id != ELSE && symbol->id != PRINTF) {
 			if(hasMoreTokens() == 0) { return 0; }			
 			getNextToken();
 			printError("statSeq(1): identifier, number, while, if or return expected.");
 		}
 		if(ifCmd(item)) {} 
+		else if(printfMethod(item)) {}
 		else if(whileLoop(item)) {}
 		else if(expression(item) || procedureReturn()) {
 			if(symbol->id == SEMCOL) {

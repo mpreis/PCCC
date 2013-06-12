@@ -58,3 +58,4 @@ int END			; /* = 54;	last token			*/
 int ARROW		; /* = 55;	->					*/
 int SIZEOF		; /* = 56;	size of type		*/
 int MALLOC		; /* = 57;	allocate memory		*/
+int PRINTF		; /* = 58;  write to output	*/
