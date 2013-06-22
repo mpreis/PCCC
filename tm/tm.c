@@ -209,17 +209,17 @@ void flo (int a, int b, int c) {
 	filename[i] = '\0';
 	reg[a] = open(filename, reg[b], reg[c]); pc = pc + 4; 
 } 
-void flc (int c) { close(reg[c]); pc = pc + 4; } 
+void flc (int c) { reg[c] = close(reg[c]); pc = pc + 4; } 
 void rdc (int a, int b, int c) { 
 	int i; char *buf = malloc(sizeof(char) * reg[c]/4);
-	read (reg[a], buff, reg[c]/4); pc = pc + 4; 
+	reg[a] = read (reg[a], buf, reg[c]/4); pc = pc + 4; 
 	for(i = 0; i < reg[c]/4; i++) { mem[ (reg[b]-i) ] = buf[i]; }
 } 
 void wrc (int a, int b, int c) { 
 	int i; char *buf = malloc(sizeof(char) * reg[c]/4);
 	for(i = 0; i < (reg[c]/4); i++) { buf[i] =  mem[ (reg[b]-i) ]; }
 	buf[i] = '\0';
-	write(reg[a], buf, reg[c]/4); pc = pc + 4; 
+	reg[a] = write(reg[a], buf, reg[c]/4); pc = pc + 4; 
 } 
 
 /* malloc */

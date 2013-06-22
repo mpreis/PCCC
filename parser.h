@@ -109,3 +109,8 @@ void pushParameter(struct item_t* item);
 int actualParameters(struct object_t* object);
 struct object_t* createAnonymousParameter(struct object_t* object, struct type_t *type);
 struct object_t* actualParameter(struct object_t* object, struct object_t* formalParameter);
+
+int fileOpen(struct item_t *item);
+int fileRead(struct item_t *item);
+int fileWrite(struct item_t *item);
+int fileClose(struct item_t *item);
