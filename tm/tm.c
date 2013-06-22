@@ -29,17 +29,17 @@ int *ir;		// instruction register
 /*
 	memory structure:
 
-	+-------------+<- reg[29] (mem_max)
+	+-------------+ mem_max
 	|    stack    |
 	~             ~
-	+-------------+<- sptr
+	+-------------+<- reg[29] (stack ptr)
 	|      ↓      |
 	|             |
 	|      ↑      |
 	+-------------+<- reg[30] (heap ptr)
 	~             ~
 	|    heap     |
-	+-------------+<- reg[28]
+	+-------------+<- reg[28] (global var ptr)
 	|   global    |
 	|  variables  |
 	+-------------+<- reg[27] (string ptr)
