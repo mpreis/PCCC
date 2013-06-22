@@ -41,6 +41,7 @@ int FPTR;	/* frame pointer */
 int GPTR;	/* global pointer */
 int SPTR;	/* stack pointer */
 int HPTR;	/* heap pointer */
+int STRPTR; /* string pointer */
 
 int *regs;
 int nrOfRegs;

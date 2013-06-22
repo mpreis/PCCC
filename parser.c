@@ -21,7 +21,7 @@ void finalizeOutputFile() {
 	int out_fp_bin;
 	int *tempBuff;
 	tempBuff = malloc(32);
-	out_fp_bin = open(outfile, 513, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
+	out_fp_bin = open(outfile, 65, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
 										 /* 513 ... O_CREAT (512) | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Mac */
 	if(out_fp_bin < 0) {
 		printError("can not open/create output file.");
@@ -32,7 +32,7 @@ void finalizeOutputFile() {
 	write(out_fp_bin, tempBuff, 4); 
 	tempBuff[0] = cg_encode(CMD_GP,	0, 0, nrOfGVar*4);
 	write(out_fp_bin, tempBuff, 4);
-	tempBuff[0] = cg_encode(CMD_SP,	0, 0, nrOfStrs);	
+	tempBuff[0] = cg_encode(CMD_SP,	0, 0, nrOfStrs-1);	
 	write(out_fp_bin, tempBuff, 4); 
 	if(mainPos != -1) {
 		tempBuff[0] = cg_encode(CMD_BR,	0, 0, mainPos);	
@@ -114,6 +114,7 @@ void cg_initRegs() {
 	RR   = 25;
 	FPTR = 26;
 	GPTR = 28;
+	STRPTR=27;
 	SPTR = 29;
 	HPTR = 30;
 	LINK = 31;
@@ -249,7 +250,8 @@ void cg_termOperator(struct item_t *leftItem, struct item_t *rightItem, int op) 
 }
 
 void cg_expressionOperator(struct item_t *leftItem, struct item_t *rightItem, int op) {
-	if ((leftItem->type->form == TYPE_FORM_INT) && (rightItem->type->form == TYPE_FORM_INT)) {
+	if ( ((leftItem->type->form == TYPE_FORM_INT)  || (leftItem->type->form == TYPE_FORM_CHAR)) 
+	  && ((rightItem->type->form == TYPE_FORM_INT) || (rightItem->type->form == TYPE_FORM_CHAR)) ) {
 		cg_load(leftItem);
 		if ((rightItem->mode != ITEM_MODE_CONST) || (rightItem->value != 0)) {
 			cg_load(rightItem);
@@ -294,9 +296,7 @@ void cg_assignment(struct item_t *leftItem, struct item_t *rightItem) {
 	if(leftItem->type->form != rightItem->type->form && rightItem->type->form != TYPE_FORM_VOID) { 
 		printError("[assignment] Type mismatch in assignment"); 
 	}
-
 	if (rightItem->type->form == TYPE_FORM_BOOL) { cg_unloadBool(rightItem); }
-
 	cg_load(rightItem);
 	cg_put(CMD_STW, rightItem->reg, leftItem->reg, leftItem->offset);
 	if(leftItem->mode == ITEM_MODE_REF) { cg_releaseReg(leftItem->reg); }
@@ -307,7 +307,7 @@ void cg_allocate(struct item_t *item) {
 	cg_load(item);
 	item->type->form = TYPE_FORM_VOID;
 	item->type->fields = 0;
-	cg_put(CMD_MAL,0,0,item->reg);
+	cg_put(CMD_MAL,HPTR,0,item->reg);
 }
 
 void cg_cJump(struct item_t *item) {
@@ -479,7 +479,7 @@ int typeSpec(struct item_t *item, struct object_t *head) {
 			item->value = ptr->type->size;
 			return TYPE_FORM_RECORD;
 		} else if(head->scope != 0 && head->class != 0 && head->type != 0) {	// first element in list
-			printError("unknown type.");
+			//TODO printError("unknown type.");
 		}
 	}
 	return 0;
@@ -489,6 +489,57 @@ int typeSpec(struct item_t *item, struct object_t *head) {
 int include() {
 	if(symbol->id == INCLUDE) { return 1; }
 	return 0;
+}
+
+int storeString(struct item_t *item) {
+	int i; int reg; int r;
+	i = 0;
+
+/*
+
+void cg_const2Reg(struct item_t *item) {
+	item->mode = ITEM_MODE_REG;
+	item->reg = cg_requestReg();
+	cg_put(CMD_ADDI, item->reg, 0, item->value);
+	item->value = 0;
+	item->offset = 0;
+}
+void cg_var2Reg(struct item_t *item) {
+	int newReg;
+	item->mode = ITEM_MODE_REG;
+	newReg = cg_requestReg();
+	cg_put(CMD_LDW, newReg, item->reg, item->offset);
+	item->reg = newReg;
+	item->offset = 0;
+}
+void cg_ref2Reg(struct item_t *item) {
+	item->mode = ITEM_MODE_REG;
+	cg_put(CMD_LDW, item->reg, item->reg, item->offset);
+	item->offset = 0;
+}
+
+*/
+	r = cg_requestReg();
+	cg_put( CMD_ADDI, r, STRPTR, (nrOfStrs * (-1)) );
+
+	item->mode = ITEM_MODE_REG;
+	item->offset = 0;
+	item->reg = r;
+	if(item->type == 0) { item->type = malloc(sizeof(struct type_t)); }
+	item->type->form = TYPE_FORM_VOID;
+	item->type->fields = 0;
+
+	reg = cg_requestReg();
+	while(i < symbol->digitValue) {
+		cg_put( CMD_ADDI, reg, 0, symbol->valueStr[i] );
+		cg_put( CMD_STW, reg, STRPTR, ( (nrOfStrs + i) * 4 * (-1)) );
+		i = i + 1;
+	}
+	cg_put( CMD_STW, 0, STRPTR, ( (nrOfStrs + i) * 4 * (-1)) );
+	nrOfStrs = nrOfStrs + i + 1;
+	cg_releaseReg(reg);
+
+	return 1;
 }
 
 /* sizeof "(" (typeSpec | identifier) ")" . */
@@ -506,7 +557,6 @@ int sizeOf(struct item_t *item, struct object_t *head) {
 			if(typeSpec(item, head)) {
 				item->type->form = TYPE_FORM_INT;
 				item->type->fields = 0;
-
 
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
@@ -528,7 +578,6 @@ int selector(struct item_t *item){
 			getNextToken();
 
 			if(identifier()) {
-
 				object = lookUp(item->type->fields, symbol->valueStr);
 
 				if(object != 0) { cg_field(item,object); }
@@ -570,18 +619,21 @@ int factor(struct item_t *item) {
 	object = malloc(sizeof(struct object_t));
 	if(number() || symbol->id == CHARACTER || symbol->id == STRING) {
 		if(number()) {
+printSymbol("factor nr: ");
 			item->mode = ITEM_MODE_CONST;
 			if(item->type == 0) { item->type = malloc(sizeof(struct type_t)); }
+
 			item->type->form = TYPE_FORM_INT;
+printf("nach type\n");
 			item->value = symbol->digitValue;
-		} else if(symbol->id == STRING) {
-			/*
-			storeString(item, symbol->valueStr);
-			*/
-		} else { /* if symbol->id == CHARACTER */
-			item->mode = ITEM_MODE_CONST;
-			item->type->form = TYPE_FORM_CHAR;
-			item->value = symbol->valueStr[0];
+printf("end nr\n");
+		} else {
+			if(symbol->id == STRING) { storeString(item); } 
+			else { /* if symbol->id == CHARACTER */
+				item->mode = ITEM_MODE_CONST;
+				item->type->form = TYPE_FORM_CHAR;
+				item->value = symbol->valueStr[0];
+			}
 		}
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
@@ -643,6 +695,7 @@ int factor(struct item_t *item) {
 		if(object->scope == GLOBAL_SCOPE) { leftItem->reg = GPTR; } 
 		else { leftItem->reg = FPTR; }
 		leftItem->offset = object->offset;
+
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 
@@ -652,7 +705,8 @@ int factor(struct item_t *item) {
 		if(symbol->id == EQSIGN) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
-			result = expression(rightItem);
+			result = fileOpen(rightItem);
+			if(result == 0) { result = expression(rightItem); }
 			cg_assignment(leftItem, rightItem);
 			copyItem(item, leftItem);
 			return result;
@@ -932,6 +986,197 @@ int printMethod(struct item_t *item) {
 		} else { printError("'(' missing."); }
 	}
 	return 0;
+}
+
+int fileOpen(struct item_t *item) {
+	struct item_t *firstItem;
+	struct item_t *secondItem;
+	struct item_t *thirdItem;
+	struct object_t *object;
+	firstItem = malloc(sizeof(struct item_t));
+	secondItem = malloc(sizeof(struct item_t));	
+	thirdItem = malloc(sizeof(struct item_t));	
+	object = malloc(sizeof(struct object_t));
+	object->type = malloc(sizeof(struct type_t));
+	
+	if(symbol->id == OPEN) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(symbol->id == LPAR) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+
+			if(expression(firstItem)) {
+				if(symbol->id == COMMA) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+					if(expression(secondItem)) {
+						if(symbol->id == COMMA) {
+							if(hasMoreTokens() == 0) { return 0; }
+							getNextToken();
+							if(expression(thirdItem)) {
+								if(symbol->id == RPAR) {
+									if(hasMoreTokens() == 0) { return 0; }
+									getNextToken();
+									if(symbol->id == SEMCOL) {
+										cg_load(firstItem);
+										cg_load(secondItem);
+										cg_load(thirdItem);
+										cg_put( CMD_FLO, firstItem->reg, secondItem->reg, thirdItem->reg );	
+										cg_releaseReg(secondItem->reg);
+										cg_releaseReg(thirdItem->reg);
+										copyItem(item, firstItem);
+										item->type->form = TYPE_FORM_INT;
+
+										return 1;
+									} else { printError("[fileopen] ';' missing."); }							
+								} else { printError("[fileopen] ')' missing."); }
+							} else { printError("[fileopen] expression expected."); }
+						} else { printError("[fileopen] ',' missing."); }
+					} else { printError("[fileopen] expression expected."); }
+				} else { printError("[fileopen] ',' missing."); }
+			} else { printError("[fileopen] identifier expexcted."); }			
+		} else { printError("[fileopen] '(' missing."); }
+	} else { return 0; }
+}
+
+int fileClose() {
+	struct item_t *item;
+	item = malloc(sizeof(struct item_t));
+	if(symbol->id == CLOSE) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(symbol->id == LPAR) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(expression(item)) {
+				if(symbol->id == RPAR) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+					if(symbol->id == SEMCOL) {
+						cg_load(item);
+						cg_put( CMD_FLC, 0, 0, item->reg );	
+						return 1;
+					} else { printError("[fileclose] ';' missing."); }
+				} else { printError("[fileclose] ')' missing."); }
+			} else { printError("[fileclose] expression expected."); }
+		} else { printError("[fileclose] '(' missing."); }
+	} else { return 0;}
+}
+
+int fileWrite() {
+	struct item_t *firstItem;
+	struct item_t *secondItem;
+	struct item_t *thirdItem;
+	struct object_t *object;
+
+	firstItem = malloc(sizeof(struct item_t));
+	secondItem = malloc(sizeof(struct item_t));	
+	thirdItem = malloc(sizeof(struct item_t));	
+
+	object = malloc(sizeof(struct object_t));
+	object->type = malloc(sizeof(struct type_t));
+
+	if(symbol->id == WRITE) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(symbol->id == LPAR) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(expression(firstItem)) {
+				if(symbol->id == COMMA) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+
+					if(expression(secondItem)) {
+						if(symbol->id == COMMA) {
+							if(hasMoreTokens() == 0) { return 0; }
+							getNextToken();
+
+							if(expression(thirdItem)) {
+								if(symbol->id == RPAR) {
+									if(hasMoreTokens() == 0) { return 0; }
+									getNextToken();
+									if(symbol->id == SEMCOL) {
+										cg_load(firstItem);
+										cg_load(secondItem);
+										cg_load(thirdItem);
+										cg_put( CMD_WRC, firstItem->reg, secondItem->reg, thirdItem->reg );
+										cg_releaseReg(secondItem->reg);
+										cg_releaseReg(thirdItem->reg);
+
+										if(hasMoreTokens() == 0) { return 0; }
+										getNextToken();
+
+										return 1;
+									} else { printError("[fileopen] ';' missing."); }							
+								} else { printError("[fileopen] ')' missing."); }
+							} else { printError("[fileopen] expression expected."); }
+						} else { printError("[fileopen] ',' missing."); }
+					} else { printError("[fileopen] expression expected."); }
+				} else { printError("[fileopen] ',' missing."); }
+			} else { printError("[fileopen] identifier expexcted."); }			
+		} else { printError("[fileopen] '(' missing."); }
+	} else { return 0; }
+}
+
+int fileRead() {
+	struct item_t *firstItem;
+	struct item_t *secondItem;
+	struct item_t *thirdItem;
+	struct object_t *object;
+
+	firstItem = malloc(sizeof(struct item_t));
+	secondItem = malloc(sizeof(struct item_t));	
+	thirdItem = malloc(sizeof(struct item_t));
+	
+	object = malloc(sizeof(struct object_t));
+	object->type = malloc(sizeof(struct type_t));
+
+	if(symbol->id == READ) {
+		if(hasMoreTokens() == 0) { return 0; }
+		getNextToken();
+		if(symbol->id == LPAR) {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+			if(expression(firstItem)) {
+				if(symbol->id == COMMA) {
+					if(hasMoreTokens() == 0) { return 0; }
+					getNextToken();
+
+					if(expression(secondItem)) {
+						if(symbol->id == COMMA) {
+							if(hasMoreTokens() == 0) { return 0; }
+							getNextToken();
+
+							if(expression(thirdItem)) {
+								if(symbol->id == RPAR) {
+									if(hasMoreTokens() == 0) { return 0; }
+									getNextToken();
+									if(symbol->id == SEMCOL) {
+										cg_load(firstItem);
+										cg_load(secondItem);
+										cg_load(thirdItem);
+										cg_put( CMD_RDC, firstItem->reg, secondItem->reg, thirdItem->reg );	
+
+										if(hasMoreTokens() == 0) { return 0; }
+										getNextToken();
+
+										return 1;
+									} else { printError("[fileopen] ';' missing."); }							
+								} else { printError("[fileopen] ')' missing."); }
+							} else { printError("[fileopen] expression expected."); }
+						} else { printError("[fileopen] ',' missing."); }
+					} else { printError("[fileopen] expression expected."); }
+				} else { printError("[fileopen] ',' missing."); }
+			} else { printError("[fileopen] identifier expexcted."); }			
+		} else { printError("[fileopen] '(' missing."); }
+	} else { return 0; }
+}
+
+
+int fileMethod(struct item_t *item) {
+	return fileOpen(item) || fileClose() || fileRead() || fileWrite();
 }
 
 /* ifCmd = "if" "(" expression ")" block [elseCmd] . */	
@@ -1434,7 +1679,7 @@ int procedureReturn() {
 	if (symbol->id == RETURN) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
-	} else { printError("return statement expected"); return 0; }
+	} //TODO else { printError("return statement expected"); return 0; }
 
 	if ((symbol->id == PLUS) || (symbol->id == MINUS) || identifier() || (symbol->id == INT) ||
 		(symbol->id == LPAR) || (symbol->id == STRING || number())) {
@@ -1690,13 +1935,15 @@ int statementSeq () {
 		item = malloc(sizeof(struct item_t));
 		item->type = malloc(sizeof(struct type_t));
 		while(identifier() == 0 && number() == 0 && symbol->id != WHILE && symbol->id != IF 
-				&& symbol->id != RETURN && symbol->id != LPAR && symbol->id != ELSE && symbol->id != PRINTF) {
+				&& symbol->id != RETURN && symbol->id != LPAR && symbol->id != ELSE && symbol->id != PRINTF 
+				&& symbol->id != OPEN && symbol->id != CLOSE && symbol->id != WRITE && symbol->id != READ) {
 			if(hasMoreTokens() == 0) { return 0; }			
 			getNextToken();
 			printError("statSeq(1): identifier, number, while, if or return expected.");
 		}
 		if(ifCmd(item)) {} 
 		else if(printMethod(item)) {}
+		else if(fileMethod(item)) {}
 		else if(whileLoop(item)) {}
 		else if(expression(item) || procedureReturn()) {
 			if(symbol->id == SEMCOL) {
@@ -1704,6 +1951,11 @@ int statementSeq () {
 				getNextToken();
 			} else {
 				printError("[stateSeq] ';' missing.");	
+			}
+		} else {
+			while(symbol->id != SEMCOL && symbol->id != RPAR && symbol->id != RCUBR) {
+				if(hasMoreTokens() == 0) { return 0; }
+				getNextToken();
 			}
 		}
 

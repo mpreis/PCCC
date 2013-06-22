@@ -59,6 +59,11 @@ void initTokenMapping() {
 	SIZEOF		= 56;	/* size of type		*/
 	MALLOC		= 57;	/* allocate memory	*/
 	PRINTF		= 58;	/* write to output	*/
+	
+	OPEN		= 60;	/* open file       	*/
+	CLOSE		= 61;   /* close file      	*/
+	READ		= 62;  	/* read file       	*/
+	WRITE		= 63;  	/* write file      	*/
 }
 
 void printTokenMapping () {
@@ -116,5 +121,10 @@ void printTokenMapping () {
 	printf("SIZEOF : %i\n",SIZEOF);
 	printf("MALLOC : %i\n", MALLOC);
 	printf("PRINTF : %i\n", PRINTF);
+	printf("\n");
+	printf("OPEN: %i\n",OPEN);
+	printf("CLOSE: %i\n",CLOSE);
+	printf("WRITE: %i\n",WRITE);
+	printf("READ: %i\n",READ);
 	printf("\n");
 }

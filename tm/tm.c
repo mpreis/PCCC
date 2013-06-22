@@ -76,7 +76,7 @@ void loadMeta(FILE *fp) {
 	decode(buff[0]);
 	int strp = ir[3];
 	// set registers
-	reg[27] = nrOfCmds + strp - 1;	/*end of commands and strings*/
+	reg[27] = nrOfCmds + strp;		/*end of commands and strings*/
 	reg[28] = reg[27] + gp;			/*end of global variables*/ 
 	reg[29] = reg[28] + 512; 		/*heap & stack*/
 	reg[30] = reg[28];	 			/*start of heap = end of global variables */
@@ -108,15 +108,10 @@ void loadCode(char *file) {
 		r = fread(buff,1,4,fp);
 		if(r != 0) mem[i] = buff[0];
 	}
-	printf(" -- cmds loaded (%i).",i);
+	printf(" -- cmds loaded (%i).\n",i);
 
 }
-
-void fetch() {
-	decode(mem[pc/4]);
-	//printf("\n -- %s(%i) %i %i %i\n", getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3]);
-}
-
+void fetch() { decode(mem[pc/4]); }
 void decode(int instruction) {
 	ir[0] = (instruction >> 26) & 63; 	// 0x3F: 6 lsbs
 	ir[1] = (instruction >> 21) & 31; 	// 0x1F: 5 lsbs
@@ -158,10 +153,10 @@ void execute() {
 
 	else if(ir[0] == CMD_FLO)  flo (ir[1], ir[2], ir[3]); 
 	else if(ir[0] == CMD_FLC)  flc (ir[3]); 
-	else if(ir[0] == CMD_RDC)  rdc (ir[1], ir[3]); 
-	else if(ir[0] == CMD_WRC)  wrc (ir[1], ir[3]); 
+	else if(ir[0] == CMD_RDC)  rdc (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_WRC)  wrc (ir[1], ir[2], ir[3]); 
 
-	else if(ir[0] == CMD_MAL)  mal (ir[3]);
+	else if(ir[0] == CMD_MAL)  mal (ir[1], ir[3]);
 	else if(ir[0] == CMD_PRN)  prn (ir[1]);
 	else if(ir[0] == CMD_PRC)  prc (ir[1]);
 
@@ -208,13 +203,27 @@ void jsr (int c) { reg[31] = pc + 4; pc = c; }
 void ret (int c) { pc = reg[c]; }
 
 /* i/o */
-void flo (int a, int b, int c) { reg[a] = open((char *)mem[reg[b]], reg[c]); } 
-void flc (int c) { fclose(reg[c]); } 
-void rdc (int a, int c) { fread (reg[a],4,1,reg[a]); } 
-void wrc (int a, int c) { fwrite(reg[a],4,1,reg[c]); } 
+void flo (int a, int b, int c) { 
+	int i; char *filename = malloc(sizeof(char) * 100);
+	for(i = 0; mem[ (reg[a]-i) ] != 0; i++) { filename[i] =  mem[ (reg[a]-i) ]; }
+	filename[i] = '\0';
+	reg[a] = open(filename, reg[b], reg[c]); pc = pc + 4; 
+} 
+void flc (int c) { close(reg[c]); pc = pc + 4; } 
+void rdc (int a, int b, int c) { 
+	int i; char *buf = malloc(sizeof(char) * reg[c]/4);
+	read (reg[a], buff, reg[c]/4); pc = pc + 4; 
+	for(i = 0; i < reg[c]/4; i++) { mem[ (reg[b]-i) ] = buf[i]; }
+} 
+void wrc (int a, int b, int c) { 
+	int i; char *buf = malloc(sizeof(char) * reg[c]/4);
+	for(i = 0; i < (reg[c]/4); i++) { buf[i] =  mem[ (reg[b]-i) ]; }
+	buf[i] = '\0';
+	write(reg[a], buf, reg[c]/4); pc = pc + 4; 
+} 
 
 /* malloc */
-void mal (int c) { reg[30] = reg[30] + reg[c]/4; reg[c] = reg[30]; pc = pc + 4; } 
+void mal (int a, int c) { reg[a] = reg[a] + reg[c]/4; reg[c] = reg[a]; pc = pc + 4; } 
 
 /* print */
 void prn (int a) { printf("%i", reg[a]); pc = pc + 4; }
@@ -223,11 +232,14 @@ void prc (int a) { printf("%c", reg[a]); pc = pc + 4; }
 /* dlx */
 void startTM(char *file) {
 	int i;
+	printf("\n\n -- start tm -- \n");
 	initTMCmd();
 	loadCode(file);
+	printf(" -- run code \n\n");
 	printMemParts();
 	for(i = 0; ir[0] != CMD_TRAP; i++) {
 		fetch();
+		//printf("\n -- %s(%i) %i %i %i\n", getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3]);
 		execute();
 		//printReg();
 	}

@@ -58,11 +58,11 @@ void ret (int c);
 /* i/o */
 void flo (int a, int b, int c);
 void flc (int c); 
-void rdc (int a, int c); 
-void wrc (int a, int c); 
+void rdc (int a, int b, int c); 
+void wrc (int a, int b, int c); 
 
 /* malloc */
-void mal (int c);
+void mal (int a, int c);
 
 /* printf */
 void prn (int a);

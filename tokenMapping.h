@@ -39,7 +39,7 @@ int CHAR		; /* = 31;	key-word: char 		*/
 int VOID		; /* = 32;	key-word: void 		*/
 int STRUCT		; /* = 33;	key-word: struct 	*/
 int TYPEDEF		; /* = 34;	key-word: typedef	*/
-int BOOL 	; /* = 35;	boolean value 		*/
+int BOOL 	    ; /* = 35;	boolean value 		*/
 int IDENT		; /* = 36;	identifier 			*/
 int NUMBER		; /* = 37;	number value		*/
 int STRING		; /* = 38;	string value		*/
@@ -58,4 +58,10 @@ int END			; /* = 54;	last token			*/
 int ARROW		; /* = 55;	->					*/
 int SIZEOF		; /* = 56;	size of type		*/
 int MALLOC		; /* = 57;	allocate memory		*/
-int PRINTF		; /* = 58;  write to output	*/
+int PRINTF		; /* = 58;  write to output	    */
+
+int OPEN		; /* = 60;  open file       	*/
+int CLOSE		; /* = 61;  close file      	*/
+int READ		; /* = 62;  read file       	*/
+int WRITE		; /* = 63;  write file      	*/
+

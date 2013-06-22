@@ -12,7 +12,7 @@ int colNr;
 char ungetc;
 
 void initScanner(char *file) {	
-	fd = open(file, 0);		/* 0 ... read only */
+	fd = open(file, 0, 448);		/* 0 ... read only 448 ... S_IWUSR | S_IRUSR | S_IXUSR */
 	ungetc = -1;
 	lineNr = 1;
 	colNr = 1;
@@ -169,13 +169,17 @@ void getNextToken() {
 	}
 	if(isLetter(c)) {
 		getIdentifier(identifier, c);
-			 if(strCmp(identifier, "if"	 ) == 0) { symbol->id = IF; 	strnCpy(symbol->valueStr, identifier, 2); }
-		else if(strCmp(identifier, "int"	 ) == 0) { symbol->id = INT; 		strnCpy(symbol->valueStr, identifier, 3); }
-		else if(strCmp(identifier, "char"	 ) == 0) { symbol->id = CHAR; 	strnCpy(symbol->valueStr, identifier, 4); }
-		else if(strCmp(identifier, "void"	 ) == 0) { symbol->id = VOID; 	strnCpy(symbol->valueStr, identifier, 4); }
-		else if(strCmp(identifier, "bool"	 ) == 0) { symbol->id = BOOL;	strnCpy(symbol->valueStr, identifier, 4); }
-		else if(strCmp(identifier, "else"	 ) == 0) { symbol->id = ELSE; 	strnCpy(symbol->valueStr, identifier, 4); }
-		else if(strCmp(identifier, "while"	 ) == 0) { symbol->id = WHILE; 	strnCpy(symbol->valueStr, identifier, 5); }
+			 if(strCmp(identifier, "if"     ) == 0) { symbol->id = IF; 	    strnCpy(symbol->valueStr, identifier, 2); }
+		else if(strCmp(identifier, "int"	) == 0) { symbol->id = INT;     strnCpy(symbol->valueStr, identifier, 3); }
+		else if(strCmp(identifier, "char"	) == 0) { symbol->id = CHAR; 	strnCpy(symbol->valueStr, identifier, 4); }
+		else if(strCmp(identifier, "void"	) == 0) { symbol->id = VOID; 	strnCpy(symbol->valueStr, identifier, 4); }
+		else if(strCmp(identifier, "bool"	) == 0) { symbol->id = BOOL;	strnCpy(symbol->valueStr, identifier, 4); }
+		else if(strCmp(identifier, "else"   ) == 0) { symbol->id = ELSE; 	strnCpy(symbol->valueStr, identifier, 4); }
+		else if(strCmp(identifier, "open"   ) == 0) { symbol->id = OPEN;	strnCpy(symbol->valueStr, identifier, 4); }
+		else if(strCmp(identifier, "read"   ) == 0) { symbol->id = READ;	strnCpy(symbol->valueStr, identifier, 4); }
+		else if(strCmp(identifier, "write"  ) == 0) { symbol->id = WRITE;	strnCpy(symbol->valueStr, identifier, 5); }
+		else if(strCmp(identifier, "close"  ) == 0) { symbol->id = CLOSE;	strnCpy(symbol->valueStr, identifier, 5); }
+		else if(strCmp(identifier, "while"	) == 0) { symbol->id = WHILE; 	strnCpy(symbol->valueStr, identifier, 5); }
 		else if(strCmp(identifier, "return" ) == 0) { symbol->id = RETURN;	strnCpy(symbol->valueStr, identifier, 6); }
 		else if(strCmp(identifier, "sizeof" ) == 0) { symbol->id = SIZEOF;	strnCpy(symbol->valueStr, identifier, 6); }
 		else if(strCmp(identifier, "malloc" ) == 0) { symbol->id = MALLOC;	strnCpy(symbol->valueStr, identifier, 6); }
@@ -205,8 +209,8 @@ void getNextToken() {
 				nc = getChar();
 				i = i + 1;
 			}
-			buff[i] = '\0';
 			symbol->id = STRING; strnCpy(symbol->valueStr, buff, 1000);
+			symbol->digitValue = i;
 		}
 		else if(c == '\'') {
 			buff[0] = getChar();
