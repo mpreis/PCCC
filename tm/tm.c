@@ -211,15 +211,15 @@ void flo (int a, int b, int c) {
 } 
 void flc (int c) { reg[c] = close(reg[c]); pc = pc + 4; } 
 void rdc (int a, int b, int c) { 
-	int i; char *buf = malloc(sizeof(char) * reg[c]/4);
-	reg[a] = read (reg[a], buf, reg[c]/4); pc = pc + 4; 
-	for(i = 0; i < reg[c]/4; i++) { mem[ (reg[b]-i) ] = buf[i]; }
+	int i; char *buf = malloc(sizeof(char) * reg[c]);
+	reg[a] = read (reg[a], buf, reg[c]); pc = pc + 4; 
+	for(i = 0; i < reg[c]; i++) { mem[ (reg[b]-i) ] = buf[i]; }
 } 
 void wrc (int a, int b, int c) { 
-	int i; char *buf = malloc(sizeof(char) * reg[c]/4);
-	for(i = 0; i < (reg[c]/4); i++) { buf[i] =  mem[ (reg[b]-i) ]; }
+	int i; char *buf = malloc(sizeof(char) * reg[c]);
+	for(i = 0; i < (reg[c]); i++) { buf[i] =  mem[ (reg[b]-i) ]; }
 	buf[i] = '\0';
-	reg[a] = write(reg[a], buf, reg[c]/4); pc = pc + 4; 
+	reg[a] = write(reg[a], buf, reg[c]); pc = pc + 4; 
 } 
 
 /* malloc */
@@ -232,7 +232,7 @@ void prc (int a) { printf("%c", reg[a]); pc = pc + 4; }
 /* dlx */
 void startTM(char *file) {
 	int i;
-	printf("\n\n -- start tm -- \n");
+	printf("\n\n -- start tm: %s -- \n", file);
 	initTMCmd();
 	loadCode(file);
 	printf(" -- run code \n\n");

@@ -21,7 +21,7 @@ void finalizeOutputFile() {
 	int out_fp_bin;
 	int *tempBuff;
 	tempBuff = malloc(32);
-	out_fp_bin = open(outfile, 513, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
+	out_fp_bin = open(outfile, 65, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
 										 /* 513 ... O_CREAT (512) | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Mac */
 	if(out_fp_bin < 0) {
 		printError("can not open/create output file.");
@@ -39,15 +39,15 @@ void finalizeOutputFile() {
 		write(out_fp_bin, tempBuff, 4); 
 	} else { printError("missing main method"); }
 	i = 1;
-printf("\n\n\n");
+//printf("\n\n\n");
 	while(i < PC) {
-printf("%s %i %i %i\n", getCmdName(out_cmd_buff[i]->op), out_cmd_buff[i]->a, out_cmd_buff[i]->b, out_cmd_buff[i]->c);
+//printf("%s %i %i %i\n", getCmdName(out_cmd_buff[i]->op), out_cmd_buff[i]->a, out_cmd_buff[i]->b, out_cmd_buff[i]->c);
 		tempBuff[0] = cg_encode(out_cmd_buff[i]->op, out_cmd_buff[i]->a, out_cmd_buff[i]->b, out_cmd_buff[i]->c);
 		wb = write(out_fp_bin, tempBuff, 4); 
     		if ( wb != 4 ) { printf(" --- could only write %i byte.\n", wb); }
 		i = i + 1;
 	}
-printf("\n\n\n");
+//printf("\n\n\n");
 	close(out_fp_bin);
 }
 
@@ -496,30 +496,6 @@ int storeString(struct item_t *item) {
 	int i; int reg; int r;
 	i = 0;
 
-/*
-
-void cg_const2Reg(struct item_t *item) {
-	item->mode = ITEM_MODE_REG;
-	item->reg = cg_requestReg();
-	cg_put(CMD_ADDI, item->reg, 0, item->value);
-	item->value = 0;
-	item->offset = 0;
-}
-void cg_var2Reg(struct item_t *item) {
-	int newReg;
-	item->mode = ITEM_MODE_REG;
-	newReg = cg_requestReg();
-	cg_put(CMD_LDW, newReg, item->reg, item->offset);
-	item->reg = newReg;
-	item->offset = 0;
-}
-void cg_ref2Reg(struct item_t *item) {
-	item->mode = ITEM_MODE_REG;
-	cg_put(CMD_LDW, item->reg, item->reg, item->offset);
-	item->offset = 0;
-}
-
-*/
 	r = cg_requestReg();
 	cg_put( CMD_ADDI, r, STRPTR, (nrOfStrs * (-1)) );
 
@@ -672,8 +648,8 @@ int factor(struct item_t *item) {
 		cg_allocate(item);
 		return result;
 	} 
-	else if(symbol->id == OPEN)  { fileOpen(item); return 1;  }
-	else if(symbol->id == READ)  { fileRead(item); return 1;  }
+	else if(symbol->id == OPEN)  { fileOpen(item);  return 1; }
+	else if(symbol->id == READ)  { fileRead(item);  return 1; }
 	else if(symbol->id == WRITE) { fileWrite(item); return 1; }
 	else if(symbol->id == CLOSE) { fileClose(item); return 1; } 
 	else if(identifier()) {
@@ -706,7 +682,7 @@ int factor(struct item_t *item) {
 		if(symbol->id == EQSIGN) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
-			result =  expression(rightItem); 
+			result =  expression(rightItem);
 			cg_assignment(leftItem, rightItem);
 			copyItem(item, leftItem);
 			return result;
@@ -1041,7 +1017,6 @@ int fileOpen(struct item_t *item) {
 }
 
 int fileClose(struct item_t *item) {
-	item = malloc(sizeof(struct item_t));
 	if(symbol->id == CLOSE) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
@@ -1406,7 +1381,6 @@ int structDec() {
 	struct object_t *ptr;
 	struct object_t *ptr1;
 	int i;
-
 	if(symbol->id == STRUCT) {
 		fieldObj = malloc(sizeof(struct object_t));
 		object = malloc(sizeof(struct object_t));
@@ -1414,15 +1388,16 @@ int structDec() {
 		object->class = OBJECT_CLASS_TYPE;
 		record = 0;
 		record = newType(5);
+
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 		
 		if(identifier()) {
 			object->name = malloc(64 * sizeof(char));
 			strnCpy(object->name, symbol->valueStr, 64);
+
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
-
 			if(symbol->id == LCUBR) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
@@ -1832,7 +1807,11 @@ struct object_t* actualParameter(struct object_t* object, struct object_t* forma
 		item = malloc(sizeof(struct item_t));
 		if (expression(item)) {
 			if (formalParameter != 0) {
-				if (item->type != 0 && (item->type->form != formalParameter->type->form)) { printError("[warning] type mismatch in procedure call"); }
+				printf("--------------------\n");
+				printType(item->type);
+				printType(formalParameter->type);
+				if (item->type != 0 && (item->type->form != formalParameter->type->form)) 
+				{	printError("[warning] type mismatch in procedure call"); }
 			} else { formalParameter = createAnonymousParameter(object, item->type); }
 			pushParameter(item);
 		} else {
@@ -1934,7 +1913,8 @@ int statementSeq () {
 		item = malloc(sizeof(struct item_t));
 		item->type = malloc(sizeof(struct type_t));
 		while(identifier() == 0 && number() == 0 && symbol->id != WHILE && symbol->id != IF 
-				&& symbol->id != RETURN && symbol->id != LPAR && symbol->id != ELSE && symbol->id != PRINTF) {
+				&& symbol->id != RETURN && symbol->id != LPAR && symbol->id != ELSE && symbol->id != PRINTF
+				&& symbol->id != OPEN && symbol->id != CLOSE && symbol->id != WRITE && symbol->id != READ) {
 			printError("statSeq(1): identifier, number, while, if or return expected.");
 			if(hasMoreTokens() == 0) { return 0; }			
 			getNextToken();
@@ -2019,8 +1999,13 @@ int startParsing(char *sfile, char *ofile){
 	printf("\nstart parsing %s...\n", srcfile);
 	while ( hasMoreTokens() ) {
 		getNextToken();
+		if(symbol->id == ERROR) {
+			printError("[program] file does not exist.");
+			return 0;
+		}
 		i = programm();
 	}
+
 	if(errorCounter == 0) { finalizeOutputFile(); }
 	else { printf("%d Errors\n", errorCounter); }
 	printf("\n -- DONE. --\n\n");
