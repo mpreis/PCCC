@@ -11,10 +11,10 @@ void main () {
 	int len;
 	numbers = malloc(sizeof(int)*3);
 	numbers[0] = -2;
-	numbers[1] = 4;
+	numbers[1] = 4
 	numbers[2] = 7;
 	len = 3;
-	even_or_odd(numbers, len);
+	even_or_odd(numbers, u);
 }
 
 void even_or_odd (int *numbers, int len) {
