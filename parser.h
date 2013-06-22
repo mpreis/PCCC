@@ -29,6 +29,7 @@ char *outfile;
 struct cmd_t * *out_cmd_buff;
 /* int nrOfGVar; have a look at symboltable */
 int nrOfStrs;
+int errorCounter;
 int PC;
 int returnFJumpAddress;
 int mainPos;

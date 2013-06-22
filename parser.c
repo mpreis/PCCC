@@ -405,6 +405,7 @@ void cg_unloadBool(struct item_t *item) {
  * HELP METHODS
  ************************************************************/
 void printError(char *msg) {
+	errorCounter = errorCounter + 1;
 	printf("\t%s:%4i:%4i: ERROR: %s (found: %s/%i)\n", srcfile, symbol->lineNr, symbol->colNr, msg, symbol->valueStr, symbol->id);
 }
 
@@ -1679,7 +1680,7 @@ int procedureReturn() {
 	if (symbol->id == RETURN) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
-	} //TODO else { printError("return statement expected"); return 0; }
+	} else { return 0; }
 
 	if ((symbol->id == PLUS) || (symbol->id == MINUS) || identifier() || (symbol->id == INT) ||
 		(symbol->id == LPAR) || (symbol->id == STRING || number())) {
@@ -1785,7 +1786,6 @@ int actualParameters(struct object_t* object) {
 			nextFormalParameter = actualParameter(object, nextFormalParameter);
 		}
 	}
-
 	while (nextFormalParameter != 0) {
 		printError("[warning] actual parameter expected");
 		item = malloc(sizeof(struct item_t));
@@ -1835,11 +1835,15 @@ struct object_t* actualParameter(struct object_t* object, struct object_t* forma
 	if ((symbol->id == PLUS) || (symbol->id == MINUS) || identifier() || (symbol->id == INT) ||
 		(symbol->id == LPAR) || (symbol->id == STRING || number())) {
 		item = malloc(sizeof(struct item_t));
-		expression(item);
-		if (formalParameter != 0) {
-			if (item->type->form != formalParameter->type->form) { printError("[warning] type mismatch in procedure call"); }
-		} else { formalParameter = createAnonymousParameter(object, item->type); }
-		pushParameter(item);
+		if (expression(item)) {
+			if (formalParameter != 0) {
+				if (item->type != 0 && (item->type->form != formalParameter->type->form)) { printError("[warning] type mismatch in procedure call"); }
+			} else { formalParameter = createAnonymousParameter(object, item->type); }
+			pushParameter(item);
+		} else {
+			if(hasMoreTokens() == 0) { return 0; }
+			getNextToken();
+		}
 		formalParameter = formalParameter->next;
 	} else { printError("actual parameter expected"); }
 	return formalParameter;
@@ -1937,9 +1941,9 @@ int statementSeq () {
 		while(identifier() == 0 && number() == 0 && symbol->id != WHILE && symbol->id != IF 
 				&& symbol->id != RETURN && symbol->id != LPAR && symbol->id != ELSE && symbol->id != PRINTF 
 				&& symbol->id != OPEN && symbol->id != CLOSE && symbol->id != WRITE && symbol->id != READ) {
+			printError("statSeq(1): identifier, number, while, if or return expected.");
 			if(hasMoreTokens() == 0) { return 0; }			
 			getNextToken();
-			printError("statSeq(1): identifier, number, while, if or return expected.");
 		}
 		if(ifCmd(item)) {} 
 		else if(printMethod(item)) {}
@@ -1958,10 +1962,7 @@ int statementSeq () {
 				getNextToken();
 			}
 		}
-
-		if(symbol->id == RCUBR) {
-			return 1;
-		}
+		if(symbol->id == RCUBR) { return 1; }
 	}
 }
 
@@ -2012,6 +2013,7 @@ int startParsing(char *sfile, char *ofile){
 
 	nrOfGVar = 0;
 	nrOfStrs = 0;
+	errorCounter = 0;
 	PC = 1;	
 
 	initTMCmd();
@@ -2026,7 +2028,8 @@ int startParsing(char *sfile, char *ofile){
 		getNextToken();
 		i = programm();
 	}
-	finalizeOutputFile();
+	if(errorCounter == 0) { finalizeOutputFile(); }
+	else { printf("%d Errors\n", errorCounter); }
 	printf("\n -- DONE. --\n\n");
 	return i;
 }
