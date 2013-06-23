@@ -21,7 +21,7 @@ void finalizeOutputFile() {
 	int out_fp_bin;
 	int *tempBuff;
 	tempBuff = malloc(32);
-	out_fp_bin = open(outfile, 65, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
+	out_fp_bin = open(outfile, 513, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
 										 /* 513 ... O_CREAT (512) | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Mac */
 	if(out_fp_bin < 0) {
 		printError("can not open/create output file.");
@@ -193,7 +193,8 @@ void cg_simpleExpBinOp(struct item_t *leftItem, struct item_t *rightItem, int op
 			leftItem->op = rightItem->op;
 		} else { printError("[simpleExpBinOp] boolean expressions expected"); }
 	}
-	else if(leftItem->type->form == TYPE_FORM_INT && rightItem->type->form == TYPE_FORM_INT) {
+	else if((leftItem->type->form == TYPE_FORM_INT  && rightItem->type->form == TYPE_FORM_INT) || 
+			(leftItem->type->form == TYPE_FORM_CHAR && rightItem->type->form == TYPE_FORM_CHAR)) {
 		if(rightItem->mode == ITEM_MODE_CONST) {
 			if(leftItem->mode == ITEM_MODE_CONST) {
 					 if(op == OP_ADD) { leftItem->value = leftItem->value + rightItem->value; } 
@@ -226,7 +227,8 @@ void cg_termOperator(struct item_t *leftItem, struct item_t *rightItem, int op) 
 			leftItem->op = rightItem->op;
 		} else { printError("[termOperator] boolean expressions expected"); }
 	}	
-	else if(leftItem->type->form == TYPE_FORM_INT && rightItem->type->form == TYPE_FORM_INT) {
+	else if((leftItem->type->form == TYPE_FORM_INT  && rightItem->type->form == TYPE_FORM_INT) || 
+			(leftItem->type->form == TYPE_FORM_CHAR && rightItem->type->form == TYPE_FORM_CHAR)) {
 		if(rightItem->mode == ITEM_MODE_CONST) {
 			if(leftItem->mode == ITEM_MODE_CONST) {
 				if(op == OP_MUL) { leftItem->value = leftItem->value * rightItem->value; } 
@@ -738,7 +740,7 @@ int term(struct item_t *item) {
 
 		if(symbol->id == PLUS || symbol->id == MINUS || symbol->id == OR || 
 				compOp() || symbol->id == RPAR || symbol->id == SEMCOL || symbol->id == COMMA || 
-				symbol->id == RSQBR || symbol->id == RSQBR || symbol->id == ARROW) {
+				symbol->id == RSQBR || symbol->id == RCUBR || symbol->id == ARROW) {
 			copyItem(item, leftItem);
 			return 1;
 		}
@@ -1083,14 +1085,14 @@ int fileWrite(struct item_t *item) {
 										copyItem(item, firstItem);
 										item->type->form = TYPE_FORM_INT;
 										return 1;
-									} else { printError("[fileopen] ';' missing."); }							
-								} else { printError("[fileopen] ')' missing."); }
-							} else { printError("[fileopen] expression expected."); }
-						} else { printError("[fileopen] ',' missing."); }
-					} else { printError("[fileopen] expression expected."); }
-				} else { printError("[fileopen] ',' missing."); }
-			} else { printError("[fileopen] identifier expexcted."); }			
-		} else { printError("[fileopen] '(' missing."); }
+									} else { printError("[filewrite] ';' missing."); }							
+								} else { printError("[filewrite] ')' missing."); }
+							} else { printError("[filewrite] expression expected."); }
+						} else { printError("[filewrite] ',' missing."); }
+					} else { printError("[filewrite] expression expected."); }
+				} else { printError("[filewrite] ',' missing."); }
+			} else { printError("[filewrite] identifier expexcted."); }			
+		} else { printError("[filewrite] '(' missing."); }
 	} 
 	return 0;
 }
@@ -1128,7 +1130,9 @@ int fileRead(struct item_t *item) {
 								if(symbol->id == RPAR) {
 									if(hasMoreTokens() == 0) { return 0; }
 									getNextToken();
-									if(symbol->id == SEMCOL) {
+									if(symbol->id == PLUS || symbol->id == MINUS || symbol->id == TIMES || symbol->id == DIV || 
+										compOp() || symbol->id == RPAR || symbol->id == SEMCOL || symbol->id == COMMA || 
+										symbol->id == RSQBR || symbol->id == RCUBR || symbol->id == OR) {
 										cg_load(firstItem);
 										cg_load(secondItem);
 										cg_load(thirdItem);
@@ -1138,14 +1142,14 @@ int fileRead(struct item_t *item) {
 										copyItem(item, firstItem);
 										item->type->form = TYPE_FORM_INT;
 										return 1;
-									} else { printError("[fileopen] ';' missing."); }							
-								} else { printError("[fileopen] ')' missing."); }
-							} else { printError("[fileopen] expression expected."); }
-						} else { printError("[fileopen] ',' missing."); }
-					} else { printError("[fileopen] expression expected."); }
-				} else { printError("[fileopen] ',' missing."); }
-			} else { printError("[fileopen] identifier expexcted."); }			
-		} else { printError("[fileopen] '(' missing."); }
+									} else { printError("[fileread] ';' missing."); }							
+								} else { printError("[fileread] ')' missing."); }
+							} else { printError("[fileread] expression expected."); }
+						} else { printError("[fileread] ',' missing."); }
+					} else { printError("[fileread] expression expected."); }
+				} else { printError("[fileread] ',' missing."); }
+			} else { printError("[fileread] identifier expexcted."); }			
+		} else { printError("[fileread] '(' missing."); }
 	} 
 	return 0;
 }
@@ -1266,14 +1270,24 @@ int variableDeclarationSequence(struct object_t *head, int isStruct) {
 				ptr = lookUp(globList, symbol->valueStr);
 				if(ptr != 0) {
 					object->type = ptr->type;
+					/*object->type->form = ptr->type->form;
+					object->type->size = ptr->type->size;
+					object->type->fields = ptr->type->fields;
+					object->type->base = ptr->type->base;*/
 				}
-			} else { object->type = ptr->type; }
+			} else { 
+				object->type = ptr->type; 
+				/*object->type->form = ptr->type->form;
+				object->type->size = ptr->type->size;
+				object->type->fields = ptr->type->fields;
+				object->type->base = ptr->type->base;*/
+			}
 		}
 		off = off - 4;	/* size of local variable int,char 4byte; pointer to struct 4byte  */
 		if(hasMoreTokens() == 0) { return decCounter; }
 		getNextToken();
 		if(symbol->id == TIMES) {
-			array = newType(4);
+			array = newType(TYPE_FORM_ARRAY);
 			array->base = type;
 			if(hasMoreTokens() == 0) { return decCounter; }
 			getNextToken();			
@@ -1344,7 +1358,7 @@ int typedefDec(struct object_t *head) {
 		getNextToken();
 
 		if(symbol->id == TIMES) { 
-			array = newType(4);
+			array = newType(TYPE_FORM_ARRAY);
 			array->base = type;
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
@@ -1387,7 +1401,7 @@ int structDec() {
 		object->type = malloc(sizeof(struct type_t));
 		object->class = OBJECT_CLASS_TYPE;
 		record = 0;
-		record = newType(5);
+		record = newType(TYPE_FORM_RECORD);
 
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
@@ -1474,7 +1488,6 @@ struct type_t *basicArrayRecordType() {
 	struct object_t *ptr;
 	ptr = malloc(sizeof(struct object_t));
 	type = malloc(sizeof(struct type_t));
-
 	if(symbol->id == INT ) { type->form = TYPE_FORM_INT;  type->size = 4; }
 	if(symbol->id == CHAR) { type->form = TYPE_FORM_CHAR; type->size = 4; }
 	if(symbol->id == VOID) { type->form = TYPE_FORM_VOID; type->size = 4; }
@@ -1495,11 +1508,13 @@ struct type_t *basicArrayRecordType() {
 	if(hasMoreTokens() == 0) { return 0; }
 	getNextToken();
 	if(symbol->id == TIMES) {
-		array = newType(4);
+		array = newType(TYPE_FORM_ARRAY);
 		array->base = type;
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();	
-		return array;		
+		if(type->form != TYPE_FORM_RECORD) {
+			return array;
+		}	
 	}
 	return type;
 }
@@ -1807,9 +1822,6 @@ struct object_t* actualParameter(struct object_t* object, struct object_t* forma
 		item = malloc(sizeof(struct item_t));
 		if (expression(item)) {
 			if (formalParameter != 0) {
-				printf("--------------------\n");
-				printType(item->type);
-				printType(formalParameter->type);
 				if (item->type != 0 && (item->type->form != formalParameter->type->form)) 
 				{	printError("[warning] type mismatch in procedure call"); }
 			} else { formalParameter = createAnonymousParameter(object, item->type); }
@@ -1868,7 +1880,7 @@ int globalDec() {
 		getNextToken();
 
 		if(symbol->id == TIMES) {
-			array = newType(4);
+			array = newType(TYPE_FORM_ARRAY);
 			array->base = type;
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();			
