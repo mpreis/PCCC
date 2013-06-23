@@ -4,12 +4,14 @@
 
 struct cryptdata_t {
 	char *srcFile;
-	char *destFile;
+	char *encryptFile;
+	char *decryptFile;
 	char *key;
 	int count;
 };
 int KEY_LEN;
 void encrypt (struct cryptdata_t *data);
+void decrypt (struct cryptdata_t *data);
 void main () {
 	struct cryptdata_t *myData;
 printf("NEUE ENCRYPTION\n\n");
@@ -17,29 +19,52 @@ printf("NEUE ENCRYPTION\n\n");
 	myData = malloc(sizeof(struct cryptdata_t));
 	myData->key = malloc(sizeof(char) * KEY_LEN);
 	myData->srcFile = "./plain.txt";
-	myData->srcFile = "./encrypt.txt";
+	myData->encryptFile = "./encrypt.txt";
+	myData->decryptFile = "./decrypt.txt";
 	myData->key[0] = '1';
 	myData->key[1] = '2';
 	myData->key[2] = '3';
 	myData->count = 0;
+
 	encrypt(myData);
 	printf(myData->count);
 	printf(" characters encrypted.\n");
+	decrypt(myData);
+	if(myData->count == 0) { printf("all characters decrypted.\n"); }
+	else { 	printf(myData->count); printf(" characters not decrypted.\n"); }
 }
 void encrypt(struct cryptdata_t *data) {
-	int i; int sfp; int dfp;
+	int i; int c; int sfp; int dfp;
 	char *buf;
-	// TODO: data->srcFile, data->destFile -> hier wird nur der Pointerwert verwendet und das mag er irgendwie nicht
-	sfp = open("./plain.txt", 0, 448);
-	dfp = open("./encrypt.txt", 513, 448);
+	sfp = open(data->srcFile, 0, 448);
+	dfp = open(data->encryptFile, 65, 448);
 
-	while( read(sfp, buf, KEY_LEN) > 0 ) {
+	while( (c = read(sfp, buf, KEY_LEN)) > 0 ) {
 		i = 0;
-		while ( i < KEY_LEN ) { 
-			buf[i] = buf[i] + data->key[i]; 
-			data->count = data->count + 1;
+		while ( i < c ) { 
+			if( buf[i] != -1 ) {
+				buf[i] = buf[i] + data->key[i]; 
+				data->count = data->count + 1;
+			}
 			i = i + 1;
 		}
-		write(dfp, buf, KEY_LEN);
+		write(dfp, buf, c);
+	}
+}
+
+void decrypt(struct cryptdata_t *data) {
+	int i; int c; int sfp; int dfp;
+	char *buf;
+	sfp = open(data->encryptFile, 0, 448);
+	dfp = open(data->decryptFile, 65, 448);
+
+	while( (c = read(sfp, buf, KEY_LEN)) > 0 ) {
+		i = 0;
+		while ( i < c ) { 
+			buf[i] = buf[i] - data->key[i]; 
+			data->count = data->count - 1;
+			i = i + 1;
+		}
+		write(dfp, buf, c);
 	}
 }
