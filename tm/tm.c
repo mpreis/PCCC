@@ -83,7 +83,8 @@ void loadMeta(FILE *fp) {
 	mem_max = reg[29] + 1;			/*end of memory*/
 	mem = malloc(mem_max * sizeof(int));
 
-	printf(" -- metadata loaded.\n\t(reg[27]: %i, reg[28]: %i, reg[29]: %i, reg[30]: %i, mem_mex: %i)\n",reg[27],reg[28],reg[29],reg[30], mem_max);
+//	printf(" -- metadata loaded.\n");
+//	printf(" -- -- (reg[27]: %i, reg[28]: %i, reg[29]: %i, reg[30]: %i, mem_mex: %i)\n",reg[27],reg[28],reg[29],reg[30], mem_max);
 }
 
 void loadCode(char *file) {
@@ -108,7 +109,7 @@ void loadCode(char *file) {
 		r = fread(buff,1,4,fp);
 		if(r != 0) mem[i] = buff[0];
 	}
-	printf(" -- cmds loaded (%i).\n",i);
+//	printf(" -- cmds loaded (%i).\n",i);
 
 }
 void fetch() { decode(mem[pc/4]); }
@@ -232,19 +233,19 @@ void prc (int a) { printf("%c", reg[a]); pc = pc + 4; }
 /* dlx */
 void startTM(char *file) {
 	int i;
-	printf("\n\n -- start tm: %s -- \n", file);
+	//printf("\n\n -- start tm: %s -- \n", file);
 	initTMCmd();
 	loadCode(file);
-	printf(" -- run code \n\n");
-	printMemParts();
+	//printf(" -- run code \n\n");
+	//printMemParts();
 	for(i = 0; ir[0] != CMD_TRAP; i++) {
 		fetch();
 		//printf("\n -- %s(%i) %i %i %i\n", getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3]);
 		execute();
 		//printReg();
 	}
-	printMemParts();
-	printf("\n -- ende -- \n\n");
+	//printMemParts();
+	//printf("\n -- ende -- \n\n");
 }
 
 /*******************************************************************/

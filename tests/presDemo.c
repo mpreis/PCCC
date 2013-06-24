@@ -1,7 +1,3 @@
-/*
- * es macht zumindest mal was, die ausgegebene datei ist zwar noch irgendwie mist, aber naja.. 
-*/
-
 struct cryptdata_t {
 	char *srcFile;
 	char *encryptFile;
@@ -12,26 +8,31 @@ struct cryptdata_t {
 int KEY_LEN;
 void encrypt (struct cryptdata_t *data);
 void decrypt (struct cryptdata_t *data);
+
 void main () {
 	struct cryptdata_t *myData;
-printf("NEUE ENCRYPTION\n\n");
+	printf("\n\nNEW ENCRYPTION\n\n");
 	KEY_LEN = 3;
+
 	myData = malloc(sizeof(struct cryptdata_t));
-	myData->key = malloc(sizeof(char) * KEY_LEN);
-	myData->srcFile = "./plain.txt";
-	myData->encryptFile = "./encrypt.txt";
-	myData->decryptFile = "./decrypt.txt";
+	myData->key = malloc(sizeof(char) * KEY_LEN);	
+
 	myData->key[0] = '1';
 	myData->key[1] = '2';
 	myData->key[2] = '3';
+
+	myData->srcFile = "./plain.txt";
+	myData->encryptFile = "./encrypt.txt";
+	myData->decryptFile = "./decrypt.txt";
+
 	myData->count = 0;
 
 	encrypt(myData);
-	printf(myData->count);
-	printf(" characters encrypted.\n");
+	printf(myData->count); printf(" characters encrypted.\n");
 	decrypt(myData);
 	if(myData->count == 0) { printf("all characters decrypted.\n"); }
 	else { 	printf(myData->count); printf(" characters not decrypted.\n"); }
+	printf("\n\n");
 }
 void encrypt(struct cryptdata_t *data) {
 	int i; int c; int sfp; int dfp;
@@ -51,7 +52,6 @@ void encrypt(struct cryptdata_t *data) {
 		write(dfp, buf, c);
 	}
 }
-
 void decrypt(struct cryptdata_t *data) {
 	int i; int c; int sfp; int dfp;
 	char *buf;

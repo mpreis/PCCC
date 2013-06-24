@@ -1974,17 +1974,14 @@ int programm() {
 		i = include();
 		if(i == 1) { getNextToken(); }
 	}
-	printf("===== include   -> done.\n");
 	while(j) {
 		j = structDec();
 		if(j == 1) { getNextToken(); }
 	}
-	printf("===== structDec -> done.\n");
 	while(k) {
 		k = globalDec();
 		if(k) { getNextToken(); }
 	}
-	printf("===== globalDec -> done.\n");
 	return i;
 }
 
@@ -2020,6 +2017,7 @@ int startParsing(char *sfile, char *ofile){
 
 	if(errorCounter == 0) { finalizeOutputFile(); }
 	else { printf("%d Errors\n", errorCounter); }
+	printf("... %s successful generated.\n", outfile);
 	printf("\n -- DONE. --\n\n");
 	return i;
 }
