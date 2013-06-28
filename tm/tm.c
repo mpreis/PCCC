@@ -83,8 +83,8 @@ void loadMeta(FILE *fp) {
 	mem_max = reg[29] + 1;			/*end of memory*/
 	mem = malloc(mem_max * sizeof(int));
 
-//	printf(" -- metadata loaded.\n");
-//	printf(" -- -- (reg[27]: %i, reg[28]: %i, reg[29]: %i, reg[30]: %i, mem_mex: %i)\n",reg[27],reg[28],reg[29],reg[30], mem_max);
+	printf(" -- metadata loaded.\n");
+	printf(" -- -- (reg[27]: %i, reg[28]: %i, reg[29]: %i, reg[30]: %i, mem_mex: %i)\n",reg[27],reg[28],reg[29],reg[30], mem_max);
 }
 
 void loadCode(char *file) {
@@ -233,36 +233,37 @@ void prc (int a) { printf("%c", reg[a]); pc = pc + 4; }
 /* dlx */
 void startTM(char *file) {
 	int i;
-	//printf("\n\n -- start tm: %s -- \n", file);
+	printf("\n\n -- start tm: %s -- %c %d \n", file, '!','!');
 	initTMCmd();
 	loadCode(file);
 	//printf(" -- run code \n\n");
-	//printMemParts();
+	printMem();
 	for(i = 0; ir[0] != CMD_TRAP; i++) {
 		fetch();
 		//printf("\n -- %s(%i) %i %i %i\n", getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3]);
 		execute();
 		//printReg();
 	}
-	//printMemParts();
-	//printf("\n -- ende -- \n\n");
+	printMem();
+	printf("\n -- ende -- \n\n");
 }
 
 /*******************************************************************/
 /* HELPER METHODS                                                  */
 /*******************************************************************/
-printMemParts() {
+printMem() {
 	int i, k;
 	printf("\n *** MEM *** ");
 	printf("\n *** CMDS *** \n");
 	for(i = 0,k = 1; i < nrOfCmds; i++,k++) {
-		printf("%3i ",mem[i]);
+		printf("%11i ",mem[i]);
 		if((k%7) == 0) printf("\n");
 	}
 	printf("\n *** STRINGS *** \n");
 	for(k=1; i <= reg[27]; i++,k++) {
-		printf("%3i ",mem[i]);
-		if((k%32) == 0) printf("\n");
+		if(mem[i] != 0)	printf("%c",mem[i]);
+		else printf("%i",mem[i]);
+		if((k%64) == 0) printf("\n");
 	}
 	printf("\n *** GLOBAL VARIABLES *** \n");
 	for(k=1; i <= reg[28]; i++,k++) {
@@ -279,12 +280,6 @@ printMemParts() {
 		printf("%3i ",mem[i]);
 		if((k%32) == 0) printf("\n");
 	}
-	printf("\n");
-}
-printMem() {
-	int i;
-	printf("MEM #: \n");
-	for(i = 0; i < mem_max; i++) printf("%2i ",mem[i]);
 	printf("\n");
 }
 
