@@ -21,7 +21,7 @@ void finalizeOutputFile() {
 	int out_fp_bin;
 	int *tempBuff;
 	tempBuff = malloc(32);
-	out_fp_bin = open(outfile, 65, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
+	out_fp_bin = open(outfile, 513, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
 										 /* 513 ... O_CREAT (512) | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Mac */
 	if(out_fp_bin < 0) {
 		printError("can not open/create output file.");
@@ -441,7 +441,7 @@ int number() {
 	return 0;
 }
 
-/* "==" | "!=" | "<=" | ">=" | "<" | ">" | "&&" | "||" . */
+/* "==" | "!=" | "<=" | ">=" | "<" | ">" . */
 int compOp() {
 	if( symbol->id == EQ || symbol->id == NEQ || symbol->id == LT || symbol->id == GT || 
 		symbol->id == LET || symbol->id == GET) {
@@ -450,6 +450,7 @@ int compOp() {
 	return 0;
 }
 
+/* "+" | "-" | "*" | "/" | "&&" | "||" . */
 int op() {
 	if(symbol->id == PLUS || symbol->id == MINUS || symbol->id == DIV || symbol->id == TIMES || compOp() || symbol->id == AND || symbol->id == OR) {
 		return 1;
@@ -471,10 +472,6 @@ int typeSpec(struct item_t *item, struct object_t *head) {
 	item->type->size = 4;
 	item->value = 4;
 
-	if(symbol->id == TYPEDEF) { 
-		if(hasMoreTokens() == 0) { return 0; }		
-		getNextToken(); 
-	}
 	if(symbol->id == INT ) { item->type->form = TYPE_FORM_INT;  return TYPE_FORM_INT;  }
 	if(symbol->id == CHAR) { item->type->form = TYPE_FORM_CHAR; return TYPE_FORM_CHAR; } /* return value for symbol table */
 	if(symbol->id == VOID) { item->type->form = TYPE_FORM_VOID; return TYPE_FORM_VOID; }
@@ -883,52 +880,6 @@ int expression(struct item_t *item) {
 	}
 }
 
-/* identifier {"," identifier} . */
-int paramList() {
-	struct item_t *item;
-	item = malloc(sizeof(struct item_t));
-	item->type = malloc(sizeof(struct type_t));
-
-	if(symbol->id == RPAR) { return 1; }
-	while(1) {
-			if(expression(item) == 0) {
-				printError("paramList: identifier expected.");
-				return 0;
-			}
-
-		if(symbol->id == DOT || symbol->id == ARROW) {
-			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();
-			if(identifier()) {
-				if(hasMoreTokens() == 0) { return 0; }
-				getNextToken();
-				if(symbol->id == LSQBR) {
-					if(hasMoreTokens() == 0) { return 0; }
-					getNextToken();
-					if(identifier() || number()) {
-						if(hasMoreTokens() == 0) { return 0; }
-						getNextToken();
-						if(symbol->id == RSQBR) {
-							if(hasMoreTokens() == 0) { return 0; }
-							getNextToken();
-						} else { printError("']' missing."); }
-					}
-				}
-			} else {
-				printError("paramList(2): identifier expected.");
-			}
-		}
-		if(symbol->id == RPAR) { return 1; }
-		if(symbol->id == COMMA) {
-			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();
-		} else {
-			printError("')' missing.");
-			return 1;
-		}
-	}
-}
-
 int printMethod(struct item_t *item) {
 	int i;
 	int reg;
@@ -1238,14 +1189,9 @@ int whileLoop(struct item_t *item) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 	} else { printError("missing ')'"); return 0; }
-	if (symbol->id == LCUBR) {
+	if(block()) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
-		statementSeq();
-		if (symbol->id == RCUBR) {
-			if(hasMoreTokens() == 0) { return 0; }
-			getNextToken();
-		} else { printError("missing '}'"); return 0; }
 	}
 	cg_bJump(bJumpAddress);
 	cg_fixLink(item->fls);
@@ -1403,7 +1349,8 @@ int typedefDec(struct object_t *head) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
 				return 1;
-			} else { printError("';' missing."); } }
+			} else { printError("';' missing."); } 
+		}
 	}
 	return 0;
 }
@@ -1483,19 +1430,6 @@ int structDec() {
 	return 0;
 }
 
-int returnType(struct item_t *item) {
-	if(symbol->id == STRUCT) { 
-		if(hasMoreTokens() == 0) { return 0; }		
-		getNextToken();
-	}
-	if(typeSpec(item, globList) == 0) {
-		printError("[returnType] type expected.");
-	}
-	if(hasMoreTokens() == 0) { return 0; }
-	getNextToken();
-	return 1;
-}
-
 struct object_t *createObject(string_t name) {
 	struct object_t *object;
 	object = malloc(sizeof(struct object_t));
@@ -1555,7 +1489,6 @@ void prologue(int localSize) {
 	cg_put(CMD_PSH, LINK, SPTR, 4); 				// save return address
 	cg_put(CMD_PSH, FPTR, SPTR, 4); 				// save caller's frame
 	cg_put(CMD_ADD, FPTR, 0, SPTR); 				// allocate callee's frame
-printf("LS: %d \n", localSize);
 	cg_put(CMD_SUBI, SPTR, SPTR, localSize/4); 		// allocate callee's local variables
 }
 
