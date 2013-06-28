@@ -7,7 +7,7 @@ int main(int argc, char *argv[]){
 	char *sfile;
 	char *ofile;
 	sfile = malloc (20*sizeof(char));
-	strnCpy(sfile, "./tests/presDemo.c", 20);
+	strnCpy(sfile, "./tests/test.c", 20);
 
 	ofile = malloc (20*sizeof(char));	
 	strnCpy(ofile, "./my_pccc", 20); 

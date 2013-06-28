@@ -295,8 +295,20 @@ void cg_index(struct item_t *item, struct item_t *indexItem) {
 }
 
 void cg_assignment(struct item_t *leftItem, struct item_t *rightItem) {
-	if(leftItem->type->form != rightItem->type->form && rightItem->type->form != TYPE_FORM_VOID) { 
-		printError("[assignment] Type mismatch in assignment"); 
+	if(leftItem->type->form == TYPE_FORM_ARRAY) {	
+		if(leftItem->type->base->form != rightItem->type->form && rightItem->type->form != TYPE_FORM_VOID) { 
+			printError("[assignment] Type mismatch in assignment"); 
+		}
+	} else {
+		if(rightItem->type->form == TYPE_FORM_ARRAY) {	
+				if(rightItem->type->base->form != leftItem->type->form && rightItem->type->form != TYPE_FORM_VOID) { 
+					printError("[assignment] Type mismatch in assignment"); 
+				}
+		} else {
+			if(leftItem->type->form != rightItem->type->form && rightItem->type->form != TYPE_FORM_VOID) { 
+				printError("[assignment] Type mismatch in assignment"); 
+			}
+		}
 	}
 	if (rightItem->type->form == TYPE_FORM_BOOL) { cg_unloadBool(rightItem); }
 	cg_load(rightItem);
@@ -960,7 +972,7 @@ int printMethod(struct item_t *item) {
 					getNextToken();
 					return 1;
 				} else { printError("';' missing."); }
-			} else { printError("')' missing."); }
+			} else { printError("[printMethod] ')' missing."); }
 		} else { printError("'(' missing."); }
 	}
 	return 0;
@@ -1246,6 +1258,7 @@ int variableDeclarationSequence(struct object_t *head, int isStruct) {
 	item = malloc(sizeof(struct item_t));
 	item->type = malloc(sizeof(struct type_t));
 	decCounter = 0;
+	
 	if(isStruct) { off = 0; }
 	else { off = locOffset; }
 	while(1) {
@@ -1264,23 +1277,25 @@ int variableDeclarationSequence(struct object_t *head, int isStruct) {
 		type = newType(typeSpec(item, head));
 		object->offset = off;
 		if(type->form == 0) { return decCounter; } 
-		else if(type->form == TYPE_FORM_RECORD) {
-			ptr = lookUp(head, symbol->valueStr);
-			if(ptr == 0) {
-				ptr = lookUp(globList, symbol->valueStr);
-				if(ptr != 0) {
-					object->type = ptr->type;
+		else { 
+			if(type->form == TYPE_FORM_RECORD) {
+				ptr = lookUp(head, symbol->valueStr);
+				if(ptr == 0) {
+					ptr = lookUp(globList, symbol->valueStr);
+					if(ptr != 0) {
+						object->type = ptr->type;
+						/*object->type->form = ptr->type->form;
+						object->type->size = ptr->type->size;
+						object->type->fields = ptr->type->fields;
+						object->type->base = ptr->type->base;*/
+					}
+				} else { 
+					object->type = ptr->type; 
 					/*object->type->form = ptr->type->form;
 					object->type->size = ptr->type->size;
 					object->type->fields = ptr->type->fields;
 					object->type->base = ptr->type->base;*/
 				}
-			} else { 
-				object->type = ptr->type; 
-				/*object->type->form = ptr->type->form;
-				object->type->size = ptr->type->size;
-				object->type->fields = ptr->type->fields;
-				object->type->base = ptr->type->base;*/
 			}
 		}
 		off = off - 4;	/* size of local variable int,char 4byte; pointer to struct 4byte  */
@@ -1306,6 +1321,7 @@ int variableDeclarationSequence(struct object_t *head, int isStruct) {
 						object->type = type;
 					}
 				}
+
 				if(isStruct) {
 					insert(head, object);
 				} else {
@@ -1503,6 +1519,15 @@ struct type_t *basicArrayRecordType() {
 				type->fields = ptr->type->fields;
 				type->base = ptr->type->base;
 			}
+		}
+	}
+	if(identifier()) {
+		ptr = lookUp(globList, symbol->valueStr);
+		if(ptr != 0 && ptr->class == OBJECT_CLASS_TYPE) {
+			type->form = ptr->type->form;
+			type->size = ptr->type->size;
+			type->fields = ptr->type->fields;
+			type->base = ptr->type->base;
 		}
 	}
 	if(hasMoreTokens() == 0) { return 0; }
