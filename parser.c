@@ -21,7 +21,7 @@ void finalizeOutputFile() {
 	int out_fp_bin;
 	int *tempBuff;
 	tempBuff = malloc(32);
-	out_fp_bin = open(outfile, 513, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
+	out_fp_bin = open(outfile, 65, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
 										 /* 513 ... O_CREAT (512) | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Mac */
 	if(out_fp_bin < 0) {
 		printError("can not open/create output file.");
@@ -39,15 +39,15 @@ void finalizeOutputFile() {
 		write(out_fp_bin, tempBuff, 4); 
 	} else { printError("missing main method"); }
 	i = 1;
-//printf("\n\n\n");
+printf("\n\n\n");
 	while(i < PC) {
-//printf("%s %i %i %i\n", getCmdName(out_cmd_buff[i]->op), out_cmd_buff[i]->a, out_cmd_buff[i]->b, out_cmd_buff[i]->c);
+printf("%s %i %i %i\n", getCmdName(out_cmd_buff[i]->op), out_cmd_buff[i]->a, out_cmd_buff[i]->b, out_cmd_buff[i]->c);
 		tempBuff[0] = cg_encode(out_cmd_buff[i]->op, out_cmd_buff[i]->a, out_cmd_buff[i]->b, out_cmd_buff[i]->c);
 		wb = write(out_fp_bin, tempBuff, 4); 
     		if ( wb != 4 ) { printf(" --- could only write %i byte.\n", wb); }
 		i = i + 1;
 	}
-//printf("\n\n\n");
+printf("\n\n\n");
 	close(out_fp_bin);
 }
 
@@ -588,6 +588,7 @@ int selector(struct item_t *item){
 
 			expression(indexItem);
 			cg_index(item, indexItem);
+
 			if(symbol->id == RSQBR) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
@@ -1055,6 +1056,7 @@ int fileClose(struct item_t *item) {
 }
 
 int fileWrite(struct item_t *item) {
+	int sreg;
 	struct item_t *firstItem;
 	struct item_t *secondItem;
 	struct item_t *thirdItem;
@@ -1088,6 +1090,8 @@ int fileWrite(struct item_t *item) {
 									if(hasMoreTokens() == 0) { return 0; }
 									getNextToken();
 									if(symbol->id == SEMCOL) {
+										//sreg = cg_requestReg();
+										//cg_put( CMD_SUBI, sreg, secondItem->reg, (secondItem->offset* (-1)) );
 										cg_load(firstItem);
 										cg_load(secondItem);
 										cg_load(thirdItem);
@@ -1110,6 +1114,7 @@ int fileWrite(struct item_t *item) {
 }
 
 int fileRead(struct item_t *item) {
+	int sreg;
 	struct item_t *firstItem;
 	struct item_t *secondItem;
 	struct item_t *thirdItem;
@@ -1145,6 +1150,8 @@ int fileRead(struct item_t *item) {
 									if(symbol->id == PLUS || symbol->id == MINUS || symbol->id == TIMES || symbol->id == DIV || 
 										compOp() || symbol->id == RPAR || symbol->id == SEMCOL || symbol->id == COMMA || 
 										symbol->id == RSQBR || symbol->id == RCUBR || symbol->id == OR) {
+										sreg = cg_requestReg();
+										cg_put( CMD_SUBI, sreg, secondItem->reg, (secondItem->offset* (-1)) );
 										cg_load(firstItem);
 										cg_load(secondItem);
 										cg_load(thirdItem);
@@ -1548,7 +1555,8 @@ void prologue(int localSize) {
 	cg_put(CMD_PSH, LINK, SPTR, 4); 				// save return address
 	cg_put(CMD_PSH, FPTR, SPTR, 4); 				// save caller's frame
 	cg_put(CMD_ADD, FPTR, 0, SPTR); 				// allocate callee's frame
-	cg_put(CMD_SUBI, SPTR, SPTR, localSize); 	// allocate callee's local variables
+printf("LS: %d \n", localSize);
+	cg_put(CMD_SUBI, SPTR, SPTR, localSize/4); 		// allocate callee's local variables
 }
 
 void epilogue(int paramSize) {
@@ -2040,9 +2048,8 @@ int startParsing(char *sfile, char *ofile){
 		i = programm();
 	}
 
-	if(errorCounter == 0) { finalizeOutputFile(); }
+	if(errorCounter == 0) { finalizeOutputFile(); printf("... %s successful generated.\n", outfile); }
 	else { printf("%d Errors\n", errorCounter); }
-	printf("... %s successful generated.\n", outfile);
 	printf("\n -- DONE. --\n\n");
 	return i;
 }
