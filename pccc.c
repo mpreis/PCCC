@@ -311,12 +311,10 @@ int startParsing(char *sfile, char *ofile);
 void main(){
 	char *sfile;
 	char *ofile;
-	int fileNameSize;
-	fileNameSize = 20*sizeof(char);
-	sfile = malloc (fileNameSize);
-	strnCpy(sfile, "./tests/ioTest.c", 20);
+	sfile = malloc (20*sizeof(char));
+	strnCpy(sfile, "./tests/test.c", 20);
 
-	ofile = malloc (fileNameSize);	
+	ofile = malloc (20*sizeof(char));	
 	strnCpy(ofile, "./my_pccc", 20); 
 
 	initScanner(sfile);

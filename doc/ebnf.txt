@@ -1,0 +1,55 @@
+programm	=	{include} {structDec} {globalDec} .
+
+globalDec	=	{typedefDec} [struct] typeSpec ["*"] ( procImpl | identifier ";" ) .
+
+procImpl	=	identifier formalParams ( ";" | ( "{" varDecSeq statementSeq "}" ) ) .
+formalParams=	"(" [ formalParam { "," formalParam } ] ")" .
+formalParam	=	basicArrType identifier .
+basicArrType=	typeSpec ["*"] .
+
+statementSeq=	{ (ifCmd | whileLoop | printf | expression | procRet) ";" } .
+block		= 	"{" statementSeq "}" .
+
+typedefDec	=	"typedef" ["struct"] typeSpec ["*"] identifier ";" .
+structDec	=	"struct" identifier "{" varDecSeq {varDecSeq} "}" ";" .
+varDecSeq	=	{ [typedefDec]["struct"] typeSpec ["*"] identifier ";" } .
+
+procCall	=	identifier actParams .
+actParams	=	"(" [expression { "," expression }] ")" .
+
+ifCmd		=	"if" "(" expression ")" block ["else" block] .	
+whileLoop	=	"while" "(" expression ")" block .
+procRet		=	"return" expression .
+
+fileFct		=	fileOpen | fileClose | fileRead | fileWrite .
+fileOpen	=	"open" "(" expression "," expression "," expression ")" .
+fileClose	=	"close" "(" expression ")" .
+fileRead	=	"read" "(" expression "," expression "," expression ")" .
+fileWrite	=	"write" "(" expression "," expression "," expression ")" .
+
+selector	=	("->" identifier | "[" expression "]") .
+printf		=	"printf" "(" (string | expression) ")" .
+malloc		=	"malloc" expression .
+sizeof		=	"sizeof" "(" ["struct"] typeSpec ")" .
+include		=	"include" ["<" | """] identifier "." identifier [">" | """] .
+
+expression	=	arithExp { compOp arithExp } .
+arithExp 	= 	[ "-" ] term { ( "+" | "-" | "||" ) term } .
+term 		= 	factor { ( "*" | "/" | "&&" ) factor } .
+factor 		= 	number | character | string | ( "(" expression ")" ) | sizeof | malloc | fileFct 
+				| ( ["*"] identifier [ (selector | ("=" expression) | op | ("(" procCall ")") ) (";" | "," | "}" | "->" | ")") ] ).
+
+typeSpec	=	"int" | "char" | "void" | identifier .
+
+op			=	"+" | "-" | "*" | "/" | "&&" | "||" .
+compOp		=	"==" | "!=" | "<=" | ">=" | "<" | ">" .
+
+identifier	=	letter {letter | digit | "_"} .
+number		=	["-"] digit {digit} .
+string		=	""" { digit | letter } """ .
+character	=	"'" ["\"](digit | letter) "'".
+digit		=	"0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" . 
+letter		=	"a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | 
+				"n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" |
+				"A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" |
+				"N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" .

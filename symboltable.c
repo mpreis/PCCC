@@ -156,7 +156,7 @@ void initSymbolTable() {
 	TYPE_FORM_BOOL = 4;
 	TYPE_FORM_ARRAY = 5;
 	TYPE_FORM_RECORD = 6;
-	TYPE_FORM_UNKNOWN = 6;
+	TYPE_FORM_UNKNOWN = 7;
 
 	OBJECT_CLASS_VAR = 1;
 	OBJECT_CLASS_TYPE = 2;
@@ -169,67 +169,3 @@ void initSymbolTable() {
 	locOffset = 0;
 	paramOffset = 0;
 }
-
-/*
-int main(void) {
-// ---------- FORM: ----------  
-	struct type_t *INT;
-	INT = malloc    (sizeof (struct type_t));
-	INT->form = 1;
-	struct type_t *CHAR;
-	CHAR = malloc   (sizeof (struct type_t));
-	CHAR->form = 2;
-	struct type_t *VOID;
-	VOID = malloc   (sizeof (struct type_t));
-	VOID->form = 3;
-	struct type_t *ARRAY;
-	ARRAY = malloc  (sizeof (struct type_t));
-	ARRAY->form = 4;
-	struct type_t *RECORD;
-	RECORD = malloc (sizeof (struct type_t));
-	RECORD->form = 5;
-
-// ---------- CLASS: ---------- 
-// --- VAR   ... 1 
-// --- TYPE  ... 2 
-// --- FIELD ... 3
-
-	globList = malloc(sizeof(struct object_t));
-
-	insertValues(globList, "i", 1, INT);
-	insertValues(globList, "a", 2, ARRAY);
-	insertValues(globList, "struct_t", 3, RECORD);
-	printTable(globList);
-
-	struct object_t *locList = 0;
-	locList = malloc(sizeof(struct object_t));
-
-	insertValues(locList, "china", 1, RECORD);
-	insertValues(locList, "aarrayhoit", 2, CHAR);
-	insertValues(locList, "nuaarray", 3, CHAR);
-	insertValues(locList, "china", 3, INT);
-	printTable(locList);
-
-	struct object_t *ptr = 0;
-	ptr = malloc(sizeof(struct object_t));
-	ptr->name = malloc(64 * sizeof(char));
-	strnCpy(ptr->name, "test", 64);
-	ptr->class = 2;
-	ptr->type = CHAR;
-	ptr->next = 0;
-	insert(globList, ptr);
-	printTable(globList);
-
-	printf("\n\n");
-	printObject(lookUp(globList, "i"));
-	printObject(lookUp(globList, "a"));
-	printObject(lookUp(globList, "struct_t"));
-	return 1;
-
-}
-
-*/
-
-
-
-

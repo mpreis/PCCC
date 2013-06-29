@@ -1,4 +1,4 @@
-/*
+/* 
  * PSEUDOCODE - demo.c
  * authors: thomas huetter 1120239, mario preishuber 1120643
  */
@@ -12,7 +12,7 @@ int encode(int op, int a, int b, int c) {
 		c = c + 65536; // 0x10000: 2^16
 	return (((((op * 32) + a) * 32) + b) * 65536) + c;
 }
-void main(int argc) {
+void main(int argc, char *argv[]) {
 	int x = 963;
 	int y = 33;
 	int *buff = malloc(9*32);
@@ -21,8 +21,8 @@ void main(int argc) {
 	if(fp == 0) { printf("\tERROR: can not open file.\n"); }
 	
 	initTMCmd();
-	printf(" -- generate bin file (%s).\n", file);
-
+//	printf(" -- generate bin file (%s).\n", file);
+/*
 	// meta data
 /*	buff[0]  = encode(CMD_CS,	0, 0, 15);
 	buff[1]  = encode(CMD_GP,	0, 0, 16); 
@@ -73,6 +73,12 @@ void main(int argc) {
 	fwrite(buff,4,9,fp);
 	fclose(fp);
 
+	// meta data
+	buff[0]  = encode(CMD_CS,	0, 0, 15);
+	buff[1]  = encode(CMD_GP,	0, 0, 16); 
+	buff[2]  = encode(CMD_SP,	0, 0,  0);
 //	startTM(file);
-	startTM("../my_pccc");
+//	startTM("../my_pccc");
+	startTM(argv[1]);
 }
+
