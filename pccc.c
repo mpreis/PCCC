@@ -596,7 +596,7 @@ int strCmp(char *s1, char *s2) {
 
 int strnCpy(char *s1, char *s2, int n) {
 	int i; i = 0;
-	while (i < n && s2[i] != 0) {
+	while ((i < n) && (s2[i] != 0)) {
 		s1[i] = s2[i];
 		i = i+1;
 	}
@@ -605,10 +605,10 @@ int strnCpy(char *s1, char *s2, int n) {
 }
 
 int isLetter(char c) {
-	return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
+	return (((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')));
 }
 
-int isDigit(char c) { return (c >= '0' && c <= '9'); }
+int isDigit(char c) { return ((c >= '0') && (c <= '9')); }
 
 int getNumber(char nr) {
 	int number; 
@@ -962,7 +962,7 @@ void finalizeOutputFile() {
 	int out_fp_bin;
 	int *tempBuff;
 	tempBuff = malloc(32);
-	out_fp_bin = open(outfile, 65, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
+	out_fp_bin = open(outfile, 513, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
 										 /* 513 ... O_CREAT (512) | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Mac */
 	if(out_fp_bin < 0) {
 		printError("can not open/create output file.");
@@ -1797,7 +1797,6 @@ int expression(struct item_t *item) {
 	leftItem = 0;
 	rightItem = 0;
 	op = OP_NONE;
-
 	while(1) {
 		if(arithExp(item)) {
 			if(leftItem == 0){
@@ -1824,8 +1823,10 @@ int expression(struct item_t *item) {
 		if(symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || 
 			symbol->id == COMMA || symbol->id == RSQBR || symbol->id == RCUBR || symbol->id == ARROW) {
 			copyItem(item, leftItem);
+printf("exp fertig\n");
 			return 1;
 		}
+
 		if(compOp()) {
 			if(symbol->id == EQ) { op = OP_EQ; }
 			if(symbol->id == NEQ) { op = OP_NEQ; }
@@ -2495,7 +2496,9 @@ int procedureImplementation(struct item_t* item, string_t identifier) {
 	}
 	prologue(variableDeclarationSequence(object, 0) * 4);
 	procedureContext = object;
+printf("test1 \n");
 	statementSeq();
+printf("test2 \n");
 	cg_fixLink(returnFJumpAddress);
 	epilogue(object->value * 4);
 	if (symbol->id == RCUBR) { 
@@ -2523,7 +2526,6 @@ int formalParameters(struct object_t* object) {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			nextParameter = formalParameter(object, nextParameter);
-printf("------test %d\n",symbol->id);
 			numberOfParameters = numberOfParameters + 1;
 		}
 	}
@@ -2557,6 +2559,7 @@ struct object_t* createFormalParameter(struct object_t* object, struct type_t* t
 		ptr->type->base = type->base;
 		ptr->scope = LOCAL_SCOPE;
 		ptr->next = 0;
+ 		return ptr;
 	} else {
 		while(ptr->next != 0) {
 			ptr = ptr->next;
@@ -2571,8 +2574,8 @@ struct object_t* createFormalParameter(struct object_t* object, struct type_t* t
 		ptr->next->type->base = type->base;
 		ptr->next->scope = LOCAL_SCOPE;
 		ptr->next->next = 0;
+ 		return ptr->next;
 	}
- 	return ptr;
 }
 
 struct object_t* formalParameter(struct object_t* object, struct object_t* formalParameter) {
@@ -2580,11 +2583,11 @@ struct object_t* formalParameter(struct object_t* object, struct object_t* forma
 	type = basicArrayRecordType();
 	if (identifier()) {
 		if (formalParameter != 0) {
-	printf("-2-test %d\n",symbol->id);			
 			if (type != 0 && formalParameter->type != 0 && type->form != formalParameter->type->form) 
 			{ printError("type mismatch in procedure declaration and call"); }
 
 			//if (lookUp(object->params, symbol->valueStr) != 0) { printError("parameter name already used: "); } /* TODO:  */
+			//formalParameter->name = symbol->valueStr; /* TODO:  */
 		} else { formalParameter = createFormalParameter(object, type, symbol->valueStr); }
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
@@ -2822,6 +2825,7 @@ int globalDec() {
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();			
 		}
+		printf("SYMBOL: %d %s \n", symbol->id, symbol->valueStr);
 		if(identifier()) {
 			object->name = malloc(64 * sizeof(char));
 			strnCpy(object->name, symbol->valueStr, 64);
@@ -2870,10 +2874,13 @@ int statementSeq () {
 			if(hasMoreTokens() == 0) { return 0; }			
 			getNextToken();
 		}
+		printf("[statementSeq] SYMBOL: %d %s \n", symbol->id, symbol->valueStr);
 		if(ifCmd(item)) {} 
 		else { if(printMethod(item)) {}
 			else { if(whileLoop(item)) {}
-				else { if(expression(item) || procedureReturn()) {
+				else { 
+					if(expression(item) || procedureReturn()) {
+printf(" --- TEST\n");
 						if(symbol->id == SEMCOL) {
 							if(hasMoreTokens() == 0) { return 0; }
 							getNextToken();
@@ -2881,6 +2888,7 @@ int statementSeq () {
 							printError("[stateSeq] ';' missing.");	
 						}
 					} else {
+printf(" --- TEST2\n");
 						while(symbol->id != SEMCOL && symbol->id != RPAR && symbol->id != RCUBR) {
 							if(hasMoreTokens() == 0) { return 0; }
 							getNextToken();
