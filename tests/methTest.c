@@ -1,7 +1,3 @@
-/*
-	PROBLEM: er schafft keine methoden mit 3 parameter bei strnCpy scheitert er.
-*/
-
 /* 
  * PSEUDOCODE (SELFCOMPILING) C COMPILER
  * authors: thomas huetter 1120239, mario preishuber 1120643
@@ -238,7 +234,7 @@ void initSymbolTable();
 /******************************************************************************************/
 char *srcfile;
 char *outfile;
-//struct cmd_t * *out_cmd_buff;
+struct cmd_t * *out_cmd_buff;
 int nrOfStrs;
 int errorCounter;
 int PC;
@@ -481,7 +477,7 @@ void initTMCmd() {
 	CMD_PRC = 6;  /* print given value as char */
 }
 
-/*char *getCmdName(id) {
+char *getCmdName(id) {
 	initTMCmd();
 	if(id == CMD_ADDI) return "addi";
 	if(id == CMD_SUBI) return "subi";
@@ -519,7 +515,7 @@ void initTMCmd() {
 	if(id == CMD_WRC ) return "wrc ";
 	if(id == CMD_RDC ) return "rdc ";
 	return "unknown";
-}*/
+}
 /******************************************************************************************/
 /**************************************** scanner *****************************************/
 /******************************************************************************************/
@@ -596,7 +592,7 @@ int strCmp(char *s1, char *s2) {
 
 int strnCpy(char *s1, char *s2, int n) {
 	int i; i = 0;
-	while (i < n && s2[i] != 0) {
+	while ((i < n) && (s2[i] != 0)) {
 		s1[i] = s2[i];
 		i = i+1;
 	}
@@ -605,22 +601,22 @@ int strnCpy(char *s1, char *s2, int n) {
 }
 
 int isLetter(char c) {
-	return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
+	return (((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')));
 }
 
-int isDigit(char c) { return (c >= '0' && c <= '9'); }
+int isDigit(char c) { return ((c >= '0') && (c <= '9')); }
 
-int getNumber(char nr) {
-	int number; 
-	char actNumber;
-	number = nr - '0';
-	actNumber = getChar();
-	while(isDigit(actNumber)) {
-		number = number * 10 + (actNumber - '0');
-		actNumber = getChar();
+int getNumber(char pnr) {
+	int nr; 
+	char actnr;
+	nr = pnr - '0';
+	actnr = getChar();
+	while(isDigit(actnr)) {
+		nr = nr * 10 + (actnr - '0');
+		actnr = getChar();
 	}
-	ungetChar(actNumber);
-	return number;
+	ungetChar(actnr);
+	return nr;
 }
 
 void getIdentifier(char *identifier, char c) {
@@ -629,7 +625,7 @@ void getIdentifier(char *identifier, char c) {
 	nc = getChar();
 	i = 1;
 	identifier[0] = c;
-	while((isLetter(nc) || isDigit(nc) || nc == '_') && hasMoreChars() && i < 63) {
+	while((isLetter(nc) || isDigit(nc) || (nc == '_')) && hasMoreChars() && (i < 63)) {
 		identifier[i] = nc;
 		nc = getChar();
 		i = i + 1;
@@ -643,16 +639,12 @@ void getNextToken() {
 	char c;
 	char nc;
 	char nnc;
-	char *identifier;
+	char *token_ident;
 	char *buff;
 	int i;
-	int identSize;
-	int buffSize;
 
-	identSize = 64*sizeof(char);
-	identifier = malloc(identSize);
-	buffSize = 1000*sizeof(char);
-	buff = malloc(buffSize);
+	token_ident = malloc(64*sizeof(char));
+	buff = malloc(1000*sizeof(char));
 	c = getChar();
 	symbol->id = INIT; symbol->digitValue = -1; strnCpy(symbol->valueStr, "", 0);
 	
@@ -660,25 +652,25 @@ void getNextToken() {
 		c = getChar();
 	}
 	if(isLetter(c)) {
-		getIdentifier(identifier, c);
-		if(strCmp(identifier, "if"     ) == 0) { symbol->id = IF;      strnCpy(symbol->valueStr, identifier, 2); }
-		if(strCmp(identifier, "int"    ) == 0) { symbol->id = INT;     strnCpy(symbol->valueStr, identifier, 3); }
-		if(strCmp(identifier, "char"   ) == 0) { symbol->id = CHAR;    strnCpy(symbol->valueStr, identifier, 4); }
-		if(strCmp(identifier, "void"   ) == 0) { symbol->id = VOID;    strnCpy(symbol->valueStr, identifier, 4); }
-		if(strCmp(identifier, "bool"   ) == 0) { symbol->id = BOOL;    strnCpy(symbol->valueStr, identifier, 4); }
-		if(strCmp(identifier, "else"   ) == 0) { symbol->id = ELSE;    strnCpy(symbol->valueStr, identifier, 4); }
-		if(strCmp(identifier, "open"   ) == 0) { symbol->id = OPEN;    strnCpy(symbol->valueStr, identifier, 4); }
-		if(strCmp(identifier, "read"   ) == 0) { symbol->id = READ;    strnCpy(symbol->valueStr, identifier, 4); }
-		if(strCmp(identifier, "write"  ) == 0) { symbol->id = WRITE;   strnCpy(symbol->valueStr, identifier, 5); }
-		if(strCmp(identifier, "close"  ) == 0) { symbol->id = CLOSE;   strnCpy(symbol->valueStr, identifier, 5); }
-		if(strCmp(identifier, "while"  ) == 0) { symbol->id = WHILE;   strnCpy(symbol->valueStr, identifier, 5); }
-		if(strCmp(identifier, "return" ) == 0) { symbol->id = RETURN;  strnCpy(symbol->valueStr, identifier, 6); }
-		if(strCmp(identifier, "sizeof" ) == 0) { symbol->id = SIZEOF;  strnCpy(symbol->valueStr, identifier, 6); }
-		if(strCmp(identifier, "malloc" ) == 0) { symbol->id = MALLOC;  strnCpy(symbol->valueStr, identifier, 6); }
-		if(strCmp(identifier, "struct" ) == 0) { symbol->id = STRUCT;  strnCpy(symbol->valueStr, identifier, 6); }
-		if(strCmp(identifier, "printf" ) == 0) { symbol->id = PRINTF;  strnCpy(symbol->valueStr, identifier, 6); }
-		if(strCmp(identifier, "typedef") == 0) { symbol->id = TYPEDEF; strnCpy(symbol->valueStr, identifier, 7); }
-		if(symbol->id == INIT) { symbol->id = IDENT; strnCpy(symbol->valueStr, identifier, 64); }
+		getIdentifier(token_ident, c);
+		if(strCmp(token_ident, "if"     ) == 0) { symbol->id = IF;      strnCpy(symbol->valueStr, token_ident, 2); }
+		if(strCmp(token_ident, "int"    ) == 0) { symbol->id = INT;     strnCpy(symbol->valueStr, token_ident, 3); }
+		if(strCmp(token_ident, "char"   ) == 0) { symbol->id = CHAR;    strnCpy(symbol->valueStr, token_ident, 4); }
+		if(strCmp(token_ident, "void"   ) == 0) { symbol->id = VOID;    strnCpy(symbol->valueStr, token_ident, 4); }
+		if(strCmp(token_ident, "bool"   ) == 0) { symbol->id = BOOL;    strnCpy(symbol->valueStr, token_ident, 4); }
+		if(strCmp(token_ident, "else"   ) == 0) { symbol->id = ELSE;    strnCpy(symbol->valueStr, token_ident, 4); }
+		if(strCmp(token_ident, "open"   ) == 0) { symbol->id = OPEN;    strnCpy(symbol->valueStr, token_ident, 4); }
+		if(strCmp(token_ident, "read"   ) == 0) { symbol->id = READ;    strnCpy(symbol->valueStr, token_ident, 4); }
+		if(strCmp(token_ident, "write"  ) == 0) { symbol->id = WRITE;   strnCpy(symbol->valueStr, token_ident, 5); }
+		if(strCmp(token_ident, "close"  ) == 0) { symbol->id = CLOSE;   strnCpy(symbol->valueStr, token_ident, 5); }
+		if(strCmp(token_ident, "while"  ) == 0) { symbol->id = WHILE;   strnCpy(symbol->valueStr, token_ident, 5); }
+		if(strCmp(token_ident, "return" ) == 0) { symbol->id = RETURN;  strnCpy(symbol->valueStr, token_ident, 6); }
+		if(strCmp(token_ident, "sizeof" ) == 0) { symbol->id = SIZEOF;  strnCpy(symbol->valueStr, token_ident, 6); }
+		if(strCmp(token_ident, "malloc" ) == 0) { symbol->id = MALLOC;  strnCpy(symbol->valueStr, token_ident, 6); }
+		if(strCmp(token_ident, "struct" ) == 0) { symbol->id = STRUCT;  strnCpy(symbol->valueStr, token_ident, 6); }
+		if(strCmp(token_ident, "printf" ) == 0) { symbol->id = PRINTF;  strnCpy(symbol->valueStr, token_ident, 6); }
+		if(strCmp(token_ident, "typedef") == 0) { symbol->id = TYPEDEF; strnCpy(symbol->valueStr, token_ident, 7); }
+		if(symbol->id == INIT) { symbol->id = IDENT; strnCpy(symbol->valueStr, token_ident, 64); }
 	}
 	else {
 		if(isDigit(c)) { symbol->id = NUMBER; symbol->digitValue = getNumber(c); } 
@@ -855,7 +847,7 @@ struct object_t *findProcedureObject(struct object_t *head, string_t name) {
 	if(head->name != 0) {
 		ptr = head;
 		while(ptr != 0) {
-			if(ptr->class == OBJECT_CLASS_PROC && strCmp(ptr->name, name) == 0) {
+			if((ptr->class == OBJECT_CLASS_PROC) && (strCmp(ptr->name, name) == 0)) {
 				return ptr;
 			}
 			ptr = ptr->next;
@@ -881,7 +873,7 @@ int insert(struct object_t *head, struct object_t *obj) {
 		head->next = obj;
 	} else {
 		if(lookUp(head, obj->name) != 0)	{
-			printf("error: multible declaration of "); printf(obj->name); printf("\n", obj->name);
+//			printf("error: multible declaration of %s",obj->name); /* printf(obj->name); */ printf("\n");;
 			return 0;
 		}
 		ptr = head;
@@ -983,7 +975,7 @@ void finalizeOutputFile() {
 	while(i < PC) {
 		tempBuff[0] = cg_encode(out_cmd_buff[i]->op, out_cmd_buff[i]->a, out_cmd_buff[i]->b, out_cmd_buff[i]->c);
 		wb = write(out_fp_bin, tempBuff, 4); 
-    	if ( wb != 4 ) { printf(" --- could only write ");printf(wb);printf(" byte.\n", wb); }
+    	if ( wb != 4 ) { printf(" --- could only write ");/*printf(wb);*/printf(" byte.\n"); }
 		i = i + 1;
 	}
 	close(out_fp_bin);
@@ -1132,8 +1124,8 @@ void cg_simpleExpBinOp(struct item_t *leftItem, struct item_t *rightItem, int op
 		} else { printError("[simpleExpBinOp] boolean expressions expected"); }
 	}
 	else {
-		if((leftItem->type->form == TYPE_FORM_INT  && rightItem->type->form == TYPE_FORM_INT) || 
-				(leftItem->type->form == TYPE_FORM_CHAR && rightItem->type->form == TYPE_FORM_CHAR)) {
+		if(((leftItem->type->form == TYPE_FORM_INT) && (rightItem->type->form == TYPE_FORM_INT)) || 
+				((leftItem->type->form == TYPE_FORM_CHAR) && (rightItem->type->form == TYPE_FORM_CHAR))) {
 			if(rightItem->mode == ITEM_MODE_CONST) {
 				if(leftItem->mode == ITEM_MODE_CONST) {
 					if(op == OP_ADD) { leftItem->value = leftItem->value + rightItem->value; } 
@@ -1174,8 +1166,8 @@ void cg_termOperator(struct item_t *leftItem, struct item_t *rightItem, int op) 
 		} else { printError("[termOperator] boolean expressions expected"); }
 	}	
 	else {
-		if((leftItem->type->form == TYPE_FORM_INT  && rightItem->type->form == TYPE_FORM_INT) || 
-				(leftItem->type->form == TYPE_FORM_CHAR && rightItem->type->form == TYPE_FORM_CHAR)) {
+		if(((leftItem->type->form == TYPE_FORM_INT) && (rightItem->type->form == TYPE_FORM_INT)) || 
+				((leftItem->type->form == TYPE_FORM_CHAR) && (rightItem->type->form == TYPE_FORM_CHAR))) {
 			if(rightItem->mode == ITEM_MODE_CONST) {
 				if(leftItem->mode == ITEM_MODE_CONST) {
 					if(op == OP_MUL) { leftItem->value = leftItem->value * rightItem->value; } 
@@ -1250,16 +1242,16 @@ void cg_index(struct item_t *item, struct item_t *indexItem) {
 
 void cg_assignment(struct item_t *leftItem, struct item_t *rightItem) {
 	if(leftItem->type->form == TYPE_FORM_ARRAY) {	
-		if(leftItem->type->base->form != rightItem->type->form && rightItem->type->form != TYPE_FORM_VOID) { 
+		if((leftItem->type->base->form != rightItem->type->form) && (rightItem->type->form != TYPE_FORM_VOID)) { 
 			printError("[assignment] Type mismatch in assignment"); 
 		}
 	} else {
 		if(rightItem->type->form == TYPE_FORM_ARRAY) {	
-				if(rightItem->type->base->form != leftItem->type->form && rightItem->type->form != TYPE_FORM_VOID) { 
-					printError("[assignment] Type mismatch in assignment"); 
-				}
+			if((rightItem->type->base->form != leftItem->type->form) && (rightItem->type->form != TYPE_FORM_VOID)) { 
+				printError("[assignment] Type mismatch in assignment"); 
+			}
 		} else {
-			if(leftItem->type->form != rightItem->type->form && rightItem->type->form != TYPE_FORM_VOID) { 
+			if((leftItem->type->form != rightItem->type->form) && (rightItem->type->form != TYPE_FORM_VOID)) {
 				printError("[assignment] Type mismatch in assignment"); 
 			}
 		}
@@ -1374,11 +1366,14 @@ void cg_unloadBool(struct item_t *item) {
  ************************************************************/
 void printError(char *msg) {
 	errorCounter = errorCounter + 1;
+/*
 	printf("       ");
 	printf(srcfile);printf(":");
 	printf(symbol->lineNr);printf(":");
 	printf(symbol->colNr);printf(": ERROR: ");
 	printf(msg);printf(" (found: ");printf(symbol->valueStr);printf("/");printf(symbol->id);printf(")\n");
+*/
+//	printf("\t %s:%d:%d: ERROR: %s (found:%s/%d) \n",srcfile, symbol->lineNr, symbol->colNr, msg, symbol->id, symbol->valueStr);
 }
 
 /*************************************************************
@@ -1397,8 +1392,7 @@ int number() {
 
 /* "==" | "!=" | "<=" | ">=" | "<" | ">" . */
 int compOp() {
-	if( symbol->id == EQ || symbol->id == NEQ || symbol->id == LT || symbol->id == GT || 
-		symbol->id == LET || symbol->id == GET) {
+	if( (symbol->id == EQ) || (symbol->id == NEQ) || (symbol->id == LT) || (symbol->id == GT) || (symbol->id == LET) || (symbol->id == GET)) {
 		return 1;
 	}
 	return 0;
@@ -1406,7 +1400,8 @@ int compOp() {
 
 /* "+" | "-" | "*" | "/" | "&&" | "||" . */
 int op() {
-	if(symbol->id == PLUS || symbol->id == MINUS || symbol->id == DIV || symbol->id == TIMES || compOp() || symbol->id == AND || symbol->id == OR) {
+	if((symbol->id == PLUS) || (symbol->id == MINUS) || (symbol->id == DIV) || (symbol->id == TIMES) 
+		|| compOp() || (symbol->id == AND) || (symbol->id == OR)) {
 		return 1;
 	}
 	return 0;
@@ -1432,20 +1427,20 @@ int typeSpec(struct item_t *item, struct object_t *head) {
 	if(symbol->id == BOOL) { item->type->form = TYPE_FORM_BOOL; return TYPE_FORM_BOOL; }
 	if(identifier()) {
 		ptr = lookUp(globList, symbol->valueStr);
-		if(ptr != 0 && ptr->class == OBJECT_CLASS_TYPE) {
+		if((ptr != 0) && (ptr->class == OBJECT_CLASS_TYPE)) {
 			item->type->form = ptr->type->form;
 			item->type->size = ptr->type->size;
 			item->value = ptr->type->size;
 			return TYPE_FORM_RECORD;
 		}
 		ptr = lookUp(head, symbol->valueStr);
-		if(ptr != 0 && ptr->class == OBJECT_CLASS_TYPE) { 
+		if((ptr != 0) && (ptr->class == OBJECT_CLASS_TYPE)) { 
 			item->type->form = ptr->type->form;
 			item->type->size = ptr->type->size;
 			item->value = ptr->type->size;
 			return TYPE_FORM_RECORD;
 		} else { 
-			if(head->scope != 0 && head->class != 0 && head->type != 0) {	// first element in list
+			if((head->scope != 0) && (head->class != 0) && (head->type != 0)) {	// first element in list
 				//TODO printError("unknown type.");
 			}
 		}
@@ -1564,7 +1559,7 @@ int factor(struct item_t *item) {
 	rightItem = malloc(sizeof(struct item_t));
 	rightItem->type = malloc(sizeof(struct type_t));
 	object = malloc(sizeof(struct object_t));
-	if(number() || symbol->id == CHARACTER || symbol->id == STRING) {
+	if(number() || (symbol->id == CHARACTER) || (symbol->id == STRING)) {
 		if(number()) {
 			item->mode = ITEM_MODE_CONST;
 			if(item->type == 0) { item->type = malloc(sizeof(struct type_t)); }
@@ -1669,7 +1664,7 @@ int factor(struct item_t *item) {
 			}
 		}
 
-		if(symbol->id == SEMCOL || symbol->id == COMMA || symbol->id == RSQBR || symbol->id == ARROW || symbol->id == RPAR) 
+		if((symbol->id == SEMCOL) || (symbol->id == COMMA) || (symbol->id == RSQBR) || (symbol->id == ARROW) || (symbol->id == RPAR)) 
 		{ copyItem(item, leftItem); return 1; }
 	}
 	return 0;
@@ -1698,7 +1693,7 @@ int term(struct item_t *item) {
 					copyItem(rightItem, item);
 				} 
 			}
-			if(leftItem != 0 && rightItem != 0) {
+			if((leftItem != 0) && (rightItem != 0)) {
 				if(op != OP_NONE) {
 					cg_termOperator(leftItem, rightItem, op);
 					rightItem = 0;
@@ -1707,13 +1702,13 @@ int term(struct item_t *item) {
 			}
 		} else { return 0; }
 
-		if(symbol->id == PLUS || symbol->id == MINUS || symbol->id == OR || 
-				compOp() || symbol->id == RPAR || symbol->id == SEMCOL || symbol->id == COMMA || 
-				symbol->id == RSQBR || symbol->id == RCUBR || symbol->id == ARROW) {
+		if((symbol->id == PLUS) || (symbol->id == MINUS) || (symbol->id == OR) || 
+				compOp() || (symbol->id == RPAR) || (symbol->id == SEMCOL) || (symbol->id == COMMA) || 
+				(symbol->id == RSQBR) || (symbol->id == RCUBR) || (symbol->id == ARROW)) {
 			copyItem(item, leftItem);
 			return 1;
 		}
-		if(symbol->id == TIMES || symbol->id == DIV || symbol->id == AND) {
+		if((symbol->id == TIMES) || (symbol->id == DIV) || (symbol->id == AND)) {
 			if(symbol->id == TIMES) { op = OP_MUL; }
 			if(symbol->id == DIV) { op = OP_DIV; }
 			if(symbol->id == AND) { op = OP_AND; cg_termOpAND(leftItem); }
@@ -1758,7 +1753,7 @@ int arithExp(struct item_t *item) {
 					copyItem(rightItem, item);
 				}
 			} 
-			if(leftItem != 0 && rightItem != 0) {
+			if((leftItem != 0) && (rightItem != 0)) {
 				if(op != OP_NONE) {
 					cg_simpleExpBinOp(leftItem, rightItem, op);
 					rightItem = 0;
@@ -1769,12 +1764,12 @@ int arithExp(struct item_t *item) {
 			}
 		} else { return 0; }
 
-		if(compOp() || symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || 
-			symbol->id == COMMA  || symbol->id == RSQBR || symbol->id == RCUBR || symbol->id == ARROW) {
+		if(compOp() || (symbol->id == RPAR) || (symbol->id == SEMCOL) || (hasMoreTokens() == 0) || 
+			(symbol->id == COMMA) || (symbol->id == RSQBR) || (symbol->id == RCUBR) || (symbol->id == ARROW)) {
 			copyItem(item, leftItem);
 			return 1;
 		}
-		if(symbol->id == PLUS || symbol->id == MINUS || symbol->id == OR) {
+		if((symbol->id == PLUS) || (symbol->id == MINUS) || (symbol->id == OR)) {
 			if(symbol->id == PLUS) { op = OP_ADD; }
 			if(symbol->id == MINUS) { op = OP_SUB; }
 			if(symbol->id == OR) { op = OP_OR; cg_simpleExpOR(leftItem); }
@@ -1797,7 +1792,6 @@ int expression(struct item_t *item) {
 	leftItem = 0;
 	rightItem = 0;
 	op = OP_NONE;
-
 	while(1) {
 		if(arithExp(item)) {
 			if(leftItem == 0){
@@ -1811,7 +1805,7 @@ int expression(struct item_t *item) {
 					copyItem(rightItem, item);
 				} 
 			}
-			if(leftItem != 0 && rightItem != 0) {
+			if((leftItem != 0) && (rightItem != 0)) {
 				if(op != OP_NONE) {
 					cg_expressionOperator(leftItem, rightItem, op);
 					rightItem = 0;
@@ -1821,11 +1815,12 @@ int expression(struct item_t *item) {
 				}
 			}
 		} else { return 0; }
-		if(symbol->id == RPAR || symbol->id == SEMCOL || hasMoreTokens() == 0 || 
-			symbol->id == COMMA || symbol->id == RSQBR || symbol->id == RCUBR || symbol->id == ARROW) {
+		if((symbol->id == RPAR) || (symbol->id == SEMCOL) || (hasMoreTokens() == 0) || 
+			(symbol->id == COMMA) || (symbol->id == RSQBR) || (symbol->id == RCUBR) || (symbol->id == ARROW)) {
 			copyItem(item, leftItem);
 			return 1;
 		}
+
 		if(compOp()) {
 			if(symbol->id == EQ) { op = OP_EQ; }
 			if(symbol->id == NEQ) { op = OP_NEQ; }
@@ -2060,9 +2055,9 @@ int fileRead(struct item_t *item) {
 								if(symbol->id == RPAR) {
 									if(hasMoreTokens() == 0) { return 0; }
 									getNextToken();
-									if(symbol->id == PLUS || symbol->id == MINUS || symbol->id == TIMES || symbol->id == DIV || 
-										compOp() || symbol->id == RPAR || symbol->id == SEMCOL || symbol->id == COMMA || 
-										symbol->id == RSQBR || symbol->id == RCUBR || symbol->id == OR) {
+									if((symbol->id == PLUS) || (symbol->id == MINUS) || (symbol->id == TIMES) || (symbol->id == DIV) || 
+										compOp() || (symbol->id == RPAR) || (symbol->id == SEMCOL) || (symbol->id == COMMA) || 
+										(symbol->id == RSQBR) || (symbol->id == RCUBR) || (symbol->id == OR)) {
 										sreg = cg_requestReg();
 										cg_put( CMD_SUBI, sreg, secondItem->reg, (secondItem->offset* (-1)) );
 										cg_load(firstItem);
@@ -2238,7 +2233,7 @@ int variableDeclarationSequence(struct object_t *head, int isStruct) {
 				if(isStruct) { insert(head, object); } 
 				else {
 					if(lookUp(head, object->name) != 0)	{	//check additionally, if the symbol is in de paramsList
-						printf("error: multible declaration of ");printf(object->name);printf("\n");
+					//	printf("error: multible declaration of %s",object->name);/*printf(object->name);*/printf("\n");
 					} else {
 						insert(locList, object);
 					}
@@ -2366,7 +2361,7 @@ int structDec() {
 				record->fields = fieldObj;
 				object->type = record;
 				/* delete implicite struct declaration */
-				if(globList != 0 && globList->name != 0 && lookUp(globList, object->name) != 0)	{ 
+				if((globList != 0) && (globList->name != 0) && (lookUp(globList, object->name) != 0))	{ 
 					if(globList != 0) {
 						if(strCmp(globList->name, object->name) == 0) {
 							ptr = globList->next;
@@ -2416,7 +2411,7 @@ struct type_t *basicArrayRecordType() {
 		getNextToken();
 		if(identifier()) {
 			ptr = lookUp(globList, symbol->valueStr);
-			if(ptr != 0 && ptr->class == OBJECT_CLASS_TYPE) {
+			if((ptr != 0) && (ptr->class == OBJECT_CLASS_TYPE)) {
 				type->form = ptr->type->form;
 				type->size = ptr->type->size;
 				type->fields = ptr->type->fields;
@@ -2426,7 +2421,7 @@ struct type_t *basicArrayRecordType() {
 	}
 	if(identifier()) {
 		ptr = lookUp(globList, symbol->valueStr);
-		if(ptr != 0 && ptr->class == OBJECT_CLASS_TYPE) {
+		if((ptr != 0) && (ptr->class == OBJECT_CLASS_TYPE)) {
 			type->form = ptr->type->form;
 			type->size = ptr->type->size;
 			type->fields = ptr->type->fields;
@@ -2599,13 +2594,17 @@ int procedureReturn() {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 	} else { return 0; }
-
 	if ((symbol->id == PLUS) || (symbol->id == MINUS) || identifier() || (symbol->id == INT) ||
-		(symbol->id == LPAR) || (symbol->id == STRING || number())) {
+		(symbol->id == LPAR) || (symbol->id == STRING || number() || (symbol->id == CHARACTER))) {
 		item = malloc(sizeof(struct item_t)); 
 		item->type = malloc(sizeof(struct type_t));
-		expression(item); 
-		if (item->type->form != procedureContext->type->form) { printError("return type mismatch"); return 0; }
+
+		expression(item);
+
+		if ( (item->type->form != procedureContext->type->form) 
+			&& (item->type->form != TYPE_FORM_INT) && (procedureContext->type->form != TYPE_FORM_CHAR)
+			&& (item->type->form != TYPE_FORM_CHAR) && (procedureContext->type->form != TYPE_FORM_INT) ) 
+		{ printError("return type mismatch"); return 0; }
 		if (item->type->form == TYPE_FORM_BOOL) { cg_unloadBool(item); }
 		cg_load(item);
 		cg_put(CMD_ADD, RR, 0, item->reg);
@@ -2868,17 +2867,22 @@ int statementSeq () {
 			if(hasMoreTokens() == 0) { return 0; }			
 			getNextToken();
 		}
+	//	printf("[statementSeq] SYMBOL: %d %s \n", symbol->id, symbol->valueStr);
 		if(ifCmd(item)) {} 
-		else { if(printMethod(item)) {}
-			else { if(whileLoop(item)) {}
-				else { if(expression(item) || procedureReturn()) {
+		else { 
+			if(printMethod(item)) {}
+			else { 
+				if(whileLoop(item)) {}
+				else { 
+					if(expression(item) || procedureReturn()) {
 						if(symbol->id == SEMCOL) {
 							if(hasMoreTokens() == 0) { return 0; }
 							getNextToken();
 						} else {
 							printError("[stateSeq] ';' missing.");	
 						}
-					} else {
+					}
+					else {
 						while(symbol->id != SEMCOL && symbol->id != RPAR && symbol->id != RCUBR) {
 							if(hasMoreTokens() == 0) { return 0; }
 							getNextToken();
@@ -2948,7 +2952,7 @@ int startParsing(char *sfile, char *ofile){
 	initSymbolTable();
 	initOutputFile();
 
-	printf("\nstart parsing "); printf(srcfile); printf("...\n");
+	printf("\nstart parsing "); /*printf(srcfile);*/ printf("...\n");
 	while ( hasMoreTokens() ) {
 		getNextToken();
 		if(symbol->id == ERROR) {
@@ -2958,7 +2962,7 @@ int startParsing(char *sfile, char *ofile){
 		i = programm();
 	}
 
-	if(errorCounter == 0) { finalizeOutputFile(); printf("... "); printf(outfile); printf(" successful generated.\n"); }
+	if(errorCounter == 0) { finalizeOutputFile(); printf("... "); /*printf(outfile);*/ printf(" successful generated.\n"); }
 	else { printf(errorCounter); printf(" Errors\n"); }
 	printf("\n -- DONE. --\n\n");
 	return i;
