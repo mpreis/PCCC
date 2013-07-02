@@ -1559,7 +1559,7 @@ int factor(struct item_t *item) {
 	rightItem = malloc(sizeof(struct item_t));
 	rightItem->type = malloc(sizeof(struct type_t));
 	object = malloc(sizeof(struct object_t));
-	if(number() || (symbol->id == CHARACTER) || (symbol->id == STRING)) {
+	if(number() || (symbol->id == CHARACTER) ||int fac (symbol->id == STRING)) {
 		if(number()) {
 			item->mode = ITEM_MODE_CONST;
 			if(item->type == 0) { item->type = malloc(sizeof(struct type_t)); }
@@ -1675,6 +1675,7 @@ int term(struct item_t *item) {
 	struct item_t *leftItem;
 	struct item_t *rightItem;
 	int op; 
+	int sinnlos;
 
 	op = OP_NONE;
 	leftItem = 0;
@@ -1706,6 +1707,7 @@ int term(struct item_t *item) {
 				compOp() || (symbol->id == RPAR) || (symbol->id == SEMCOL) || (symbol->id == COMMA) || 
 				(symbol->id == RSQBR) || (symbol->id == RCUBR) || (symbol->id == ARROW)) {
 			copyItem(item, leftItem);
+		sinnlos = 0;
 			return 1;
 		}
 		if((symbol->id == TIMES) || (symbol->id == DIV) || (symbol->id == AND)) {

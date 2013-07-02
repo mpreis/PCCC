@@ -827,6 +827,32 @@ void getNextToken() {
 /******************************************************************************************/
 /************************************** symboltable ***************************************/
 /******************************************************************************************/
+
+
+void printObject(struct object_t *ptr) {
+	if(ptr->type != 0)
+		printf("|| %18s | %7d | %6d | %8d | %8d ||\n", ptr->name,ptr->class,ptr->type->form,ptr->offset,ptr->scope);
+	else
+		printf("|| %18s | %7d | | %8d | %8d ||\n", ptr->name,ptr->class,ptr->offset,ptr->scope);
+}
+void printType(struct type_t *t) {
+	printf("|| %18d | %7d | %6d | %8d | ||\n", t->form,t->fields,t->base,t->size);
+}
+void printTable(struct object_t *head) {
+    struct object_t *ptr;
+	ptr = head;
+
+	printf("||================================================================||\n");
+	printf("|| name | class | type | offset | scope ||\n");
+	printf("||================================================================||\n");
+	while(ptr != 0 && ptr->name != 0) {
+		printObject(ptr);
+		printf("||----------------------------------------------------------------||\n");
+		ptr = ptr->next;
+	}
+}
+
+
 struct object_t *lookUp(struct object_t *head, string_t name) {
 	struct object_t *ptr;
 	struct object_t *ptrParams;
@@ -834,13 +860,13 @@ struct object_t *lookUp(struct object_t *head, string_t name) {
 		ptr = head;
 		while(ptr != 0) {
 			if(strCmp(ptr->name, name) == 0) {
-printf(" -- found \n");
+printf(" -- found %s\n",name);
 				return ptr;
 			}
 			ptr = ptr->next;
 		}
 	}
-printf(" -- not found \n");
+printf(" -- not found %s\n",name);
 	return 0;
 }
 
@@ -1622,6 +1648,7 @@ int factor(struct item_t *item) {
 	if(symbol->id == WRITE) { fileWrite(item); return 1; }
 	if(symbol->id == CLOSE) { fileClose(item); return 1; } 
 	if(identifier()) {
+if(strCmp(symbol->valueStr, "sinnlos") == 0) {printTable(globList);} 
 		object = lookUp(locList, symbol->valueStr);
 		if(object == 0) {
 			if(procedureContext->params != 0) { object = lookUp(procedureContext->params, symbol->valueStr); }
@@ -2827,6 +2854,7 @@ int globalDec() {
 		}
 		if(identifier()) {
 		printf(" --------------------------------------------------- [globalDec] SYMBOL: %d %s \n", symbol->id, symbol->valueStr);
+		if(strCmp(symbol->valueStr, "arithExp") == 0) {printTable(globList);}
 
 			object->name = malloc(64 * sizeof(char));
 			strnCpy(object->name, symbol->valueStr, 64);
