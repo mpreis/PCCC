@@ -230,7 +230,7 @@ struct object_t *delete(struct object_t *head, string_t name);
 struct type_t *newType(int form);
 void initSymbolTable();
 /******************************************************************************************/
-/**************************************** parser  *****************************************/
+/**************************************** parser ******************************************/
 /******************************************************************************************/
 char *srcfile;
 char *outfile;
@@ -1615,8 +1615,8 @@ int factor(struct item_t *item) {
 		cg_allocate(item);
 		return result;
 	} 
-	if(symbol->id == OPEN)  { fileOpen(item);  return 1; }
-	if(symbol->id == READ)  { fileRead(item);  return 1; }
+	if(symbol->id == OPEN ) { fileOpen(item) ; return 1; }
+	if(symbol->id == READ ) { fileRead(item) ; return 1; }
 	if(symbol->id == WRITE) { fileWrite(item); return 1; }
 	if(symbol->id == CLOSE) { fileClose(item); return 1; } 
 	if(identifier()) {

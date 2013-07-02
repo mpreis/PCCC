@@ -834,11 +834,13 @@ struct object_t *lookUp(struct object_t *head, string_t name) {
 		ptr = head;
 		while(ptr != 0) {
 			if(strCmp(ptr->name, name) == 0) {
+printf(" -- found \n");
 				return ptr;
 			}
 			ptr = ptr->next;
 		}
 	}
+printf(" -- not found \n");
 	return 0;
 }
 
@@ -954,7 +956,7 @@ void finalizeOutputFile() {
 	int out_fp_bin;
 	int *tempBuff;
 	tempBuff = malloc(32);
-	out_fp_bin = open(outfile, 513, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
+	out_fp_bin = open(outfile, 65, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
 										 /* 513 ... O_CREAT (512) | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Mac */
 	if(out_fp_bin < 0) {
 		printError("can not open/create output file.");
@@ -1566,7 +1568,7 @@ int factor(struct item_t *item) {
 			item->type->form = TYPE_FORM_INT;
 			item->value = symbol->digitValue;
 		} else {
-			if(symbol->id == STRING) { printf(" -- str: %s\n",symbol->valueStr); storeString(item); } 
+			if(symbol->id == STRING) { storeString(item); } 
 			else { /* if symbol->id == CHARACTER */
 				item->mode = ITEM_MODE_CONST;
 				item->type->form = TYPE_FORM_CHAR;
@@ -1624,7 +1626,9 @@ int factor(struct item_t *item) {
 		if(object == 0) {
 			if(procedureContext->params != 0) { object = lookUp(procedureContext->params, symbol->valueStr); }
 			if(object == 0) {
+printf(" -1- ident %d %s\n",globList, symbol->valueStr);
 				object = lookUp(globList, symbol->valueStr);
+printf(" -2- ident\n");
 				if(object == 0) {
 					printError("unknown identifier");
 					return 0;
@@ -2706,6 +2710,7 @@ int actualParameters(struct object_t* object) {
 	while (nextFormalParameter != 0) {
 		printError("[warning] actual parameter expected");
 		item = malloc(sizeof(struct item_t));
+		item->type = malloc(sizeof(struct type_t));
 		item->mode = ITEM_MODE_CONST; 
 		item->type->form = TYPE_FORM_INT; 
 		item->value = 0;
@@ -2821,7 +2826,7 @@ int globalDec() {
 			getNextToken();			
 		}
 		if(identifier()) {
-		printf(" ----------- [globalDec] SYMBOL: %d %s \n", symbol->id, symbol->valueStr);
+		printf(" --------------------------------------------------- [globalDec] SYMBOL: %d %s \n", symbol->id, symbol->valueStr);
 
 			object->name = malloc(64 * sizeof(char));
 			strnCpy(object->name, symbol->valueStr, 64);
@@ -2871,7 +2876,7 @@ int statementSeq () {
 			getNextToken();
 		}
 		printf("[statementSeq] SYMBOL: %d %s \n", symbol->id, symbol->valueStr);
-		if(ifCmd(item)) {} 
+		if(ifCmd(item)) { printf("-- end if \n"); } 
 		else { 
 			if(printMethod(item)) {}
 			else { 
