@@ -65,20 +65,20 @@ void loadMeta(FILE *fp) {
 	int *temp = malloc(4*32);
 	// read codesize
 	fread(buff,1,4,fp);
-	decode(buff[0]);
+	decodeMeta(buff[0]);
 	nrOfCmds = ir[3];
 	// read global pointer
 	fread(buff,1,4,fp);
-	decode(buff[0]);
+	decodeMeta(buff[0]);
 	int gp = ir[3]/4;
 	// read string pointer
 	fread(buff,1,4,fp);
-	decode(buff[0]);
+	decodeMeta(buff[0]);
 	int strp = ir[3];
 	// set registers
 	reg[27] = nrOfCmds + strp;		/*end of commands and strings*/
 	reg[28] = reg[27] + gp;			/*end of global variables*/ 
-	reg[29] = reg[28] + 512; 		/*heap & stack*/
+	reg[29] = reg[28] + 4000;		/*heap & stack*/
 	reg[30] = reg[28];	 			/*start of heap = end of global variables */
 	mem_max = reg[29] + 1;			/*end of memory*/
 	mem = malloc(mem_max * sizeof(int));
@@ -114,12 +114,15 @@ void loadCode(char *file) {
 }
 void fetch() { decode(mem[pc/4]); }
 void decode(int instruction) {
+	decodeMeta(instruction);	
+	if (ir[3] >= 32768)
+		ir[3] = ir[3] - 65536; 			// 0x10000: 2^16
+}
+void decodeMeta(int instruction) {
 	ir[0] = (instruction >> 26) & 63; 	// 0x3F: 6 lsbs
 	ir[1] = (instruction >> 21) & 31; 	// 0x1F: 5 lsbs
 	ir[2] = (instruction >> 16) & 31;	// 0x1F: 5 lsbs
 	ir[3] = instruction & 65535; 		// 0xFFFF: 16 lsbs
-	if (ir[3] >= 32768)
-	ir[3] = ir[3] - 65536; 				// 0x10000: 2^16
 }
 
 void execute() {
@@ -162,7 +165,7 @@ void execute() {
 	else if(ir[0] == CMD_PRC)  prc (ir[1]);
 
 	else if(ir[0] == CMD_TRAP) {}
-	else { printf("\nERROR: invalid command (%i)!\n", ir[0]); exit(1); /*pc = pc + 4;*/ }
+	else { printf("\nERROR: invalid command (%d, %d, %d, %d)!\n", ir[0], ir[1], ir[2], ir[3]); printMem(); exit(1);  /*pc = pc + 4;*/ }
 }
 
 /* immediate addressing */
@@ -233,16 +236,16 @@ void prc (int a) { printf("%c", reg[a]); pc = pc + 4; }
 /* dlx */
 void startTM(char *file) {
 	int i;
-	printf("\n\n -- start tm: %s -- %c %d \n", file, '!','!');
+	printf("\n\n -- start tm: %s -- \n", file);
 	initTMCmd();
 	loadCode(file);
-	//printf(" -- run code \n\n");
-	printMem();
+	printf(" -- run code \n\n");
+//	printMem();
 	for(i = 0; ir[0] != CMD_TRAP; i++) {
 		fetch();
-		//printf("\n -- %s(%i) %i %i %i\n", getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3]);
+//		printf(" -%5d- %s(%i) %i %i %i\n",i,getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3]);
 		execute();
-		//printReg();
+//		printReg();
 	}
 	printMem();
 	printf("\n -- ende -- \n\n");
@@ -257,7 +260,7 @@ printMem() {
 	printf("\n *** CMDS *** \n");
 	for(i = 0,k = 1; i < nrOfCmds; i++,k++) {
 		printf("%11i ",mem[i]);
-		if((k%7) == 0) printf("\n");
+		if((k%11) == 0) printf("\n");
 	}
 	printf("\n *** STRINGS *** \n");
 	for(k=1; i <= reg[27]; i++,k++) {
