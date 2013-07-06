@@ -560,8 +560,7 @@ void initToken() {
 	symbol->valueStr = malloc(64*sizeof(char));
 	symbol->id = INIT; 
 	symbol->digitValue = -1; 
-	//strnCpy(symbol->valueStr, str, 0);
-	symbol->valueStr = "";
+	strnCpy(symbol->valueStr, str, 0);
 }
 
 bool hasMoreTokens() {
@@ -651,7 +650,9 @@ void getIdentifier(char *identifier, char c) {
 	int i;
 	nc = getChar();
 	i = 1;
+	printf("identifier address: ");printf(identifier);printf("\n");
 	identifier[0] = c;
+	printf(" -- [getnexttoken] after identifier = c\n");
 	while((isLetter(nc) || isDigit(nc) || (nc == '_')) && hasMoreChars() && (i < 63)) {
 		identifier[i] = nc;
 		nc = getChar();
@@ -675,34 +676,43 @@ void getNextToken() {
 	buff = malloc(1000*sizeof(char));
 	c = getChar();
 
-	symbol->id = INIT; symbol->digitValue = -1; str = ""; //strnCpy(symbol->valueStr, str, 0);
-	symbol->valueStr = "";
-	
+	symbol->id = INIT; symbol->digitValue = -1; str = ""; strnCpy(symbol->valueStr, str, 0);
+	printf(" -- [getnexttoken] after first strncpy\n");
 	while(( (c == ' ') || (c == '\n') || (c == 10) || (c == '\r') || (c == '\t') || (c == 9) ) && hasMoreChars()) {
+		printf("while ");printf(c);printf("\n");
 		c = getChar();
 	}
-
+	printf(" -- nach while c: ");printf(c);printf("\n");
 
 	if(isLetter(c)) {
+		printf("token_ident address: ");printf(token_ident);printf("\n");
 		getIdentifier(token_ident, c);
-		str = "if";      if(strCmp(token_ident, str) == 0) { symbol->id = IF;      symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 2); }
-		str = "int";     if(strCmp(token_ident, str) == 0) { symbol->id = INT;     symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 3); }
-		str = "char";    if(strCmp(token_ident, str) == 0) { symbol->id = CHAR;    symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 4); }
-		str = "void";    if(strCmp(token_ident, str) == 0) { symbol->id = VOID;    symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 4); }
-		str = "bool";    if(strCmp(token_ident, str) == 0) { symbol->id = BOOL;    symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 4); }
-		str = "else";    if(strCmp(token_ident, str) == 0) { symbol->id = ELSE;    symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 4); }
-		str = "open";    if(strCmp(token_ident, str) == 0) { symbol->id = OPEN;    symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 4); }
-		str = "read";    if(strCmp(token_ident, str) == 0) { symbol->id = READ;    symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 4); }
-		str = "write";   if(strCmp(token_ident, str) == 0) { symbol->id = WRITE;   symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 5); }
-		str = "close";   if(strCmp(token_ident, str) == 0) { symbol->id = CLOSE;   symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 5); }
-		str = "while";   if(strCmp(token_ident, str) == 0) { symbol->id = WHILE;   symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 5); }
-		str = "return";  if(strCmp(token_ident, str) == 0) { symbol->id = RETURN;  symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 6); }
-		str = "sizeof";  if(strCmp(token_ident, str) == 0) { symbol->id = SIZEOF;  symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 6); }
-		str = "malloc";  if(strCmp(token_ident, str) == 0) { symbol->id = MALLOC;  symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 6); }
-		str = "struct";  if(strCmp(token_ident, str) == 0) { symbol->id = STRUCT;  symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 6); }
-		str = "printf";  if(strCmp(token_ident, str) == 0) { symbol->id = PRINTF;  symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 6); }
-		str = "typedef"; if(strCmp(token_ident, str) == 0) { symbol->id = TYPEDEF; symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 7); }
-		if(symbol->id == INIT) { symbol->id = IDENT; symbol->valueStr = token_ident; } // strnCpy(symbol->valueStr, token_ident, 64); }
+		str = "if"; 		printf(" -- [getnexttoken] after str = if\n");
+		if(strCmp(token_ident, str) == 0) { 
+			printf(" -- [getnexttoken] after strcmp\n");
+			symbol->id = IF;      
+			printf(" -- [getnexttoken] after symbol->id = if\n");
+			strnCpy(symbol->valueStr, token_ident, 2); 
+			printf(" -- [getnexttoken] after strncpy\n");
+		}
+		str = "int";     if(strCmp(token_ident, str) == 0) { symbol->id = INT;     strnCpy(symbol->valueStr, token_ident, 3); }
+		str = "char";    if(strCmp(token_ident, str) == 0) { symbol->id = CHAR;    strnCpy(symbol->valueStr, token_ident, 4); }
+		str = "void";    if(strCmp(token_ident, str) == 0) { symbol->id = VOID;    strnCpy(symbol->valueStr, token_ident, 4); }
+		str = "bool";    if(strCmp(token_ident, str) == 0) { symbol->id = BOOL;    strnCpy(symbol->valueStr, token_ident, 4); }
+		str = "else";    if(strCmp(token_ident, str) == 0) { symbol->id = ELSE;    strnCpy(symbol->valueStr, token_ident, 4); }
+		str = "open";    if(strCmp(token_ident, str) == 0) { symbol->id = OPEN;    strnCpy(symbol->valueStr, token_ident, 4); }
+		str = "read";    if(strCmp(token_ident, str) == 0) { symbol->id = READ;    strnCpy(symbol->valueStr, token_ident, 4); }
+		str = "write";   if(strCmp(token_ident, str) == 0) { symbol->id = WRITE;   strnCpy(symbol->valueStr, token_ident, 5); }
+		str = "close";   if(strCmp(token_ident, str) == 0) { symbol->id = CLOSE;   strnCpy(symbol->valueStr, token_ident, 5); }
+		str = "while";   if(strCmp(token_ident, str) == 0) { symbol->id = WHILE;   strnCpy(symbol->valueStr, token_ident, 5); }
+		str = "return";  if(strCmp(token_ident, str) == 0) { symbol->id = RETURN;  strnCpy(symbol->valueStr, token_ident, 6); }
+		str = "sizeof";  if(strCmp(token_ident, str) == 0) { symbol->id = SIZEOF;  strnCpy(symbol->valueStr, token_ident, 6); }
+		str = "malloc";  if(strCmp(token_ident, str) == 0) { symbol->id = MALLOC;  strnCpy(symbol->valueStr, token_ident, 6); }
+		str = "struct";  if(strCmp(token_ident, str) == 0) { symbol->id = STRUCT;  strnCpy(symbol->valueStr, token_ident, 6); }
+		str = "printf";  if(strCmp(token_ident, str) == 0) { symbol->id = PRINTF;  strnCpy(symbol->valueStr, token_ident, 6); }
+		str = "typedef"; if(strCmp(token_ident, str) == 0) { symbol->id = TYPEDEF; strnCpy(symbol->valueStr, token_ident, 7); }
+		if(symbol->id == INIT) { symbol->id = IDENT; strnCpy(symbol->valueStr, token_ident, 64); }
+		printf(" -- [getnexttoken] after identifier\n");
 	}
 	else {
 		if(isDigit(c)) { symbol->id = NUMBER; symbol->digitValue = getNumber(c); } 
@@ -724,7 +734,7 @@ void getNextToken() {
 					nc = getChar();
 					i = i + 1;
 				}
-				symbol->id = STRING; symbol->valueStr = buff; //strnCpy(symbol->valueStr, buff, 1000);
+				symbol->id = STRING; strnCpy(symbol->valueStr, buff, 1000);
 				symbol->digitValue = i;
 			}
 			if(c == '\'') {
@@ -735,7 +745,7 @@ void getNextToken() {
 				} 
 				else {buff[1] = '\0';}
 				nc = getChar();
-				if(nc == '\'') { symbol->id = CHARACTER; symbol->valueStr = buff; }//strnCpy(symbol->valueStr, buff, 1); }
+				if(nc == '\'') { symbol->id = CHARACTER; strnCpy(symbol->valueStr, buff, 1); }
 				else { 
 					symbol->id = QUOTE; 
 					ungetChar(nc); 
@@ -828,8 +838,7 @@ void getNextToken() {
 			if(c == '#') {
 				nc = getChar();
 				str = "include ";
-//				strnCpy(buff, str, 8);
-				buff = str;
+				strnCpy(buff, str, 8);
 				i = 0;
 				while( (i < 8) && (nc == buff[i]) ) {
 					nc = getChar();
@@ -846,11 +855,10 @@ void getNextToken() {
 						}
 						buff[i] = 0;
 						symbol->id = INCLUDE;
-//						strnCpy(symbol->valueStr, buff, 1000);
-						symbol->valueStr = buff;
+						strnCpy(symbol->valueStr, buff, 1000);
 					}
 				}
-				else { symbol->id = ERROR; symbol->valueStr = buff; } // strnCpy(symbol->valueStr, buff, 10); }
+				else { symbol->id = ERROR; strnCpy(symbol->valueStr, buff, 10); }
 			}
 			if(symbol->id == INIT) { symbol->id = ERROR; symbol->valueStr[0] = c; symbol->valueStr[1] = 0; }
 		}
@@ -858,6 +866,7 @@ void getNextToken() {
 	if(symbol->id == COMMENT) { getNextToken(); }
 	symbol->lineNr = lineNr;
 	symbol->colNr = colNr;
+	printf("end of get token \n");
 }
 /******************************************************************************************/
 /************************************** symboltable ***************************************/
@@ -899,8 +908,7 @@ printf(" after \n");
 
 void insertName(struct object_t *ptr, string_t name) {
 	ptr->name = malloc(64 * sizeof(char));
-//	strnCpy(ptr->name, name, 64);
-	ptr->name = name;
+	strnCpy(ptr->name, name, 64);
 }
 	
 int insert(struct object_t *head, struct object_t *obj) {
@@ -909,8 +917,7 @@ int insert(struct object_t *head, struct object_t *obj) {
 	obj->next = 0;
 	if(head->name == 0) {
 		head->name = malloc(64 * sizeof(char));
-//		strnCpy(head->name, str, 64);
-		head->name = str;
+		strnCpy(head->name, str, 64);
 		head->class = 0;
 		head->offset = 0;
 		head->scope = 0;
@@ -1009,7 +1016,9 @@ bool startParsing(char *sfile, char *ofile){
 
 	printf("\nstart parsing "); printString(srcfile); printf("...\n");
 	if ( hasMoreTokens() ) {
+printf("after has more tokens \n");
 		getNextToken();
+printf("after get next token \n");
 		if(symbol->id == ERROR) {
 			printError("[program] file does not exist.");
 			return 0;
@@ -1030,6 +1039,7 @@ bool programm() {
 	int j;
 	int k;
 	i = 1; j = 1; k = 1;
+printf(" -- [program] after local vars\n");
 	while(i != 0) {
 		i = include();
 		if(i == 1) { getNextToken(); }
@@ -1052,11 +1062,26 @@ bool programm() {
  * CODE GENERATION METHODS
  ************************************************************/
 void initOutputFile() {
-//	out_cmd_buff = malloc(sizeof(struct cmd_t) * 128000);
-	out_cmd_op = malloc(sizeof(int) * 128000);
-	out_cmd_a = malloc(sizeof(int) * 128000);
-	out_cmd_b = malloc(sizeof(int) * 128000);
-	out_cmd_c = malloc(sizeof(int) * 128000);
+	int d; int size; size = 8000;
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
+	out_cmd_op = malloc(sizeof(int) * size);
+
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
+	out_cmd_a  = malloc(sizeof(int) * size);
+
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
+	out_cmd_b  = malloc(sizeof(int) * size);
+
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
+	out_cmd_c  = malloc(sizeof(int) * size);
 }
 
 void finalizeOutputFile() {
@@ -1073,11 +1098,17 @@ void finalizeOutputFile() {
 	}
 	cg_put(CMD_TRAP,0,0,0);
 	tempBuff[0] = cg_encode(CMD_CS,	0, 0, PC);
+	printf("CMD: ");printf(out_cmd_op[i]);printf(out_cmd_a[i]);printf(out_cmd_b[i]);printf(out_cmd_c[i]);printf("\n");
 	write(out_fp_bin, tempBuff, 4); 
+
 	tempBuff[0] = cg_encode(CMD_GP,	0, 0, nrOfGVar*4);
+	printf("CMD: ");printf(out_cmd_op[i]);printf(out_cmd_a[i]);printf(out_cmd_b[i]);printf(out_cmd_c[i]);printf("\n");
 	write(out_fp_bin, tempBuff, 4);
+
 	tempBuff[0] = cg_encode(CMD_SP,	0, 0, nrOfStrs-1);	
+	printf("CMD: ");printf(out_cmd_op[i]);printf(out_cmd_a[i]);printf(out_cmd_b[i]);printf(out_cmd_c[i]);printf("\n");
 	write(out_fp_bin, tempBuff, 4); 
+
 	if(mainPos != -1) {
 		tempBuff[0] = cg_encode(CMD_BR,	0, 0, mainPos);	
 		write(out_fp_bin, tempBuff, 4); 
@@ -1085,6 +1116,7 @@ void finalizeOutputFile() {
 	i = 1;
 	while(i < PC) {
 		tempBuff[0] = cg_encode(out_cmd_op[i], out_cmd_a[i], out_cmd_b[i], out_cmd_c[i]);
+		printf("CMD: ");printf(out_cmd_op[i]);printf(out_cmd_a[i]);printf(out_cmd_b[i]);printf(out_cmd_c[i]);printf("\n");
 		wb = write(out_fp_bin, tempBuff, 4); 
     	if ( wb != 4 ) { printf(" --- could only write ");printf(wb);printf(" byte.\n"); }
 		i = i + 1;
@@ -1098,19 +1130,12 @@ int cg_encode(int op, int a, int b, int c) {
 }
 
 void cg_put(int op, int a, int b, int c) {
-/*	
-	struct cmd_t *cmd;
-	cmd = malloc(sizeof(struct cmd_t));
-	cmd->op = op;
-	cmd->a = a;
-	cmd->b = b;
-	cmd->c = c;
-	out_cmd_buff[PC] = cmd;
-*/
+	printf("put\n");
 	out_cmd_op[PC] = op;
 	out_cmd_a [PC] = a;
 	out_cmd_b [PC] = b;
 	out_cmd_c [PC] = c;
+	printf("put: ");printf(out_cmd_op[PC]);printf(out_cmd_a[PC]);printf(out_cmd_b[PC]);printf(out_cmd_c[PC]);printf("\n");
 	PC = PC + 1;
 }
 
@@ -1357,6 +1382,7 @@ void cg_assignment(struct item_t *leftItem, struct item_t *rightItem) {
 	struct type_t *rightBase;
 	leftBase = leftItem->type->base;
 	rightBase = rightItem->type->base;
+printf("[ass] nach exp1\n");
 	if(leftItem->type->form == TYPE_FORM_ARRAY) {
 		if( (rightItem->type->form != TYPE_FORM_ARRAY) 
 			&& (leftBase->form != rightItem->type->form) && (rightItem->type->form != TYPE_FORM_VOID)) { 
@@ -1368,13 +1394,21 @@ void cg_assignment(struct item_t *leftItem, struct item_t *rightItem) {
 				printError("[assignment] Type mismatch in assignment"); 
 			}
 		} else {
-			if((leftItem->type->form != rightItem->type->form) && (rightItem->type->form != TYPE_FORM_VOID)
-				&& ( (leftItem->type->form != TYPE_FORM_INT) && (rightItem->type->form != TYPE_FORM_CHAR) )
-				&& ( (leftItem->type->form != TYPE_FORM_CHAR) && (rightItem->type->form != TYPE_FORM_INT)) ) {
+printf(" here we are left: ");
+printf(leftItem->type->form);printf(" right: ");
+printf(rightItem->type->form);printf("\n -- \n");
+			if( (leftItem->type->form != rightItem->type->form) && (rightItem->type->form != TYPE_FORM_VOID) ) {
+				if ( (leftItem->type->form != TYPE_FORM_INT) && (rightItem->type->form != TYPE_FORM_CHAR) ) {
+					if ( (leftItem->type->form != TYPE_FORM_CHAR) && (rightItem->type->form != TYPE_FORM_INT) ) {
+printf(" - im if - ");
 				printError("[assignment] Type mismatch in assignment"); 
+					} 
+				} 
 			}
+printf(" - after if - ");
 		}
 	}
+printf("[ass] nach exp2\n");
 	if (rightItem->type->form == TYPE_FORM_BOOL) { cg_unloadBool(rightItem); }
 	cg_load(rightItem);
 	cg_put(CMD_STW, rightItem->reg, leftItem->reg, leftItem->offset);
@@ -1386,7 +1420,7 @@ void cg_allocate(struct item_t *item) {
 	cg_load(item);
 	item->type->form = TYPE_FORM_VOID;
 	item->type->fields = 0;
-	cg_put(CMD_MAL,HPTR,0,item->reg);
+	cg_put(CMD_MAL,item->reg,HPTR,item->reg);
 }
 
 void cg_cJump(struct item_t *item) {
@@ -1493,7 +1527,6 @@ void printString(char *str) {
 	}
 }
 void printError(char *msg) {
-
 	errorCounter = errorCounter + 1;
 //	printf("\t%s:%4i:%4i: ERROR: %s (found: %s/%i)\n", srcfile, symbol->lineNr, symbol->colNr, msg, symbol->valueStr, symbol->id);
 	printf("    ");
@@ -1675,6 +1708,8 @@ bool selector(struct item_t *item){
 
 				indexItem = malloc(sizeof(struct item_t));
 				indexItem->type = malloc(sizeof(struct type_t));
+				indexItem->offset = 0;
+				indexItem->value = 0;
 				expression(indexItem);
 				cg_index(item, indexItem);
 
@@ -1699,6 +1734,12 @@ bool factor(struct item_t *item) {
 	rightItem = malloc(sizeof(struct item_t));
 	rightItem->type = malloc(sizeof(struct type_t));
 	object = malloc(sizeof(struct object_t));
+	
+	leftItem->offset = 0;
+	leftItem->value = 0;
+	rightItem->offset = 0;
+	rightItem->value = 0;
+
 	if(number() || (symbol->id == CHARACTER) || (symbol->id == STRING)) {
 		if(number()) {
 			item->mode = ITEM_MODE_CONST;
@@ -1790,8 +1831,11 @@ printf("factor ident: ");printString(symbol->valueStr);printf("\n");
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			result =  expression(rightItem);
+printf("[fac] nach exp\n");
 			cg_assignment(leftItem, rightItem);
+printf("[fac] nach exp1\n");
 			copyItem(item, leftItem);
+printf("[fac] nach exp2\n");
 			return result;
 		}
 		if(op()) { copyItem(item,leftItem); return 1; }		
@@ -1823,16 +1867,21 @@ printf("term \n");
 	leftItem = 0;
 	rightItem = 0;
 	while( 0 < 1 ) {
+printf(" while term \n");
 		if(factor(item)) {
 			if(leftItem == 0){
 				leftItem = malloc(sizeof(struct item_t));
 				leftItem->type = malloc(sizeof(struct type_t));
+				leftItem->offset = 0;
+				leftItem->value = 0;
 				copyItem(leftItem, item);
 			} 
 			else { 
 				if(rightItem == 0) { 
 					rightItem = malloc(sizeof(struct item_t));
 					rightItem->type = malloc(sizeof(struct type_t));
+					rightItem->offset = 0;
+					rightItem->value = 0;
 					copyItem(rightItem, item);
 				} 
 			}
@@ -1848,7 +1897,9 @@ printf("term \n");
 		if((symbol->id == PLUS) || (symbol->id == MINUS) || (symbol->id == OR) || 
 				compOp() || (symbol->id == RPAR) || (symbol->id == SEMCOL) || (symbol->id == COMMA) || 
 				(symbol->id == RSQBR) || (symbol->id == RCUBR) || (symbol->id == ARROW)) {
+			printf("end of term \n");
 			copyItem(item, leftItem);
+			printf("after cpy \n");
 			return 1;
 		}
 		if((symbol->id == TIMES) || (symbol->id == DIV) || (symbol->id == AND)) {
@@ -1889,12 +1940,16 @@ printf("arithExp\n");
 			if(leftItem == 0){
 				leftItem = malloc(sizeof(struct item_t));
 				leftItem->type = malloc(sizeof(struct type_t));
+				leftItem->value = 0;
+				leftItem->offset = 0;
 				copyItem(leftItem, item);
 				leftItem->value = leftItem->value * minusFlag;
 			} else {
 				if(rightItem == 0) {
 					rightItem = malloc(sizeof(struct item_t));
 					rightItem->type = malloc(sizeof(struct type_t));
+					rightItem->value = 0;
+					rightItem->offset = 0;
 					copyItem(rightItem, item);
 				}
 			} 
@@ -1912,6 +1967,7 @@ printf("arithExp\n");
 		if(compOp() || (symbol->id == RPAR) || (symbol->id == SEMCOL) || (hasMoreTokens() == 0) || 
 			(symbol->id == COMMA) || (symbol->id == RSQBR) || (symbol->id == RCUBR) || (symbol->id == ARROW)) {
 			copyItem(item, leftItem);
+printf("end of arithexp\n");
 			return 1;
 		}
 		if((symbol->id == PLUS) || (symbol->id == MINUS) || (symbol->id == OR)) {
@@ -1944,11 +2000,15 @@ printf("expression \n");
 			if(leftItem == 0){
 				leftItem = malloc(sizeof(struct item_t));
 				leftItem->type = malloc(sizeof(struct type_t));
+				leftItem->value = 0;
+				leftItem->offset = 0;
 				copyItem(leftItem, item);
 			} else {
 				if(rightItem == 0) {
 					rightItem = malloc(sizeof(struct item_t));
 					rightItem->type = malloc(sizeof(struct type_t));
+					rightItem->value = 0;
+					rightItem->offset = 0;
 					copyItem(rightItem, item);
 				} 
 			}
@@ -1965,6 +2025,7 @@ printf("expression \n");
 		if((symbol->id == RPAR) || (symbol->id == SEMCOL) || (hasMoreTokens() == 0) || 
 			(symbol->id == COMMA) || (symbol->id == RSQBR) || (symbol->id == RCUBR) || (symbol->id == ARROW)) {
 			copyItem(item, leftItem);
+printf("end of exp\n");
 			return 1;
 		}
 
@@ -2045,7 +2106,14 @@ bool fileOpen(struct item_t *item) {
 	thirdItem = malloc(sizeof(struct item_t));	
 	object = malloc(sizeof(struct object_t));
 	object->type = malloc(sizeof(struct type_t));
-	
+
+	firstItem->value = 0;
+	firstItem->offset = 0;	
+	secondItem->value = 0;
+	secondItem->offset = 0;
+	thirdItem->value = 0;
+	thirdItem->offset = 0;
+
 	if(symbol->id == OPEN) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
@@ -2122,6 +2190,13 @@ bool fileWrite(struct item_t *item) {
 	secondItem = malloc(sizeof(struct item_t));	
 	thirdItem = malloc(sizeof(struct item_t));	
 
+	firstItem->value = 0;
+	firstItem->offset = 0;	
+	secondItem->value = 0;
+	secondItem->offset = 0;
+	thirdItem->value = 0;
+	thirdItem->offset = 0;
+
 	object = malloc(sizeof(struct object_t));
 	object->type = malloc(sizeof(struct type_t));
 
@@ -2179,6 +2254,13 @@ bool fileRead(struct item_t *item) {
 	firstItem = malloc(sizeof(struct item_t));
 	secondItem = malloc(sizeof(struct item_t));	
 	thirdItem = malloc(sizeof(struct item_t));
+
+	firstItem->value = 0;
+	firstItem->offset = 0;	
+	secondItem->value = 0;
+	secondItem->offset = 0;
+	thirdItem->value = 0;
+	thirdItem->offset = 0;
 	
 	object = malloc(sizeof(struct object_t));
 	object->type = malloc(sizeof(struct type_t));
@@ -2313,6 +2395,9 @@ int variableDeclarationSequence(struct object_t *head, int isStruct) {
 	item = malloc(sizeof(struct item_t));
 	item->type = malloc(sizeof(struct type_t));
 	decCounter = 0;
+
+	item->offset = 0;
+	item->value = 0;
 	
 	if(isStruct != 0) { off = 0; }
 	else { off = locOffset; }
@@ -2365,8 +2450,7 @@ int variableDeclarationSequence(struct object_t *head, int isStruct) {
 		}
 		if(identifier()) {
 			object->name = malloc(64 * sizeof(char));
-//			strnCpy(object->name, symbol->valueStr, 64);
-			object->name = symbol->valueStr;
+			strnCpy(object->name, symbol->valueStr, 64);
 			if(hasMoreTokens() == 0) { return decCounter; }
 			getNextToken();
 			if(symbol->id == SEMCOL) {
@@ -2406,6 +2490,8 @@ bool typedefDec(struct object_t *head) {
 	object->class = OBJECT_CLASS_TYPE;
 	item = malloc(sizeof(struct item_t));
 	item->type = malloc(sizeof(struct type_t));
+	item->offset = 0;
+	item->value = 0;
 
 	if(symbol->id == TYPEDEF) {
 		if(hasMoreTokens() == 0) { return 0; }
@@ -2441,8 +2527,7 @@ bool typedefDec(struct object_t *head) {
 
 		if(identifier()) { 
 			object->name = malloc(64 * sizeof(char));
-//			strnCpy(object->name, symbol->valueStr, 64);
-			object->name = symbol->valueStr;
+			strnCpy(object->name, symbol->valueStr, 64);
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			if(symbol->id == SEMCOL) { 
@@ -2484,8 +2569,7 @@ bool structDec() {
 		
 		if(identifier()) {
 			object->name = malloc(64 * sizeof(char));
-//			strnCpy(object->name, symbol->valueStr, 64);
-			object->name = symbol->valueStr;			
+			strnCpy(object->name, symbol->valueStr, 64);
 
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
@@ -2715,8 +2799,7 @@ struct object_t* createFormalParameter(struct object_t* object, struct type_t* t
 	if(ptr->name == 0) {
 		ptr->name = malloc(sizeof(char)*64);
 		ptr->type = malloc(sizeof(struct type_t));
-//		strnCpy(ptr->name, identifier, 64);
-		ptr->name = identifier;
+		strnCpy(ptr->name, identifier, 64);
 		ptr->type->form = type->form;
 		ptr->type->size = type->size;
 		ptr->type->fields = type->fields;
@@ -2732,8 +2815,7 @@ struct object_t* createFormalParameter(struct object_t* object, struct type_t* t
 		ptrNext = ptr->next;
 		ptrNext->name = malloc(sizeof(char)*64);
 		ptrNext->type = malloc(sizeof(struct type_t));
-//		strnCpy(ptrNext->name, identifier, 64);
-		ptrNext->name = identifier;
+		strnCpy(ptrNext->name, identifier, 64);
 		ptrNext->type->form = type->form;
 		ptrNext->type->size = type->size;
 		ptrNext->type->fields = type->fields;
@@ -2828,8 +2910,7 @@ void procedureCall(struct item_t* item, string_t procName) {
 	string_t identifier;
 	nrOfRegs = 0;
 	identifier = malloc(sizeof(char)*64);
-//	strnCpy(identifier, procName, 64);
-	identifier = procName;
+	strnCpy(identifier, procName, 64);
 	object = findProcedureObject(globList, identifier);
 	if (object == 0) {
 		printError("undeclared procedure: ");
@@ -2964,6 +3045,8 @@ bool globalDec() {
 		identName = malloc(sizeof(char)*64);
 		item = malloc(sizeof(struct item_t));
 		item->type = malloc(sizeof(struct type_t));
+		item->offset = 0;
+		item->value = 0;
 
 		printf(" -- global dec "); printf(symbol->id); printf("\n");
 
@@ -3004,12 +3087,8 @@ bool globalDec() {
 		if(identifier()) {
 		printf(" --------- global dec ident "); printString(symbol->valueStr); printf("\n");
 			object->name = malloc(64 * sizeof(char));
-//			strnCpy(object->name, symbol->valueStr, 64);
-//			strnCpy(identName, symbol->valueStr, 64);
-
-			object->name = symbol->valueStr;
-			identName = symbol->valueStr;
-
+			strnCpy(object->name, symbol->valueStr, 64);
+			strnCpy(identName, symbol->valueStr, 64);
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			/* procHead */
@@ -3050,6 +3129,8 @@ bool statementSeq () {
 
 		item = malloc(sizeof(struct item_t));
 		item->type = malloc(sizeof(struct type_t));
+		item->offset = 0;
+		item->value = 0;
 		while( (identifier() == 0) && (number() == 0) && (symbol->id != WHILE) && (symbol->id != IF)
 				&& (symbol->id != RETURN) && (symbol->id != LPAR) && (symbol->id != ELSE) && (symbol->id != PRINTF)
 				&& (symbol->id != OPEN) && (symbol->id != CLOSE) && (symbol->id != WRITE) && (symbol->id != READ)) {
@@ -3069,6 +3150,7 @@ bool statementSeq () {
 				else { 
 	//				printf("keine while loop \n");
 					if(expression(item) || procedureReturn()) {
+printf(" im statement seq\n");
 						if(symbol->id == SEMCOL) {
 							if(hasMoreTokens() == 0) { return 0; }
 							getNextToken();
@@ -3099,3 +3181,4 @@ bool block() {
 	}
 	return 0;
 }
+

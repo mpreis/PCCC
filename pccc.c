@@ -547,9 +547,8 @@ void initToken() {
 	symbol = malloc(sizeof(struct token_t));
 	symbol->valueStr = malloc(64*sizeof(char));
 	symbol->id = INIT; 
-	symbol->digitValue = -1;
-	symbol->valueStr = "";
-//	strnCpy(symbol->valueStr, str, 0);
+	symbol->digitValue = -1; 
+	strnCpy(symbol->valueStr, str, 0);
 }
 
 bool hasMoreTokens() {
@@ -665,33 +664,31 @@ void getNextToken() {
 	symbol->id = INIT; 
 	symbol->digitValue = -1; 
 	str = ""; 
-	symbol->valueStr = "";
-//	strnCpy(symbol->valueStr, str, 0);
+	strnCpy(symbol->valueStr, str, 0);
 	
-
 	while(( (c == ' ') || (c == '\n') || (c == '\r') || (c == '\t') ) && hasMoreChars()) {
 		c = getChar();
 	}
 	if(isLetter(c)) {
 		getIdentifier(token_ident, c);
-		str = "if";      if(strCmp(token_ident, str) == 0) { symbol->id = IF;      symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 2); }
-		str = "int";     if(strCmp(token_ident, str) == 0) { symbol->id = INT;     symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 3); }
-		str = "char";    if(strCmp(token_ident, str) == 0) { symbol->id = CHAR;    symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 4); }
-		str = "void";    if(strCmp(token_ident, str) == 0) { symbol->id = VOID;    symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 4); }
-		str = "bool";    if(strCmp(token_ident, str) == 0) { symbol->id = BOOL;    symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 4); }
-		str = "else";    if(strCmp(token_ident, str) == 0) { symbol->id = ELSE;    symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 4); }
-		str = "open";    if(strCmp(token_ident, str) == 0) { symbol->id = OPEN;    symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 4); }
-		str = "read";    if(strCmp(token_ident, str) == 0) { symbol->id = READ;    symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 4); }
-		str = "write";   if(strCmp(token_ident, str) == 0) { symbol->id = WRITE;   symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 5); }
-		str = "close";   if(strCmp(token_ident, str) == 0) { symbol->id = CLOSE;   symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 5); }
-		str = "while";   if(strCmp(token_ident, str) == 0) { symbol->id = WHILE;   symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 5); }
-		str = "return";  if(strCmp(token_ident, str) == 0) { symbol->id = RETURN;  symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 6); }
-		str = "sizeof";  if(strCmp(token_ident, str) == 0) { symbol->id = SIZEOF;  symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 6); }
-		str = "malloc";  if(strCmp(token_ident, str) == 0) { symbol->id = MALLOC;  symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 6); }
-		str = "struct";  if(strCmp(token_ident, str) == 0) { symbol->id = STRUCT;  symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 6); }
-		str = "printf";  if(strCmp(token_ident, str) == 0) { symbol->id = PRINTF;  symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 6); }
-		str = "typedef"; if(strCmp(token_ident, str) == 0) { symbol->id = TYPEDEF; symbol->valueStr = token_ident; }//strnCpy(symbol->valueStr, token_ident, 7); }
-		if(symbol->id == INIT) { symbol->id = IDENT; symbol->valueStr = token_ident; } // strnCpy(symbol->valueStr, token_ident, 64); }
+		str = "if";      if(strCmp(token_ident, str) == 0) { symbol->id = IF;      strnCpy(symbol->valueStr, token_ident, 2); }
+		str = "int";     if(strCmp(token_ident, str) == 0) { symbol->id = INT;     strnCpy(symbol->valueStr, token_ident, 3); }
+		str = "char";    if(strCmp(token_ident, str) == 0) { symbol->id = CHAR;    strnCpy(symbol->valueStr, token_ident, 4); }
+		str = "void";    if(strCmp(token_ident, str) == 0) { symbol->id = VOID;    strnCpy(symbol->valueStr, token_ident, 4); }
+		str = "bool";    if(strCmp(token_ident, str) == 0) { symbol->id = BOOL;    strnCpy(symbol->valueStr, token_ident, 4); }
+		str = "else";    if(strCmp(token_ident, str) == 0) { symbol->id = ELSE;    strnCpy(symbol->valueStr, token_ident, 4); }
+		str = "open";    if(strCmp(token_ident, str) == 0) { symbol->id = OPEN;    strnCpy(symbol->valueStr, token_ident, 4); }
+		str = "read";    if(strCmp(token_ident, str) == 0) { symbol->id = READ;    strnCpy(symbol->valueStr, token_ident, 4); }
+		str = "write";   if(strCmp(token_ident, str) == 0) { symbol->id = WRITE;   strnCpy(symbol->valueStr, token_ident, 5); }
+		str = "close";   if(strCmp(token_ident, str) == 0) { symbol->id = CLOSE;   strnCpy(symbol->valueStr, token_ident, 5); }
+		str = "while";   if(strCmp(token_ident, str) == 0) { symbol->id = WHILE;   strnCpy(symbol->valueStr, token_ident, 5); }
+		str = "return";  if(strCmp(token_ident, str) == 0) { symbol->id = RETURN;  strnCpy(symbol->valueStr, token_ident, 6); }
+		str = "sizeof";  if(strCmp(token_ident, str) == 0) { symbol->id = SIZEOF;  strnCpy(symbol->valueStr, token_ident, 6); }
+		str = "malloc";  if(strCmp(token_ident, str) == 0) { symbol->id = MALLOC;  strnCpy(symbol->valueStr, token_ident, 6); }
+		str = "struct";  if(strCmp(token_ident, str) == 0) { symbol->id = STRUCT;  strnCpy(symbol->valueStr, token_ident, 6); }
+		str = "printf";  if(strCmp(token_ident, str) == 0) { symbol->id = PRINTF;  strnCpy(symbol->valueStr, token_ident, 6); }
+		str = "typedef"; if(strCmp(token_ident, str) == 0) { symbol->id = TYPEDEF; strnCpy(symbol->valueStr, token_ident, 7); }
+		if(symbol->id == INIT) { symbol->id = IDENT; strnCpy(symbol->valueStr, token_ident, 64); }
 	}
 	else {
 		if(isDigit(c)) { symbol->id = NUMBER; symbol->digitValue = getNumber(c); } 
@@ -713,8 +710,7 @@ void getNextToken() {
 					nc = getChar();
 					i = i + 1;
 				}
-				symbol->id = STRING; //strnCpy(symbol->valueStr, buff, 1000);
-				symbol->valueStr = buff;
+				symbol->id = STRING; strnCpy(symbol->valueStr, buff, 1000);
 				symbol->digitValue = i;
 			}
 			if(c == '\'') {
@@ -725,7 +721,7 @@ void getNextToken() {
 				} 
 				else {buff[1] = '\0';}
 				nc = getChar();
-				if(nc == '\'') { symbol->id = CHARACTER; symbol->valueStr = buff; } //strnCpy(symbol->valueStr, buff, 1); }
+				if(nc == '\'') { symbol->id = CHARACTER; strnCpy(symbol->valueStr, buff, 1); }
 				else { 
 					symbol->id = QUOTE; 
 					ungetChar(nc); 
@@ -818,8 +814,7 @@ void getNextToken() {
 			if(c == '#') {
 				nc = getChar();
 				str = "include ";
-				//strnCpy(buff, str, 8);
-				buff = str;
+				strnCpy(buff, str, 8);
 				i = 0;
 				while( (i < 8) && (nc == buff[i]) ) {
 					nc = getChar();
@@ -836,11 +831,10 @@ void getNextToken() {
 						}
 						buff[i] = 0;
 						symbol->id = INCLUDE;
-						//strnCpy(symbol->valueStr, buff, 1000);
-						symbol->valueStr = buff;
+						strnCpy(symbol->valueStr, buff, 1000);
 					}
 				}
-				else { symbol->id = ERROR; symbol->valueStr = buff; }// strnCpy(symbol->valueStr, buff, 10); }
+				else { symbol->id = ERROR; strnCpy(symbol->valueStr, buff, 10); }
 			}
 			if(symbol->id == INIT) { symbol->id = ERROR; symbol->valueStr[0] = c; symbol->valueStr[1] = 0; }
 		}
@@ -909,8 +903,7 @@ struct object_t *findProcedureObject(struct object_t *head, string_t name) {
 
 void insertName(struct object_t *ptr, string_t name) {
 	ptr->name = malloc(64 * sizeof(char));
-//	strnCpy(ptr->name, name, 64);
-	ptr->name = name;
+	strnCpy(ptr->name, name, 64);
 }
 	
 int insert(struct object_t *head, struct object_t *obj) {
@@ -918,8 +911,7 @@ int insert(struct object_t *head, struct object_t *obj) {
 	char *str; str = "--first entry--";
 	if(head->name == 0) {
 		head->name = malloc(64 * sizeof(char));
-//		strnCpy(head->name, str, 64);
-		head->name = str;
+		strnCpy(head->name, str, 64);
 		head->class = 0;
 		head->offset = 0;
 		head->scope = 0;
@@ -1000,11 +992,11 @@ void initSymbolTable() {
  * CODE GENERATION METHODS
  ************************************************************/
 void initOutputFile() {
-//	out_cmd_buff = malloc(sizeof(struct cmd_t) * 128000);
-	out_cmd_op = malloc(sizeof(int) * 128000);
-	out_cmd_a = malloc(sizeof(int) * 128000);
-	out_cmd_b = malloc(sizeof(int) * 128000);
-	out_cmd_c = malloc(sizeof(int) * 128000);
+	int size; size = 64000;
+	out_cmd_op = malloc(sizeof(int) * size);
+	out_cmd_a  = malloc(sizeof(int) * size);
+	out_cmd_b  = malloc(sizeof(int) * size);
+	out_cmd_c  = malloc(sizeof(int) * size);
 }
 
 void finalizeOutputFile() {
@@ -1053,15 +1045,8 @@ int cg_encode(int op, int a, int b, int c) {
 }
 
 void cg_put(int op, int a, int b, int c) {
-/*	
-	struct cmd_t *cmd;
-	cmd = malloc(sizeof(struct cmd_t));
-	cmd->op = op;
-	cmd->a = a;
-	cmd->b = b;
-	cmd->c = c;
-	out_cmd_buff[PC] = cmd;
-*/
+
+	if( op == CMD_BEQ && b == 0 && c == 0 ) { printf("PUT: %d %s \n", symbol->id, symbol->valueStr); }
 	out_cmd_op[PC] = op;
 	out_cmd_a [PC] = a;
 	out_cmd_b [PC] = b;
@@ -1342,7 +1327,7 @@ void cg_allocate(struct item_t *item) {
 	cg_load(item);
 	item->type->form = TYPE_FORM_VOID;
 	item->type->fields = 0;
-	cg_put(CMD_MAL,HPTR,0,item->reg);
+	cg_put(CMD_MAL,item->reg,HPTR,item->reg);
 }
 
 void cg_cJump(struct item_t *item) {
@@ -2298,8 +2283,7 @@ int variableDeclarationSequence(struct object_t *head, int isStruct) {
 		}
 		if(identifier()) {
 			object->name = malloc(64 * sizeof(char));
-			//strnCpy(object->name, symbol->valueStr, 64);
-			object->name = symbol->valueStr;
+			strnCpy(object->name, symbol->valueStr, 64);
 			if(hasMoreTokens() == 0) { return decCounter; }
 			getNextToken();
 			if(symbol->id == SEMCOL) {
@@ -2374,8 +2358,7 @@ bool typedefDec(struct object_t *head) {
 
 		if(identifier()) { 
 			object->name = malloc(64 * sizeof(char));
-			//strnCpy(object->name, symbol->valueStr, 64);
-			object->name = symbol->valueStr;
+			strnCpy(object->name, symbol->valueStr, 64);
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			if(symbol->id == SEMCOL) { 
@@ -2417,8 +2400,7 @@ bool structDec() {
 		
 		if(identifier()) {
 			object->name = malloc(64 * sizeof(char));
-//			strnCpy(object->name, symbol->valueStr, 64);
-			object->name = symbol->valueStr;
+			strnCpy(object->name, symbol->valueStr, 64);
 
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
@@ -2633,8 +2615,7 @@ struct object_t* createFormalParameter(struct object_t* object, struct type_t* t
 	if(ptr->name == 0) {
 		ptr->name = malloc(sizeof(char)*64);
 		ptr->type = malloc(sizeof(struct type_t));
-//		strnCpy(ptr->name, identifier, 64);
-		ptr->name = identifier;
+		strnCpy(ptr->name, identifier, 64);
 		ptr->type->form = type->form;
 		ptr->type->size = type->size;
 		ptr->type->fields = type->fields;
@@ -2650,8 +2631,7 @@ struct object_t* createFormalParameter(struct object_t* object, struct type_t* t
 		ptrNext = ptr->next;
 		ptrNext->name = malloc(sizeof(char)*64);
 		ptrNext->type = malloc(sizeof(struct type_t));
-//		strnCpy(ptrNext->name, identifier, 64);
-		ptrNext->name = identifier;
+		strnCpy(ptrNext->name, identifier, 64);
 		ptrNext->type->form = type->form;
 		ptrNext->type->size = type->size;
 		ptrNext->type->fields = type->fields;
@@ -2746,8 +2726,7 @@ void procedureCall(struct item_t* item, string_t procName) {
 	string_t identifier;
 	nrOfRegs = 0;
 	identifier = malloc(sizeof(char)*64);
-	//strnCpy(identifier, procName, 64);
-	identifier = procName;
+	strnCpy(identifier, procName, 64);
 	object = findProcedureObject(globList, identifier);
 	if (object == 0) {
 		printError("undeclared procedure: ");
@@ -2922,11 +2901,8 @@ bool globalDec() {
 		if(identifier()) {
 		printf(" ----------------------------------------------------------- [globalDec] SYMBOL: %d %s \n", symbol->id, symbol->valueStr);
 			object->name = malloc(64 * sizeof(char));
-//			strnCpy(object->name, symbol->valueStr, 64);
-//			strnCpy(identName, symbol->valueStr, 64);
-			object->name = symbol->valueStr;
-			identName = symbol->valueStr;
-
+			strnCpy(object->name, symbol->valueStr, 64);
+			strnCpy(identName, symbol->valueStr, 64);
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			/* procHead */
@@ -3084,3 +3060,4 @@ void main(){
 		closeScanner();
 	}
 }
+

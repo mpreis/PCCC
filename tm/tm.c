@@ -78,7 +78,7 @@ void loadMeta(FILE *fp) {
 	// set registers
 	reg[27] = nrOfCmds + strp;		/*end of commands and strings*/
 	reg[28] = reg[27] + gp;			/*end of global variables*/ 
-	reg[29] = reg[28] + 4000;		/*heap & stack*/
+	reg[29] = reg[28] + 1024000;	/*heap & stack*/
 	reg[30] = reg[28];	 			/*start of heap = end of global variables */
 	mem_max = reg[29] + 1;			/*end of memory*/
 	mem = malloc(mem_max * sizeof(int));
@@ -160,12 +160,12 @@ void execute() {
 	else if(ir[0] == CMD_RDC)  rdc (ir[1], ir[2], ir[3]); 
 	else if(ir[0] == CMD_WRC)  wrc (ir[1], ir[2], ir[3]); 
 
-	else if(ir[0] == CMD_MAL)  mal (ir[1], ir[3]);
+	else if(ir[0] == CMD_MAL)  mal (ir[1], ir[2], ir[3]);
 	else if(ir[0] == CMD_PRN)  prn (ir[1]);
 	else if(ir[0] == CMD_PRC)  prc (ir[1]);
 
 	else if(ir[0] == CMD_TRAP) {}
-	else { printf("\nERROR: invalid command (%d, %d, %d, %d)!\n", ir[0], ir[1], ir[2], ir[3]); printMem(); exit(1);  /*pc = pc + 4;*/ }
+	else { printf("\nERROR: invalid command (%d, %d, %d, %d)!\n", ir[0], ir[1], ir[2], ir[3]); exit(1);  /*pc = pc + 4;*/ }
 }
 
 /* immediate addressing */
@@ -182,11 +182,16 @@ void sub (int a, int b, int c) { reg[a] = reg[b] - reg[c]; pc = pc + 4; }
 void mul (int a, int b, int c) { reg[a] = reg[b] * reg[c]; pc = pc + 4; }
 void div (int a, int b, int c) { reg[a] = reg[b] / reg[c]; pc = pc + 4; }
 void cmp (int a, int b, int c) { reg[a] = reg[b] - reg[c]; pc = pc + 4; }
-/*void mod (int a, int b, int c) { reg[a] = reg[b] % reg[c]; pc = pc + 4; }	not supported! */
 
 /* memory: load and store */
 void ldw (int a, int b, int c) { reg[a] = mem[reg[b] + c/4]; pc = pc + 4; }
-void stw (int a, int b, int c) { mem[reg[b] + c/4] = reg[a]; pc = pc + 4; }
+void stw (int a, int b, int c) { 
+//	if( (reg[b] + c/4) < nrOfCmds ) { 
+//		printf(" ----------------------- stw (%d) %d %d %d -> %d (%d) new %d \n",ir[0],ir[1],ir[2],ir[3],(reg[b] + c/4),mem[(reg[b] + c/4)],reg[a]);
+		
+//	}
+	mem[reg[b] + c/4] = reg[a]; pc = pc + 4; 
+}
 
 /* stack operations */
 void pop (int a, int b, int c) { reg[a] = mem[reg[b]]; reg[b] = reg[b] + c/4; pc = pc + 4; }
@@ -227,7 +232,12 @@ void wrc (int a, int b, int c) {
 } 
 
 /* malloc */
-void mal (int a, int c) { reg[a] = reg[a] + reg[c]/4; reg[c] = reg[a]; pc = pc + 4; } 
+void mal (int a, int b, int c) {
+//	printf(" --- malloc: reg[c]/4: %d \n",reg[a],b,reg[b], (reg[c]/4), c );
+	reg[30] = reg[30] + reg[c];
+	reg[a] = reg[30]; pc = pc + 4;
+//	printReg();printf("\n");
+} 
 
 /* print */
 void prn (int a) { printf("%i", reg[a]); pc = pc + 4; }
@@ -247,7 +257,7 @@ void startTM(char *file) {
 		execute();
 //		printReg();
 	}
-	printMem();
+//	printMem();
 	printf("\n -- ende -- \n\n");
 }
 

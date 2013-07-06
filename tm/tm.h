@@ -62,7 +62,7 @@ void rdc (int a, int b, int c);
 void wrc (int a, int b, int c); 
 
 /* malloc */
-void mal (int a, int c);
+void mal (int a, int b, int c);
 
 /* printf */
 void prn (int a);
