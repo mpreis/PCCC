@@ -109,8 +109,6 @@ void loadCode(char *file) {
 		r = fread(buff,1,4,fp);
 		if(r != 0) mem[i] = buff[0];
 	}
-//	printf(" -- cmds loaded (%i).\n",i);
-
 }
 void fetch() { decode(mem[pc/4]); }
 void decode(int instruction) {
@@ -165,7 +163,7 @@ void execute() {
 	else if(ir[0] == CMD_PRC)  prc (ir[1]);
 
 	else if(ir[0] == CMD_TRAP) {}
-	else { printf("\nERROR: invalid command (%d, %d, %d, %d)!\n", ir[0], ir[1], ir[2], ir[3]); exit(1);  /*pc = pc + 4;*/ }
+	else { printf("\nERROR: invalid command (%d, %d, %d, %d)!\n", ir[0], ir[1], ir[2], ir[3]); exit(1); }
 }
 
 /* immediate addressing */
@@ -227,10 +225,8 @@ void wrc (int a, int b, int c) {
 
 /* malloc */
 void mal (int a, int b, int c) {
-//	printf(" --- malloc: reg[c]/4: %d \n",reg[a],b,reg[b], (reg[c]/4), c );
 	reg[30] = reg[30] + reg[c];
 	reg[a] = reg[30]; pc = pc + 4;
-//	printReg();printf("\n");
 } 
 
 /* print */
@@ -244,14 +240,10 @@ void startTM(char *file) {
 	initTMCmd();
 	loadCode(file);
 	printf(" -- run code \n\n");
-//	printMem();
 	for(i = 0; ir[0] != CMD_TRAP; i++) {
 		fetch();
-//		printf(" -%5d- %s(%i) %i %i %i\n",i,getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3]);
 		execute();
-//		printReg();
 	}
-//	printMem();
 	printf("\n -- ende -- \n\n");
 }
 
