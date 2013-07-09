@@ -650,9 +650,7 @@ void getIdentifier(char *identifier, char c) {
 	int i;
 	nc = getChar();
 	i = 1;
-	printf("identifier address: ");printf(identifier);printf("\n");
 	identifier[0] = c;
-	printf(" -- [getnexttoken] after identifier = c\n");
 	while((isLetter(nc) || isDigit(nc) || (nc == '_')) && hasMoreChars() && (i < 63)) {
 		identifier[i] = nc;
 		nc = getChar();
@@ -677,24 +675,13 @@ void getNextToken() {
 	c = getChar();
 
 	symbol->id = INIT; symbol->digitValue = -1; str = ""; strnCpy(symbol->valueStr, str, 0);
-	printf(" -- [getnexttoken] after first strncpy\n");
 	while(( (c == ' ') || (c == '\n') || (c == 10) || (c == '\r') || (c == '\t') || (c == 9) ) && hasMoreChars()) {
-		printf("while ");printf(c);printf("\n");
 		c = getChar();
 	}
-	printf(" -- nach while c: ");printf(c);printf("\n");
 
 	if(isLetter(c)) {
-		printf("token_ident address: ");printf(token_ident);printf("\n");
 		getIdentifier(token_ident, c);
-		str = "if"; 		printf(" -- [getnexttoken] after str = if\n");
-		if(strCmp(token_ident, str) == 0) { 
-			printf(" -- [getnexttoken] after strcmp\n");
-			symbol->id = IF;      
-			printf(" -- [getnexttoken] after symbol->id = if\n");
-			strnCpy(symbol->valueStr, token_ident, 2); 
-			printf(" -- [getnexttoken] after strncpy\n");
-		}
+		str = "if";      if(strCmp(token_ident, str) == 0) { symbol->id = IF;      strnCpy(symbol->valueStr, token_ident, 2); }
 		str = "int";     if(strCmp(token_ident, str) == 0) { symbol->id = INT;     strnCpy(symbol->valueStr, token_ident, 3); }
 		str = "char";    if(strCmp(token_ident, str) == 0) { symbol->id = CHAR;    strnCpy(symbol->valueStr, token_ident, 4); }
 		str = "void";    if(strCmp(token_ident, str) == 0) { symbol->id = VOID;    strnCpy(symbol->valueStr, token_ident, 4); }
@@ -712,7 +699,6 @@ void getNextToken() {
 		str = "printf";  if(strCmp(token_ident, str) == 0) { symbol->id = PRINTF;  strnCpy(symbol->valueStr, token_ident, 6); }
 		str = "typedef"; if(strCmp(token_ident, str) == 0) { symbol->id = TYPEDEF; strnCpy(symbol->valueStr, token_ident, 7); }
 		if(symbol->id == INIT) { symbol->id = IDENT; strnCpy(symbol->valueStr, token_ident, 64); }
-		printf(" -- [getnexttoken] after identifier\n");
 	}
 	else {
 		if(isDigit(c)) { symbol->id = NUMBER; symbol->digitValue = getNumber(c); } 
@@ -866,7 +852,6 @@ void getNextToken() {
 	if(symbol->id == COMMENT) { getNextToken(); }
 	symbol->lineNr = lineNr;
 	symbol->colNr = colNr;
-	printf("end of get token \n");
 }
 /******************************************************************************************/
 /************************************** symboltable ***************************************/
@@ -889,18 +874,13 @@ struct object_t *lookUp(struct object_t *head, string_t name) {
 
 struct object_t *findProcedureObject(struct object_t *head, string_t name) {
 	struct object_t *ptr;
-printf(" 0 findProcedureObject. ");printString(name);printf("\n");
 	if(head->name != 0) {
 		ptr = head;
 		while(ptr != 0) {
-printf(" 1 findProcedureObject. ");printf(ptr);printf(" / ");printf(ptr->class);printf(" / ");printString(ptr->name);printf("\n");
 			if((ptr->class == OBJECT_CLASS_PROC) && (strCmp(ptr->name, name) == 0)) {
-printf(" 2 findProcedureObject. \n");
 				return ptr;
 			}
-printf(" 3 findProcedureObject. ");printf(ptr->next);printf("\n");
 			ptr = ptr->next;
-printf(" after \n");
 		}
 	}
 	return 0;
@@ -1013,18 +993,15 @@ bool startParsing(char *sfile, char *ofile){
 	initOperators();	
 	initSymbolTable();
 	initOutputFile();
-
+	
 	printf("\nstart parsing "); printString(srcfile); printf("...\n");
 	if ( hasMoreTokens() ) {
-printf("after has more tokens \n");
 		getNextToken();
-printf("after get next token \n");
 		if(symbol->id == ERROR) {
 			printError("[program] file does not exist.");
 			return 0;
 		}
 		i = programm();
-		printf("maybe end \n");
 	}
 	
 	if(errorCounter == 0) { finalizeOutputFile(); printf("... "); printString(outfile); printf(" successful generated.\n"); }
@@ -1039,22 +1016,18 @@ bool programm() {
 	int j;
 	int k;
 	i = 1; j = 1; k = 1;
-printf(" -- [program] after local vars\n");
 	while(i != 0) {
 		i = include();
 		if(i == 1) { getNextToken(); }
 	}
-	printf(" [PCCC] include done.\n");
 	while(j != 0) {
 		j = structDec();
 		if(j == 1) { getNextToken(); }
 	}
-	printf(" [PCCC] structDec done.\n");
 	while(k != 0) {
 		k = globalDec();
 		if(k == 1) { getNextToken(); }
 	}
-	printf(" [PCCC] globalDec done.\n");
 	return i;
 }
 
@@ -1089,6 +1062,8 @@ void finalizeOutputFile() {
 	int i;
 	int out_fp_bin;
 	int *tempBuff;
+	int z;
+	z = 2;
 	tempBuff = malloc(32);
 	out_fp_bin = open(outfile, 65, 448); /* 65  ... O_CREAT (64)  | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Ubuntu */
 										 /* 513 ... O_CREAT (512) | O_WRONLY (1) 448 ... S_IWUSR | S_IRUSR | S_IXUSR  --> Mac */
@@ -1096,17 +1071,32 @@ void finalizeOutputFile() {
 		printError("can not open/create output file.");
 		return;
 	}
+printf("tempbuf add: ");printf(tempBuff);printf("\n");
 	cg_put(CMD_TRAP,0,0,0);
 	tempBuff[0] = cg_encode(CMD_CS,	0, 0, PC);
-	printf("CMD: ");printf(out_cmd_op[i]);printf(out_cmd_a[i]);printf(out_cmd_b[i]);printf(out_cmd_c[i]);printf("\n");
+		printf("fin: ");printf(CMD_CS);printf(" ");
+		printf(0);printf(", ");
+		printf(0);printf(", ");
+		printf(PC);printf("  ");
+		printf("[");printf(tempBuff[0]);printf("]\n");
 	write(out_fp_bin, tempBuff, 4); 
 
+	nrOfGVar = nrOfGVar*4;
 	tempBuff[0] = cg_encode(CMD_GP,	0, 0, nrOfGVar*4);
-	printf("CMD: ");printf(out_cmd_op[i]);printf(out_cmd_a[i]);printf(out_cmd_b[i]);printf(out_cmd_c[i]);printf("\n");
+		printf("fin: ");printf(CMD_GP);printf(" ");
+		printf(0);printf(", ");
+		printf(0);printf(", ");
+		printf(nrOfGVar*4);printf("  ");
+		printf("[");printf(tempBuff[0]);printf("]\n");
 	write(out_fp_bin, tempBuff, 4);
 
-	tempBuff[0] = cg_encode(CMD_SP,	0, 0, nrOfStrs-1);	
-	printf("CMD: ");printf(out_cmd_op[i]);printf(out_cmd_a[i]);printf(out_cmd_b[i]);printf(out_cmd_c[i]);printf("\n");
+	if(nrOfStrs > 0) { nrOfStrs = nrOfStrs - 1; }
+	tempBuff[0] = cg_encode(CMD_SP,	0, 0, nrOfStrs);
+		printf("fin: ");printf(CMD_SP);printf(" ");
+		printf(0);printf(", ");
+		printf(0);printf(", ");
+		printf(nrOfStrs-1);printf("  ");
+		printf("[");printf(tempBuff[0]);printf("]\n");
 	write(out_fp_bin, tempBuff, 4); 
 
 	if(mainPos != -1) {
@@ -1116,7 +1106,11 @@ void finalizeOutputFile() {
 	i = 1;
 	while(i < PC) {
 		tempBuff[0] = cg_encode(out_cmd_op[i], out_cmd_a[i], out_cmd_b[i], out_cmd_c[i]);
-		printf("CMD: ");printf(out_cmd_op[i]);printf(out_cmd_a[i]);printf(out_cmd_b[i]);printf(out_cmd_c[i]);printf("\n");
+			printf("fin: ");printf(out_cmd_op[i]);printf(" ");
+			printf(out_cmd_a[i]);printf(", ");
+			printf(out_cmd_b[i]);printf(", ");
+			printf(out_cmd_c[i]);printf("  ");
+			printf("[");printf(tempBuff[0]);printf("]\n");
 		wb = write(out_fp_bin, tempBuff, 4); 
     	if ( wb != 4 ) { printf(" --- could only write ");printf(wb);printf(" byte.\n"); }
 		i = i + 1;
@@ -1125,17 +1119,17 @@ void finalizeOutputFile() {
 }
 
 int cg_encode(int op, int a, int b, int c) {
-	if (c < 0) { c = c + 65536; } // 0x10000: 2^16
-	return (((((op * 32) + a) * 32) + b) * 65536) + c;
+	int r; int z; z = 4;
+	if (c < 0) { c = c + (16384*z); } // 16384 = 1/4 * 65536 = 0x10000 = 2^16
+	r = (((((op * 32) + a) * 32) + b) * (16384*z)) + c;
+	return r;
 }
 
 void cg_put(int op, int a, int b, int c) {
-	printf("put\n");
 	out_cmd_op[PC] = op;
 	out_cmd_a [PC] = a;
 	out_cmd_b [PC] = b;
 	out_cmd_c [PC] = c;
-	printf("put: ");printf(out_cmd_op[PC]);printf(out_cmd_a[PC]);printf(out_cmd_b[PC]);printf(out_cmd_c[PC]);printf("\n");
 	PC = PC + 1;
 }
 
@@ -1274,14 +1268,12 @@ void cg_simpleExpBinOp(struct item_t *leftItem, struct item_t *rightItem, int op
 					if(op == OP_ADD) { leftItem->value = leftItem->value + rightItem->value; } 
 					else {
 						 if(op == OP_SUB) { leftItem->value = leftItem->value - rightItem->value; } 
-						else { printError("nich so gut..."); }
 					}
 				} else {
 					cg_load(leftItem);
 					if(op == OP_ADD) { cg_put(CMD_ADDI, leftItem->reg, leftItem->reg, rightItem->value); } 
 					else {
 						if(op == OP_SUB) { cg_put(CMD_SUBI, leftItem->reg, leftItem->reg, rightItem->value); } 
-						else { printError("nich so gut..."); }
 					}
 				}
 			} else {
@@ -1290,7 +1282,6 @@ void cg_simpleExpBinOp(struct item_t *leftItem, struct item_t *rightItem, int op
 				if(op == OP_ADD) { cg_put(CMD_ADD, leftItem->reg, leftItem->reg, rightItem->reg); } 
 				else {
 					if(op == OP_SUB) { cg_put(CMD_SUB, leftItem->reg, leftItem->reg, rightItem->reg); } 
-					else { printError("nich so gut..."); }
 				}
 				cg_releaseReg(rightItem->reg);
 			}
@@ -1314,14 +1305,12 @@ void cg_termOperator(struct item_t *leftItem, struct item_t *rightItem, int op) 
 				if(op == OP_MUL) { leftItem->value = leftItem->value * rightItem->value; } 
 				else {	
 					if(op == OP_DIV) { leftItem->value = leftItem->value / rightItem->value; } 
-					else { printError("nich so gut..."); }
 				}
 			} else {
 				cg_load(leftItem);
 				if(op == OP_MUL) { cg_put(CMD_MULI, leftItem->reg, leftItem->reg, rightItem->value); } 
 				else {
 					if(op == OP_DIV) { cg_put(CMD_DIVI, leftItem->reg, leftItem->reg, rightItem->value); } 
-					else { printError("nich so gut..."); }
 				}
 			}
 		} else {
@@ -1330,7 +1319,6 @@ void cg_termOperator(struct item_t *leftItem, struct item_t *rightItem, int op) 
 			if(op == OP_MUL) { cg_put(CMD_MUL, leftItem->reg, leftItem->reg, rightItem->reg); } 
 			else {
 				if(op == OP_DIV) { cg_put(CMD_DIV, leftItem->reg, leftItem->reg, rightItem->reg); } 
-				else { printError("nich so gut..."); }
 			}
 			cg_releaseReg(rightItem->reg);
 		}
@@ -1382,7 +1370,6 @@ void cg_assignment(struct item_t *leftItem, struct item_t *rightItem) {
 	struct type_t *rightBase;
 	leftBase = leftItem->type->base;
 	rightBase = rightItem->type->base;
-printf("[ass] nach exp1\n");
 	if(leftItem->type->form == TYPE_FORM_ARRAY) {
 		if( (rightItem->type->form != TYPE_FORM_ARRAY) 
 			&& (leftBase->form != rightItem->type->form) && (rightItem->type->form != TYPE_FORM_VOID)) { 
@@ -1394,21 +1381,15 @@ printf("[ass] nach exp1\n");
 				printError("[assignment] Type mismatch in assignment"); 
 			}
 		} else {
-printf(" here we are left: ");
-printf(leftItem->type->form);printf(" right: ");
-printf(rightItem->type->form);printf("\n -- \n");
 			if( (leftItem->type->form != rightItem->type->form) && (rightItem->type->form != TYPE_FORM_VOID) ) {
 				if ( (leftItem->type->form != TYPE_FORM_INT) && (rightItem->type->form != TYPE_FORM_CHAR) ) {
 					if ( (leftItem->type->form != TYPE_FORM_CHAR) && (rightItem->type->form != TYPE_FORM_INT) ) {
-printf(" - im if - ");
-				printError("[assignment] Type mismatch in assignment"); 
+						printError("[assignment] Type mismatch in assignment"); 
 					} 
 				} 
 			}
-printf(" - after if - ");
 		}
 	}
-printf("[ass] nach exp2\n");
 	if (rightItem->type->form == TYPE_FORM_BOOL) { cg_unloadBool(rightItem); }
 	cg_load(rightItem);
 	cg_put(CMD_STW, rightItem->reg, leftItem->reg, leftItem->offset);
@@ -1766,12 +1747,8 @@ bool factor(struct item_t *item) {
 				if(hasMoreTokens() == 0) { return 0; }
 				getNextToken();
 				return 1; 
-			} else {
-				printError("')' missing.");
-			}
-		} else {
-			printError("[factor] expression expected.");
-		}
+			} else { printError("')' missing."); }
+		} else { printError("[factor] expression expected."); }
 		return 0;
 	}
 	if(symbol->id == TIMES) {
@@ -1801,7 +1778,6 @@ bool factor(struct item_t *item) {
 	if(symbol->id == WRITE) { fileWrite(item); return 1; }
 	if(symbol->id == CLOSE) { fileClose(item); return 1; } 
 	if(identifier()) {
-printf("factor ident: ");printString(symbol->valueStr);printf("\n");
 		object = lookUp(locList, symbol->valueStr);
 		if(object == 0) {
 			if(procedureContext->params != 0) { object = lookUp(procedureContext->params, symbol->valueStr); }
@@ -1831,11 +1807,8 @@ printf("factor ident: ");printString(symbol->valueStr);printf("\n");
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
 			result =  expression(rightItem);
-printf("[fac] nach exp\n");
 			cg_assignment(leftItem, rightItem);
-printf("[fac] nach exp1\n");
 			copyItem(item, leftItem);
-printf("[fac] nach exp2\n");
 			return result;
 		}
 		if(op()) { copyItem(item,leftItem); return 1; }		
@@ -1861,13 +1834,10 @@ bool term(struct item_t *item) {
 	struct item_t *rightItem;
 	int op; 
 
-printf("term \n");
-
 	op = OP_NONE;
 	leftItem = 0;
 	rightItem = 0;
 	while( 0 < 1 ) {
-printf(" while term \n");
 		if(factor(item)) {
 			if(leftItem == 0){
 				leftItem = malloc(sizeof(struct item_t));
@@ -1897,9 +1867,7 @@ printf(" while term \n");
 		if((symbol->id == PLUS) || (symbol->id == MINUS) || (symbol->id == OR) || 
 				compOp() || (symbol->id == RPAR) || (symbol->id == SEMCOL) || (symbol->id == COMMA) || 
 				(symbol->id == RSQBR) || (symbol->id == RCUBR) || (symbol->id == ARROW)) {
-			printf("end of term \n");
 			copyItem(item, leftItem);
-			printf("after cpy \n");
 			return 1;
 		}
 		if((symbol->id == TIMES) || (symbol->id == DIV) || (symbol->id == AND)) {
@@ -1927,8 +1895,6 @@ bool arithExp(struct item_t *item) {
 
 	op = OP_NONE;
 	minusFlag = 1;
-
-printf("arithExp\n");
 
 	if(symbol->id == MINUS) { 
 		if(hasMoreTokens() == 0) { return 0; }
@@ -1967,7 +1933,6 @@ printf("arithExp\n");
 		if(compOp() || (symbol->id == RPAR) || (symbol->id == SEMCOL) || (hasMoreTokens() == 0) || 
 			(symbol->id == COMMA) || (symbol->id == RSQBR) || (symbol->id == RCUBR) || (symbol->id == ARROW)) {
 			copyItem(item, leftItem);
-printf("end of arithexp\n");
 			return 1;
 		}
 		if((symbol->id == PLUS) || (symbol->id == MINUS) || (symbol->id == OR)) {
@@ -1989,8 +1954,6 @@ bool expression(struct item_t *item) {
 	struct item_t *leftItem;
 	struct item_t *rightItem;
 	int op; 
-
-printf("expression \n");
 
 	leftItem = 0;
 	rightItem = 0;
@@ -2025,7 +1988,6 @@ printf("expression \n");
 		if((symbol->id == RPAR) || (symbol->id == SEMCOL) || (hasMoreTokens() == 0) || 
 			(symbol->id == COMMA) || (symbol->id == RSQBR) || (symbol->id == RCUBR) || (symbol->id == ARROW)) {
 			copyItem(item, leftItem);
-printf("end of exp\n");
 			return 1;
 		}
 
@@ -2701,12 +2663,8 @@ bool procedureImplementation(struct item_t* item, string_t identifier) {
 	struct object_t* object;
 	main_str = "main";
 
-printf(" 0 proc impl. \n");
-
 	if(strCmp(identifier, main_str) == 0) { mainPos = PC + 1; }		//set jump to main method
-printf(" 1 proc impl. \n");
 	object = findProcedureObject(globList, identifier);
-printf(" 2 proc impl. \n");
 	if (object != 0) {
 		if (object->type->form != item->type->form) { printError("return type mismatch in procedure"); return 0; }
 		cg_fixLink(object->offset);
@@ -2714,14 +2672,12 @@ printf(" 2 proc impl. \n");
 		object = createObject(identifier);
 		object->class = OBJECT_CLASS_PROC;
 	}
-printf(" 3 proc impl. \n");
 	object->type->form = item->type->form;
 	object->type->size = item->type->size;
 	object->type->fields = item->type->fields;
 	object->type->base = item->type->base;
 	object->offset = PC;
 	object->scope = GLOBAL_SCOPE;
-printf(" 4 proc impl. \n");
 	formalParameters(object);
 	returnFJumpAddress = 0;
 	if (symbol->id == LCUBR) { 
@@ -2735,13 +2691,11 @@ printf(" 4 proc impl. \n");
 			return 1;
 		} else { printError("missing '{'"); return 0; }
 	}
-printf(" 5 proc impl. \n");
 	prologue(variableDeclarationSequence(object, 0) * 4);
 	procedureContext = object;
 	statementSeq();
 	cg_fixLink(returnFJumpAddress);
 	epilogue(object->value * 4);
-printf(" 6 proc impl. \n");
 	if (symbol->id == RCUBR) { 
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken(); 
@@ -2754,14 +2708,12 @@ bool formalParameters(struct object_t* object) {
 	int numberOfParameters; 
 	struct object_t* nextParameter;
 	numberOfParameters = 0;
-printf(" 0 formalParameters \n");
 	if (symbol->id == LPAR) {
 		if(hasMoreTokens() == 0) { return 0; }
 		getNextToken();
 	} 
 	else { printError("missing '('"); }
 	nextParameter = object->params;
-printf(" 1 formalParameters \n");
 	if ((symbol->id == INT) || (symbol->id == CHAR) || (symbol->id == BOOL) || identifier() || (symbol->id == STRUCT)) {
 		nextParameter = formalParameter(object, nextParameter);
 		numberOfParameters = numberOfParameters + 1;
@@ -2772,10 +2724,8 @@ printf(" 1 formalParameters \n");
 			numberOfParameters = numberOfParameters + 1;
 		}
 	}
-printf(" 2 formalParameters \n");
 	object->value = numberOfParameters;
 	nextParameter = object->params;
-printf(" 3 formalParameters ");printf(nextParameter);printf("\n");
 	while (nextParameter != 0) { 
 		numberOfParameters = numberOfParameters - 1; 
 		nextParameter->offset = numberOfParameters * 4 + 8; 
@@ -3048,8 +2998,6 @@ bool globalDec() {
 		item->offset = 0;
 		item->value = 0;
 
-		printf(" -- global dec "); printf(symbol->id); printf("\n");
-
 		while(typedefDec(globList)) {}
 		while( (typeSpec(item, globList) == 0) && (symbol->id != STRUCT) && hasMoreTokens()) {
 			printError("globalDec: typeSpec (char, int or void) expected.");
@@ -3085,7 +3033,6 @@ bool globalDec() {
 			getNextToken();			
 		}
 		if(identifier()) {
-		printf(" --------- global dec ident "); printString(symbol->valueStr); printf("\n");
 			object->name = malloc(64 * sizeof(char));
 			strnCpy(object->name, symbol->valueStr, 64);
 			strnCpy(identName, symbol->valueStr, 64);
@@ -3124,9 +3071,6 @@ bool statementSeq () {
 	struct item_t *item;
 	if(symbol->id == RCUBR) { return 1; }
 	while( 0 < 1 ) {
-
-		printf("statementSeq ");printf(symbol->id);printf("\n");
-
 		item = malloc(sizeof(struct item_t));
 		item->type = malloc(sizeof(struct type_t));
 		item->offset = 0;
@@ -3139,18 +3083,13 @@ bool statementSeq () {
 			getNextToken();
 		}
 
-	//	printf("vorm if \n");
 		if(ifCmd(item)) {} 
 		else { 
-	//		printf("kein if \n");
 			if(printMethod(item)) {}
 			else { 
-	//			printf("keine printmeth \n");
 				if(whileLoop(item)) {}
 				else { 
-	//				printf("keine while loop \n");
 					if(expression(item) || procedureReturn()) {
-printf(" im statement seq\n");
 						if(symbol->id == SEMCOL) {
 							if(hasMoreTokens() == 0) { return 0; }
 							getNextToken();

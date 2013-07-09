@@ -185,13 +185,7 @@ void cmp (int a, int b, int c) { reg[a] = reg[b] - reg[c]; pc = pc + 4; }
 
 /* memory: load and store */
 void ldw (int a, int b, int c) { reg[a] = mem[reg[b] + c/4]; pc = pc + 4; }
-void stw (int a, int b, int c) { 
-//	if( (reg[b] + c/4) < nrOfCmds ) { 
-//		printf(" ----------------------- stw (%d) %d %d %d -> %d (%d) new %d \n",ir[0],ir[1],ir[2],ir[3],(reg[b] + c/4),mem[(reg[b] + c/4)],reg[a]);
-		
-//	}
-	mem[reg[b] + c/4] = reg[a]; pc = pc + 4; 
-}
+void stw (int a, int b, int c) { mem[reg[b] + c/4] = reg[a]; pc = pc + 4; }
 
 /* stack operations */
 void pop (int a, int b, int c) { reg[a] = mem[reg[b]]; reg[b] = reg[b] + c/4; pc = pc + 4; }
@@ -225,7 +219,7 @@ void rdc (int a, int b, int c) {
 	for(i = 0; i < reg[c]; i++) { mem[ (reg[b]-i) ] = buf[i]; }
 } 
 void wrc (int a, int b, int c) { 
-	int i; char *buf = malloc(sizeof(char) * reg[c]);
+	int i; int *buf = malloc(sizeof(char) * reg[c]);
 	for(i = 0; i < (reg[c]); i++) { buf[i] =  mem[ (reg[b]-i) ]; }
 	buf[i] = '\0';
 	reg[a] = write(reg[a], buf, reg[c]); pc = pc + 4; 
@@ -246,7 +240,7 @@ void prc (int a) { printf("%c", reg[a]); pc = pc + 4; }
 /* dlx */
 void startTM(char *file) {
 	int i;
-	printf("\n\n -- start tm: %s -- \n", file);
+	printf("\n\n -- start tm: %s \n", file);
 	initTMCmd();
 	loadCode(file);
 	printf(" -- run code \n\n");

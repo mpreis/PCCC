@@ -1013,15 +1013,16 @@ void finalizeOutputFile() {
 	}
 	cg_put(CMD_TRAP,0,0,0);
 	tempBuff[0] = cg_encode(CMD_CS,	0, 0, PC);
-	printf(" -%5d- %s(%i) %i %i %i\n",(-1),getCmdName(CMD_CS), CMD_CS, 0, 0, PC);
+//	printf(" -%5d- %s(%i) %i %i %i [%d]\n",(-1),getCmdName(CMD_CS), CMD_CS, 0, 0, PC,tempBuff[0]);
 	write(out_fp_bin, tempBuff, 4); 
 
 	tempBuff[0] = cg_encode(CMD_GP,	0, 0, nrOfGVar*4);
-	printf(" -%5d- %s(%i) %i %i %i\n",(-1),getCmdName(CMD_GP), CMD_GP, 0, 0, nrOfGVar*4);
+//	printf(" -%5d- %s(%i) %i %i %i [%d]\n",(-1),getCmdName(CMD_GP), CMD_GP, 0, 0, nrOfGVar*4,tempBuff[0]);
 	write(out_fp_bin, tempBuff, 4);
 
-	tempBuff[0] = cg_encode(CMD_SP,	0, 0, nrOfStrs-1);	
-	printf(" -%5d- %s(%i) %i %i %i\n",(-1),getCmdName(CMD_SP), CMD_SP, 0, 0, nrOfStrs-1);
+	if(nrOfStrs > 0) { nrOfStrs = nrOfStrs - 1; }
+	tempBuff[0] = cg_encode(CMD_SP,	0, 0, nrOfStrs);
+//	printf(" -%5d- %s(%i) %i %i %i [%d]\n",(-1),getCmdName(CMD_SP), CMD_SP, 0, 0, nrOfStrs-1,tempBuff[0]);
 	write(out_fp_bin, tempBuff, 4); 
 
 	if(mainPos != -1) {
@@ -1030,7 +1031,7 @@ void finalizeOutputFile() {
 	} else { printError("missing main method"); }
 	i = 1;
 	while(i < PC) {
-		printf(" -%5d- %s(%i) %i %i %i\n",i,getCmdName(out_cmd_op[i]),out_cmd_op[i],out_cmd_a[i],out_cmd_b[i],out_cmd_c[i]);
+//		printf(" -%5d- %s(%i) %i %i %i [%d]\n",i,getCmdName(out_cmd_op[i]),out_cmd_op[i],out_cmd_a[i],out_cmd_b[i],out_cmd_c[i],tempBuff[0]);
 		tempBuff[0] = cg_encode(out_cmd_op[i], out_cmd_a[i], out_cmd_b[i], out_cmd_c[i]);
 		wb = write(out_fp_bin, tempBuff, 4); 
     	if ( wb != 4 ) { printf(" --- could only write ");/*printf(wb);*/printf(" byte.\n"); }
@@ -1045,8 +1046,6 @@ int cg_encode(int op, int a, int b, int c) {
 }
 
 void cg_put(int op, int a, int b, int c) {
-
-	if( op == CMD_BEQ && b == 0 && c == 0 ) { printf("PUT: %d %s \n", symbol->id, symbol->valueStr); }
 	out_cmd_op[PC] = op;
 	out_cmd_a [PC] = a;
 	out_cmd_b [PC] = b;
@@ -1190,14 +1189,12 @@ void cg_simpleExpBinOp(struct item_t *leftItem, struct item_t *rightItem, int op
 					if(op == OP_ADD) { leftItem->value = leftItem->value + rightItem->value; } 
 					else {
 						 if(op == OP_SUB) { leftItem->value = leftItem->value - rightItem->value; } 
-						else { printError("nich so gut..."); }
 					}
 				} else {
 					cg_load(leftItem);
 					if(op == OP_ADD) { cg_put(CMD_ADDI, leftItem->reg, leftItem->reg, rightItem->value); } 
 					else {
 						if(op == OP_SUB) { cg_put(CMD_SUBI, leftItem->reg, leftItem->reg, rightItem->value); } 
-						else { printError("nich so gut..."); }
 					}
 				}
 			} else {
@@ -1206,7 +1203,6 @@ void cg_simpleExpBinOp(struct item_t *leftItem, struct item_t *rightItem, int op
 				if(op == OP_ADD) { cg_put(CMD_ADD, leftItem->reg, leftItem->reg, rightItem->reg); } 
 				else {
 					if(op == OP_SUB) { cg_put(CMD_SUB, leftItem->reg, leftItem->reg, rightItem->reg); } 
-					else { printError("nich so gut..."); }
 				}
 				cg_releaseReg(rightItem->reg);
 			}
@@ -1230,14 +1226,12 @@ void cg_termOperator(struct item_t *leftItem, struct item_t *rightItem, int op) 
 				if(op == OP_MUL) { leftItem->value = leftItem->value * rightItem->value; } 
 				else {	
 					if(op == OP_DIV) { leftItem->value = leftItem->value / rightItem->value; } 
-					else { printError("nich so gut..."); }
 				}
 			} else {
 				cg_load(leftItem);
 				if(op == OP_MUL) { cg_put(CMD_MULI, leftItem->reg, leftItem->reg, rightItem->value); } 
 				else {
 					if(op == OP_DIV) { cg_put(CMD_DIVI, leftItem->reg, leftItem->reg, rightItem->value); } 
-					else { printError("nich so gut..."); }
 				}
 			}
 		} else {
@@ -1246,7 +1240,6 @@ void cg_termOperator(struct item_t *leftItem, struct item_t *rightItem, int op) 
 			if(op == OP_MUL) { cg_put(CMD_MUL, leftItem->reg, leftItem->reg, rightItem->reg); } 
 			else {
 				if(op == OP_DIV) { cg_put(CMD_DIV, leftItem->reg, leftItem->reg, rightItem->reg); } 
-				else { printError("nich so gut..."); }
 			}
 			cg_releaseReg(rightItem->reg);
 		}
@@ -2899,7 +2892,6 @@ bool globalDec() {
 			getNextToken();			
 		}
 		if(identifier()) {
-		printf(" ----------------------------------------------------------- [globalDec] SYMBOL: %d %s \n", symbol->id, symbol->valueStr);
 			object->name = malloc(64 * sizeof(char));
 			strnCpy(object->name, symbol->valueStr, 64);
 			strnCpy(identName, symbol->valueStr, 64);
@@ -2996,17 +2988,14 @@ bool programm() {
 		i = include();
 		if(i == 1) { getNextToken(); }
 	}
-printf(" [PCCC] include done.\n");
 	while(j != 0) {
 		j = structDec();
 		if(j == 1) { getNextToken(); }
 	}
-printf(" [PCCC] structDec done.\n");
 	while(k != 0) {
 		k = globalDec();
 		if(k == 1) { getNextToken(); }
 	}
-printf(" [PCCC] globalDec done.\n");
 	return i;
 }
 
@@ -3050,6 +3039,7 @@ void main(){
 	char *ofile;
 	int pc_enc;
 	sfile = "./tests/methTest.c";
+//	sfile = "./tests/arithTest.c";
 //	ofile = "./str_pccc";
 	ofile = "./my_pccc";
 

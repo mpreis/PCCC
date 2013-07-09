@@ -52,7 +52,6 @@ void encrypt(struct cryptdata_t *data) {
 		}
 		write(dfp, buf, c);
 	}
-	printf(" --- end write\n");
 	close(sfp);
 	close(dfp);
 }
