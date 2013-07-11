@@ -29,17 +29,17 @@ int *ir;		// instruction register
 /*
 	memory structure:
 
-	+-------------+<- reg[29] (mem_max)
+	+-------------+ mem_max
 	|    stack    |
 	~             ~
-	+-------------+<- sptr
+	+-------------+<- reg[29] (stack ptr)
 	|      ↓      |
 	|             |
 	|      ↑      |
 	+-------------+<- reg[30] (heap ptr)
 	~             ~
 	|    heap     |
-	+-------------+<- reg[28]
+	+-------------+<- reg[28] (global var ptr)
 	|   global    |
 	|  variables  |
 	+-------------+<- reg[27] (string ptr)
@@ -65,25 +65,26 @@ void loadMeta(FILE *fp) {
 	int *temp = malloc(4*32);
 	// read codesize
 	fread(buff,1,4,fp);
-	decode(buff[0]);
+	decodeMeta(buff[0]);
 	nrOfCmds = ir[3];
 	// read global pointer
 	fread(buff,1,4,fp);
-	decode(buff[0]);
+	decodeMeta(buff[0]);
 	int gp = ir[3]/4;
 	// read string pointer
 	fread(buff,1,4,fp);
-	decode(buff[0]);
+	decodeMeta(buff[0]);
 	int strp = ir[3];
 	// set registers
-	reg[27] = nrOfCmds + strp - 1;	/*end of commands and strings*/
+	reg[27] = nrOfCmds + strp;		/*end of commands and strings*/
 	reg[28] = reg[27] + gp;			/*end of global variables*/ 
-	reg[29] = reg[28] + 512; 		/*heap & stack*/
+	reg[29] = reg[28] + 1024000;	/*heap & stack*/
 	reg[30] = reg[28];	 			/*start of heap = end of global variables */
 	mem_max = reg[29] + 1;			/*end of memory*/
 	mem = malloc(mem_max * sizeof(int));
 
-	printf(" -- metadata loaded.\n\t(reg[27]: %i, reg[28]: %i, reg[29]: %i, reg[30]: %i, mem_mex: %i)\n",reg[27],reg[28],reg[29],reg[30], mem_max);
+	printf(" -- metadata loaded.\n");
+	printf(" -- -- (reg[27]: %i, reg[28]: %i, reg[29]: %i, reg[30]: %i, mem_mex: %i)\n",reg[27],reg[28],reg[29],reg[30], mem_max);
 }
 
 void loadCode(char *file) {
@@ -108,22 +109,18 @@ void loadCode(char *file) {
 		r = fread(buff,1,4,fp);
 		if(r != 0) mem[i] = buff[0];
 	}
-	printf(" -- cmds loaded (%i).",i);
-
 }
-
-void fetch() {
-	decode(mem[pc/4]);
-	//printf("\n -- %s(%i) %i %i %i\n", getCmdName(ir[0]),ir[0],ir[1],ir[2],ir[3]);
-}
-
+void fetch() { decode(mem[pc/4]); }
 void decode(int instruction) {
+	decodeMeta(instruction);	
+	if (ir[3] >= 32768)
+		ir[3] = ir[3] - 65536; 			// 0x10000: 2^16
+}
+void decodeMeta(int instruction) {
 	ir[0] = (instruction >> 26) & 63; 	// 0x3F: 6 lsbs
 	ir[1] = (instruction >> 21) & 31; 	// 0x1F: 5 lsbs
 	ir[2] = (instruction >> 16) & 31;	// 0x1F: 5 lsbs
 	ir[3] = instruction & 65535; 		// 0xFFFF: 16 lsbs
-	if (ir[3] >= 32768)
-	ir[3] = ir[3] - 65536; 				// 0x10000: 2^16
 }
 
 void execute() {
@@ -158,15 +155,15 @@ void execute() {
 
 	else if(ir[0] == CMD_FLO)  flo (ir[1], ir[2], ir[3]); 
 	else if(ir[0] == CMD_FLC)  flc (ir[3]); 
-	else if(ir[0] == CMD_RDC)  rdc (ir[1], ir[3]); 
-	else if(ir[0] == CMD_WRC)  wrc (ir[1], ir[3]); 
+	else if(ir[0] == CMD_RDC)  rdc (ir[1], ir[2], ir[3]); 
+	else if(ir[0] == CMD_WRC)  wrc (ir[1], ir[2], ir[3]); 
 
-	else if(ir[0] == CMD_MAL)  mal (ir[3]);
+	else if(ir[0] == CMD_MAL)  mal (ir[1], ir[2], ir[3]);
 	else if(ir[0] == CMD_PRN)  prn (ir[1]);
 	else if(ir[0] == CMD_PRC)  prc (ir[1]);
 
 	else if(ir[0] == CMD_TRAP) {}
-	else { printf("\nERROR: invalid command (%i)!\n", ir[0]); exit(1); /*pc = pc + 4;*/ }
+	else { printf("\nERROR: invalid command (%d, %d, %d, %d)!\n", ir[0], ir[1], ir[2], ir[3]); exit(1); }
 }
 
 /* immediate addressing */
@@ -183,7 +180,6 @@ void sub (int a, int b, int c) { reg[a] = reg[b] - reg[c]; pc = pc + 4; }
 void mul (int a, int b, int c) { reg[a] = reg[b] * reg[c]; pc = pc + 4; }
 void div (int a, int b, int c) { reg[a] = reg[b] / reg[c]; pc = pc + 4; }
 void cmp (int a, int b, int c) { reg[a] = reg[b] - reg[c]; pc = pc + 4; }
-/*void mod (int a, int b, int c) { reg[a] = reg[b] % reg[c]; pc = pc + 4; }	not supported! */
 
 /* memory: load and store */
 void ldw (int a, int b, int c) { reg[a] = mem[reg[b] + c/4]; pc = pc + 4; }
@@ -208,13 +204,30 @@ void jsr (int c) { reg[31] = pc + 4; pc = c; }
 void ret (int c) { pc = reg[c]; }
 
 /* i/o */
-void flo (int a, int b, int c) { reg[a] = open((char *)mem[reg[b]], reg[c]); } 
-void flc (int c) { fclose(reg[c]); } 
-void rdc (int a, int c) { fread (reg[a],4,1,reg[a]); } 
-void wrc (int a, int c) { fwrite(reg[a],4,1,reg[c]); } 
+void flo (int a, int b, int c) { 
+	int i; char *filename = malloc(sizeof(char) * 100);
+	for(i = 0; mem[ (reg[a]-i) ] != 0; i++) { filename[i] =  mem[ (reg[a]-i) ]; }
+	filename[i] = '\0';
+	reg[a] = open(filename, reg[b], reg[c]); pc = pc + 4; 
+} 
+void flc (int c) { reg[c] = close(reg[c]); pc = pc + 4; } 
+void rdc (int a, int b, int c) { 
+	int i; char *buf = malloc(sizeof(char) * reg[c]);
+	reg[a] = read (reg[a], buf, reg[c]); pc = pc + 4; 
+	for(i = 0; i < reg[c]; i++) { mem[ (reg[b]-i) ] = buf[i]; }
+} 
+void wrc (int a, int b, int c) { 
+	int i; int *buf = malloc(sizeof(char) * reg[c]);
+	for(i = 0; i < (reg[c]); i++) { buf[i] =  mem[ (reg[b]-i) ]; }
+	buf[i] = '\0';
+	reg[a] = write(reg[a], buf, reg[c]); pc = pc + 4; 
+} 
 
 /* malloc */
-void mal (int c) { reg[30] = reg[30] + reg[c]/4; reg[c] = reg[30]; pc = pc + 4; } 
+void mal (int a, int b, int c) {
+	reg[30] = reg[30] + reg[c];
+	reg[a] = reg[30]; pc = pc + 4;
+} 
 
 /* print */
 void prn (int a) { printf("%i", reg[a]); pc = pc + 4; }
@@ -223,33 +236,33 @@ void prc (int a) { printf("%c", reg[a]); pc = pc + 4; }
 /* dlx */
 void startTM(char *file) {
 	int i;
+	printf("\n\n -- start tm: %s \n", file);
 	initTMCmd();
 	loadCode(file);
-	printMemParts();
+	printf(" -- run code \n\n");
 	for(i = 0; ir[0] != CMD_TRAP; i++) {
 		fetch();
 		execute();
-		//printReg();
 	}
-	printMemParts();
 	printf("\n -- ende -- \n\n");
 }
 
 /*******************************************************************/
 /* HELPER METHODS                                                  */
 /*******************************************************************/
-printMemParts() {
+printMem() {
 	int i, k;
 	printf("\n *** MEM *** ");
 	printf("\n *** CMDS *** \n");
 	for(i = 0,k = 1; i < nrOfCmds; i++,k++) {
-		printf("%3i ",mem[i]);
-		if((k%7) == 0) printf("\n");
+		printf("%11i ",mem[i]);
+		if((k%11) == 0) printf("\n");
 	}
 	printf("\n *** STRINGS *** \n");
 	for(k=1; i <= reg[27]; i++,k++) {
-		printf("%3i ",mem[i]);
-		if((k%32) == 0) printf("\n");
+		if(mem[i] != 0)	printf("%c",mem[i]);
+		else printf("%i",mem[i]);
+		if((k%64) == 0) printf("\n");
 	}
 	printf("\n *** GLOBAL VARIABLES *** \n");
 	for(k=1; i <= reg[28]; i++,k++) {
@@ -266,12 +279,6 @@ printMemParts() {
 		printf("%3i ",mem[i]);
 		if((k%32) == 0) printf("\n");
 	}
-	printf("\n");
-}
-printMem() {
-	int i;
-	printf("MEM #: \n");
-	for(i = 0; i < mem_max; i++) printf("%2i ",mem[i]);
 	printf("\n");
 }
 

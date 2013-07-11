@@ -45,8 +45,6 @@ struct cmd_t {
 	int c;
 };
 
-typedef int bool;
-
 /******************************************************************************************/
 /************************************** targetMachine Commands ****************************/
 /******************************************************************************************/
@@ -366,6 +364,7 @@ bool statementSeq();
 bool block();
 bool programm();
 bool startParsing(char *sfile, char *ofile);
+void printString(char *str);
 /******************************************************************************************/
 
 void initTokenMapping() {
@@ -529,8 +528,8 @@ char *getCmdName(int cmd_id) {
 void main(){
 	char *sfile;
 	char *ofile;
-	sfile = "./selfcomp.c";
-	ofile = "./out_selfcomp";
+	sfile = "../selftest.c";
+	ofile = "../out_selftest";
 
 	initScanner(sfile);
 	if(fd == -1) { printError("can not open file"); }
@@ -904,7 +903,11 @@ int insert(struct object_t *head, struct object_t *obj) {
 	} else {
 		if(lookUp(head, obj->name) != 0)	{
 			errorCounter = errorCounter + 1;
-			printf("\t%s:%4i:%4i: ERROR: multible declaration of %s (found: %s/%i)\n", srcfile, symbol->lineNr, symbol->colNr, obj->name, symbol->valueStr, symbol->id);
+			printf("    ");
+			printString(srcfile); printf(":");
+			printf(symbol->lineNr);printf(":");
+			printf(symbol->colNr);printf(": ERROR: multible declaration of ");
+			printf(obj->name); printf("\n");
 			return 0;
 		}
 		ptr = head;
@@ -993,7 +996,7 @@ bool startParsing(char *sfile, char *ofile){
 	initSymbolTable();
 	initOutputFile();
 	
-	printf("\nstart parsing %s... \n", srcfile);
+	printf("\nstart parsing "); printString(srcfile); printf("...\n");
 	if ( hasMoreTokens() ) {
 		getNextToken();
 		if(symbol->id == ERROR) {
@@ -1003,8 +1006,8 @@ bool startParsing(char *sfile, char *ofile){
 		i = programm();
 	}
 	
-	if(errorCounter == 0) { finalizeOutputFile(); printf("... %s successful generated.\n", outfile); }
-	else { printf("ERROR: %d \n", errorCounter); }
+	if(errorCounter == 0) { finalizeOutputFile(); printf("... "); printString(outfile); printf(" successful generated.\n"); }
+	else { printf("ERROR: "); printf(errorCounter); printf("\n"); }
 	printf("\n -- DONE. --\n\n");
 	return i;
 }
@@ -1034,10 +1037,25 @@ bool programm() {
  * CODE GENERATION METHODS
  ************************************************************/
 void initOutputFile() {
-	int size; size = 64000;
+	int d; int size; size = 8000;
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
 	out_cmd_op = malloc(sizeof(int) * size);
+
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
 	out_cmd_a  = malloc(sizeof(int) * size);
+
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
 	out_cmd_b  = malloc(sizeof(int) * size);
+
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
+	d = malloc(sizeof(int) * size);
 	out_cmd_c  = malloc(sizeof(int) * size);
 }
 
@@ -1072,7 +1090,11 @@ void finalizeOutputFile() {
 		wb = write(out_fp_bin, tempBuff, 4); 
     	if ( wb != 4 ) { 
 			errorCounter = errorCounter + 1;
-			printf("\t%s:%4i:%4i: ERROR: could only write %d byte.\n", srcfile, symbol->lineNr, symbol->colNr, wb);
+			printf("    ");
+			printString(srcfile); printf(":");
+			printf(symbol->lineNr);printf(":");
+			printf(symbol->colNr);printf(": ERROR: could only write ");
+			printf(wb);printf(" byte.\n"); 
 		}
 		i = i + 1;
 	}
@@ -1341,10 +1363,12 @@ void cg_assignment(struct item_t *leftItem, struct item_t *rightItem) {
 				printError("Type mismatch in assignment"); 
 			}
 		} else {
-			if((leftItem->type->form != rightItem->type->form) && (rightItem->type->form != TYPE_FORM_VOID)
-				&& ( (leftItem->type->form != TYPE_FORM_INT) && (rightItem->type->form != TYPE_FORM_CHAR) )
-				&& ( (leftItem->type->form != TYPE_FORM_CHAR) && (rightItem->type->form != TYPE_FORM_INT)) ) {
-				printError("Type mismatch in assignment"); 
+			if( (leftItem->type->form != rightItem->type->form) && (rightItem->type->form != TYPE_FORM_VOID) ) {
+				if ( (leftItem->type->form != TYPE_FORM_INT) && (rightItem->type->form != TYPE_FORM_CHAR) ) {
+					if ( (leftItem->type->form != TYPE_FORM_CHAR) && (rightItem->type->form != TYPE_FORM_INT) ) {
+						printError("Type mismatch in assignment"); 
+					}
+				}
 			}
 		}
 	}
@@ -1458,9 +1482,23 @@ void cg_unloadBool(struct item_t *item) {
 /*************************************************************
  * HELP METHODS
  ************************************************************/
+void printString(char *str) {
+	int i; i = 0; 
+	while( (str[i] != 0) && (str[i] != '\0') ) { 
+		printf(str[i]); 
+		i = i + 1; 
+	}
+}
 void printError(char *msg) {
 	errorCounter = errorCounter + 1;
-	printf("\t%s:%4i:%4i: ERROR: %s (found: %s/%i)\n", srcfile, symbol->lineNr, symbol->colNr, msg, symbol->valueStr, symbol->id);
+	printf("    ");
+	printString(srcfile); printf(":");
+	printf(symbol->lineNr);printf(":");
+	printf(symbol->colNr);printf(": ERROR: ");
+	printString(msg);printf(" (found: ");
+	printString(symbol->valueStr);
+	printf("/");printf(symbol->id);printf(")\n");
+
 }
 
 /*************************************************************
@@ -1527,8 +1565,13 @@ int typeSpec(struct item_t *item, struct object_t *head) {
 			item->value = ptr->type->size;
 			return TYPE_FORM_RECORD;
 		} else {	// creates error between variable declaration sequence and statement sequence
-			if(typeWA != 0) {
-				printf("\t%s:%4i:%4i: ERROR: unknown type. (found: %s/%i)\n", srcfile, symbol->lineNr, symbol->colNr, symbol->valueStr, symbol->id);
+			if(typeWA != 0) {			
+				printf("    ");
+				printString(srcfile); printf(":");
+				printf(symbol->lineNr);printf(":");
+				printf(symbol->colNr);printf(": ERROR: unknown type.");
+				printf(" (found: "); printString(symbol->valueStr);
+				printf("/");printf(symbol->id);printf(")\n");
 			} else { typeWA = 1; }
 		}
 	}
@@ -2369,8 +2412,11 @@ int variableDeclarationSequence(struct object_t *head, int isStruct) {
 				else {
 					if(lookUp(head, object->name) != 0)	{	//check additionally, if the symbol is in de paramsList
 						errorCounter = errorCounter + 1;
-						printf("\t%s:%4i:%4i: ERROR: multible declaration of %s (found: %s/%i)\n", srcfile, symbol->lineNr, symbol->colNr, object->name, symbol->valueStr, symbol->id);
-
+						printf("    ");
+						printString(srcfile); printf(":");
+						printf(symbol->lineNr);printf(":");
+						printf(symbol->colNr);printf(": ERROR: multible declaration of ");
+						printf(object->name); printf("\n");
 					} else {
 						insert(locList, object);
 					}
@@ -2933,7 +2979,7 @@ bool globalDec() {
 		item->value = 0;
 
 		while(typedefDec(globList)) {}
-		while( (typeSpec(item, globList) == 0) && (symbol->id != STRUCT) && hasMoreTokens()) {
+		while((typeSpec(item, globList) == 0) && (symbol->id != STRUCT) && hasMoreTokens()) {
 			printError("typeSpec (char, int or void) expected.");
 			if(hasMoreTokens() == 0) { return 0; }
 			getNextToken();
@@ -3009,6 +3055,7 @@ bool statementSeq () {
 		item->type = malloc(sizeof(struct type_t));
 		item->offset = 0;
 		item->value = 0;
+
 		while( (identifier() == 0) && (number() == 0) && (symbol->id != WHILE) && (symbol->id != IF)
 				&& (symbol->id != RETURN) && (symbol->id != LPAR) && (symbol->id != ELSE) && (symbol->id != PRINTF)
 				&& (symbol->id != OPEN) && (symbol->id != CLOSE) && (symbol->id != WRITE) && (symbol->id != READ)) {

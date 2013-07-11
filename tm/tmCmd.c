@@ -94,5 +94,9 @@ char *getCmdName(id) {
 	if(id == CMD_MAL ) return "mal ";
 	if(id == CMD_PRN ) return "prn ";
 	if(id == CMD_PRC ) return "prc ";
+	if(id == CMD_FLO ) return "flo ";
+	if(id == CMD_FLC ) return "flc ";
+	if(id == CMD_WRC ) return "wrc ";
+	if(id == CMD_RDC ) return "rdc ";
 	return "unknown";
 }
